@@ -1,0 +1,188 @@
+﻿<adonisControls:AdonisWindow
+    x:Class="TwitchSongRequest.MainWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:adonisControls="clr-namespace:AdonisUI.Controls;assembly=AdonisUI"
+    xmlns:adonisUi="clr-namespace:AdonisUI;assembly=AdonisUI"
+    xmlns:cef="clr-namespace:CefSharp;assembly=CefSharp.Core"
+    xmlns:tb="http://www.hardcodet.net/taskbar"
+    xmlns:wpf="clr-namespace:CefSharp.Wpf;assembly=CefSharp.Wpf"
+    xmlns:wv2="clr-namespace:Microsoft.Web.WebView2.Wpf;assembly=Microsoft.Web.WebView2.Wpf"
+    Title="Twitch Music Song Request Bot"
+    Width="900"
+    Height="600"
+    Icon="Music.ico"
+    StateChanged="AdonisWindow_StateChanged"
+    TitleBarBackground="{StaticResource TitleGradientBrush}"
+    WindowStartupLocation="CenterScreen">
+
+    <DockPanel>
+        <tb:TaskbarIcon
+            IconSource="Music.ico"
+            ToolTipText="Twitch Song Request Bot"
+            TrayLeftMouseDown="TaskbarIcon_TrayLeftMouseDown">
+            <tb:TaskbarIcon.ContextMenu>
+                <ContextMenu Background="DarkGray">
+                    <MenuItem Click="TrayShow_Click" Header="Open" />
+                    <Separator />
+                    <MenuItem Click="TrayClose_Click" Header="Exit" />
+                </ContextMenu>
+            </tb:TaskbarIcon.ContextMenu>
+        </tb:TaskbarIcon>
+
+        <Grid DockPanel.Dock="Top">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="1*" />
+                <ColumnDefinition Width="1*" />
+                <ColumnDefinition Width="1*" />
+            </Grid.ColumnDefinitions>
+
+            <Grid Margin="8,0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="*" />
+                    <RowDefinition Height="*" />
+                    <RowDefinition Height="*" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+                <Label VerticalAlignment="Center" Content="Playback" />
+                <Button
+                    Grid.Row="1"
+                    Grid.Column="0"
+                    Width="48"
+                    Height="28"
+                    Click="Play_Click"
+                    Content="Play" />
+                <Button
+                    Grid.Row="1"
+                    Grid.Column="1"
+                    Width="48"
+                    Height="28"
+                    Click="Pause_Click"
+                    Content="Pause" />
+                <Button
+                    Grid.Row="1"
+                    Grid.Column="2"
+                    Width="48"
+                    Height="28"
+                    Click="Skip_Click"
+                    Content="Skip" />
+                <Grid
+                    Grid.Row="2"
+                    Grid.ColumnSpan="3"
+                    Margin="8,0"
+                    VerticalAlignment="Center">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <Label Content="🔊" />
+                    <Slider
+                        Grid.Column="1"
+                        Margin="8,0,8,0"
+                        Maximum="100"
+                        Minimum="0"
+                        TickFrequency="10"
+                        TickPlacement="BottomRight" />
+                    <Label Grid.Column="2" Content="100" />
+                </Grid>
+                <ComboBox
+                    Name="PlaybackDevicesComboBox"
+                    Grid.Row="3"
+                    Grid.ColumnSpan="3"
+                    Height="25"
+                    Margin="8,0" 
+                    SelectionChanged="PlaybackDevicesComboBox_SelectionChanged"/>
+            </Grid>
+
+            <UniformGrid Columns="2" Rows="3" Grid.Column="1">
+                <Label VerticalAlignment="Center" Content="Controls" />
+                <wpf:ChromiumWebBrowser
+                    x:Name="ChromeBrowser"
+                    Grid.Column="1"
+                    Address="https://www.youtube.com/embed/41VlNOyPD9U?autoplay=1"
+                    Visibility="Hidden" />
+                <Button
+                    Width="85"
+                    Height="25"
+                    Content="Clear queue" />
+                <CheckBox
+                    VerticalAlignment="Center"
+                    Content="Refund all?"/>
+                
+            </UniformGrid>
+
+            <UniformGrid
+                Grid.Column="4"
+                Columns="3"
+                Rows="5">
+                <Label VerticalAlignment="Center" Content="Twitch" />
+                <Label />
+                <Label />
+                <Button
+                    Width="75"
+                    Height="25"
+                    Content="Connect" />
+                <Label
+                    VerticalAlignment="Center"
+                    Content="Connected to"
+                    Foreground="Green" />
+                <Label VerticalAlignment="Center" Content="Vaarattu" />
+                <Button
+                    Width="75"
+                    Height="25"
+                    Content="Connect" />
+                <Label
+                    VerticalAlignment="Center"
+                    Content="Not connected"
+                    Foreground="Yellow" />
+                <Label />
+                <Label VerticalAlignment="Center" Content="Spotify" />
+                <Label />
+                <Label />
+                <Button
+                    Width="75"
+                    Height="25"
+                    Content="Connect" />
+                <Label
+                    VerticalAlignment="Center"
+                    Content="Disconnected"
+                    Foreground="Red" />
+                <Label VerticalAlignment="Center" Content="Vaarattu" />
+            </UniformGrid>
+        </Grid>
+
+        <ListView
+            Name="SongRequestsListView"
+            Grid.Row="1"
+            Margin="10"
+            SizeChanged="SongRequestsListView_SizeChanged">
+            <ListView.View>
+                <GridView>
+                    <GridViewColumn
+                        Width="Auto"
+                        DisplayMemberBinding="{Binding SongName}"
+                        Header="Name" />
+                    <GridViewColumn
+                        Width="Auto"
+                        DisplayMemberBinding="{Binding Requester}"
+                        Header="Requester" />
+                    <GridViewColumn
+                        Width="Auto"
+                        DisplayMemberBinding="{Binding Url}"
+                        Header="Url" />
+                    <GridViewColumn
+                        Width="Auto"
+                        DisplayMemberBinding="{Binding Platform}"
+                        Header="Platform" />
+                </GridView>
+            </ListView.View>
+        </ListView>
+    </DockPanel>
+
+</adonisControls:AdonisWindow>
