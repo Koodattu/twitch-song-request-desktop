@@ -5,6 +5,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Collections;
 using TwitchSongRequest.Model;
+using System.Threading.Tasks;
 
 namespace TwitchSongRequest
 {
@@ -58,18 +59,20 @@ namespace TwitchSongRequest
         private void CreateMockQueue()
         {
             Queue queue = new Queue();
-            for (int i = 0; i < 10; i++) 
+            for (int i = 0; i < 20; i++) 
             {
                 SongRequest songRequest = new SongRequest
                 {
-                    SongName = "SONG NAME",
-                    Requester = "REQUESTER NAME",
-                    Url = "SONG URL",
+                    SongName = "SONG NAME SONG NAME" + i,
+                    Requester = "REQUESTER NAME" + i,
+                    Url = "https://www.youtube.com/embed/41VlNOyPD9U" + i,
+                    Duration = i * 100,
                     Platform = i % 2 == 0 ? SongRequestPlatform.SPOTIFY : SongRequestPlatform.YOUTUBE
                 };
                 queue.Enqueue(songRequest);
             }
             SongRequestsListView.ItemsSource = queue;
+            SongRequestsHistoryListView.ItemsSource = queue;
         }
 
         private void AdonisWindow_StateChanged(object sender, System.EventArgs e)
@@ -105,10 +108,29 @@ namespace TwitchSongRequest
             ListView listView = (ListView)sender;
             GridView gView = (GridView)listView.View;
 
-            gView.Columns[0].Width = listView.ActualWidth * 0.25;
-            gView.Columns[1].Width = listView.ActualWidth * 0.25;
-            gView.Columns[2].Width = listView.ActualWidth * 0.25;
-            gView.Columns[3].Width = listView.ActualWidth * 0.25;
+            int size = 15;
+
+            gView.Columns[0].Width = listView.ActualWidth * 0.25 - size;
+            gView.Columns[1].Width = listView.ActualWidth * 0.10 - size;
+            gView.Columns[2].Width = listView.ActualWidth * 0.25 - size;
+            gView.Columns[3].Width = listView.ActualWidth * 0.20 - size;
+            gView.Columns[4].Width = listView.ActualWidth * 0.20 - size;
+            gView.Columns[5].Width = size * 5;
+        }
+
+        private void SongRequestsHistoryListView_SizeChanged(object sender, SizeChangedEventArgs e)
+        {
+            ListView listView = (ListView)sender;
+            GridView gView = (GridView)listView.View;
+
+            int size = 15;
+
+            gView.Columns[0].Width = listView.ActualWidth * 0.25 - size;
+            gView.Columns[1].Width = listView.ActualWidth * 0.10 - size;
+            gView.Columns[2].Width = listView.ActualWidth * 0.25 - size;
+            gView.Columns[3].Width = listView.ActualWidth * 0.20 - size;
+            gView.Columns[4].Width = listView.ActualWidth * 0.20 - size;
+            gView.Columns[5].Width = size * 5;
         }
 
         private void Play_Click(object sender, RoutedEventArgs e)
@@ -121,7 +143,7 @@ namespace TwitchSongRequest
             ChromeBrowser.ExecuteScriptAsync("document.querySelector('video').pause();");
         }
 
-        private async void PlaybackDevicesComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        private void PlaybackDevicesComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             if (ChromeBrowser.CanExecuteJavascriptInMainFrame)
             {
@@ -131,7 +153,11 @@ namespace TwitchSongRequest
 
         private async void ChangePlaybackDevice(string device)
         {
-            var x = await ChromeBrowser.EvaluateScriptAsPromiseAsync($@"
+            string currentAddress = string.Empty;
+            ChromeBrowser.Dispatcher.Invoke(() => currentAddress = ChromeBrowser.Address);
+            if (currentAddress.ToLower().Contains("youtube"))
+            {
+                var result = await ChromeBrowser.EvaluateScriptAsPromiseAsync($@"
                     const videoElement = document.getElementsByTagName('video')[0];
                     console.log(videoElement);
                     const audioDevices = await navigator.mediaDevices.enumerateDevices();
@@ -142,11 +168,29 @@ namespace TwitchSongRequest
                         videoElement.setSinkId(desiredDevice.deviceId);
                     }}
                     ");
+            }
         }
 
-        private void Skip_Click(object sender, RoutedEventArgs e)
+        private async void SetChromeVideoVolume(double volume)
         {
+            var result = await ChromeBrowser.EvaluateScriptAsync($"document.querySelector('video').volume = {volume};");
+        }
 
+        private async void SetChromeVideoPosition(int seconds)
+        {
+            var result = await ChromeBrowser.EvaluateScriptAsync($"document.querySelector('video').currentTime = {seconds};");
+        }
+
+        private async Task<int> GetChromeVideoDuration()
+        {
+            var result = await ChromeBrowser.EvaluateScriptAsync($"document.querySelector('video').duration;");
+            var duration = int.Parse(result.Result.ToString());
+            return duration;
+        }
+
+        private async void Skip_Click(object sender, RoutedEventArgs e)
+        {
+            ChromeBrowser.Address = "https://www.youtube.com/embed/41VlNOyPD9U?autoplay=1";
         }
     }
 }

@@ -5,6 +5,7 @@
     xmlns:adonisControls="clr-namespace:AdonisUI.Controls;assembly=AdonisUI"
     xmlns:adonisUi="clr-namespace:AdonisUI;assembly=AdonisUI"
     xmlns:cef="clr-namespace:CefSharp;assembly=CefSharp.Core"
+    xmlns:converters="clr-namespace:TwitchSongRequest.Converters"
     xmlns:tb="http://www.hardcodet.net/taskbar"
     xmlns:wpf="clr-namespace:CefSharp.Wpf;assembly=CefSharp.Wpf"
     xmlns:wv2="clr-namespace:Microsoft.Web.WebView2.Wpf;assembly=Microsoft.Web.WebView2.Wpf"
@@ -16,7 +17,18 @@
     TitleBarBackground="{StaticResource TitleGradientBrush}"
     WindowStartupLocation="CenterScreen">
 
-    <DockPanel>
+    <Window.Resources>
+        <converters:MmSsFormatConverter x:Key="MmSsConverter" />
+    </Window.Resources>
+
+    <Grid>
+
+        <Grid.RowDefinitions>
+            <RowDefinition Height="150" />
+            <RowDefinition Height="3*" />
+            <RowDefinition Height="2*" />
+        </Grid.RowDefinitions>
+
         <tb:TaskbarIcon
             IconSource="Music.ico"
             ToolTipText="Twitch Song Request Bot"
@@ -30,7 +42,13 @@
             </tb:TaskbarIcon.ContextMenu>
         </tb:TaskbarIcon>
 
-        <Grid DockPanel.Dock="Top">
+        <wpf:ChromiumWebBrowser
+            x:Name="ChromeBrowser"
+            Grid.Column="1"
+            Address="about:blank"
+            Visibility="Hidden" />
+
+        <Grid>
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="1*" />
                 <ColumnDefinition Width="1*" />
@@ -48,8 +66,9 @@
                     <RowDefinition Height="*" />
                     <RowDefinition Height="*" />
                     <RowDefinition Height="*" />
+                    <RowDefinition Height="*" />
                 </Grid.RowDefinitions>
-                <Label VerticalAlignment="Center" Content="Playback" />
+                <Label VerticalAlignment="Center" Content="Controls" />
                 <Button
                     Grid.Row="1"
                     Grid.Column="0"
@@ -77,112 +96,303 @@
                     Margin="8,0"
                     VerticalAlignment="Center">
                     <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="30" />
                         <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="30" />
                     </Grid.ColumnDefinitions>
                     <Label Content="🔊" />
                     <Slider
+                        x:Name="volumeSlider"
                         Grid.Column="1"
                         Margin="8,0,8,0"
                         Maximum="100"
                         Minimum="0"
                         TickFrequency="10"
-                        TickPlacement="BottomRight" />
-                    <Label Grid.Column="2" Content="100" />
+                        TickPlacement="BottomRight"
+                        Value="100" />
+                    <TextBlock Grid.Column="2" Text="{Binding ElementName=volumeSlider, Path=Value, StringFormat={}{0:N0}}" />
+                </Grid>
+                <Grid
+                    Grid.Row="3"
+                    Grid.ColumnSpan="3"
+                    Margin="16,0"
+                    VerticalAlignment="Center">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="30" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="30" />
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Text="{Binding ElementName=songPositionSlider, Path=Value, Converter={StaticResource MmSsConverter}}" />
+                    <Slider
+                        x:Name="songPositionSlider"
+                        Grid.Column="1"
+                        Margin="8,0,8,0"
+                        Maximum="360"
+                        Minimum="0"
+                        Value="100" />
+                    <TextBlock Grid.Column="2" Text="10:00" />
                 </Grid>
                 <ComboBox
                     Name="PlaybackDevicesComboBox"
-                    Grid.Row="3"
+                    Grid.Row="4"
                     Grid.ColumnSpan="3"
                     Height="25"
-                    Margin="8,0" 
-                    SelectionChanged="PlaybackDevicesComboBox_SelectionChanged"/>
+                    Margin="8,0"
+                    SelectionChanged="PlaybackDevicesComboBox_SelectionChanged" />
             </Grid>
 
-            <UniformGrid Columns="2" Rows="3" Grid.Column="1">
-                <Label VerticalAlignment="Center" Content="Controls" />
-                <wpf:ChromiumWebBrowser
-                    x:Name="ChromeBrowser"
+            <Grid Grid.Column="1">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="1*" />
+                    <ColumnDefinition Width="2*" />
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="2*" />
+                    <RowDefinition Height="1*" />
+                    <RowDefinition Height="1*" />
+                    <RowDefinition Height="1*" />
+                    <RowDefinition Height="1*" />
+                    <RowDefinition Height="1*" />
+                    <RowDefinition Height="1*" />
+                </Grid.RowDefinitions>
+
+                <Label VerticalAlignment="Center" Content="Playback" />
+
+
+                <Label
+                    Grid.Row="1"
+                    VerticalAlignment="Center"
+                    Content="Status" />
+                <Label
+                    Grid.Row="1"
                     Grid.Column="1"
-                    Address="https://www.youtube.com/embed/41VlNOyPD9U?autoplay=1"
-                    Visibility="Hidden" />
+                    VerticalAlignment="Center"
+                    Content="Playing" />
+
+                <Label
+                    Grid.Row="2"
+                    VerticalAlignment="Center"
+                    Content="Current song" />
+                <Label
+                    Grid.Row="2"
+                    Grid.Column="1"
+                    VerticalAlignment="Center"
+                    Content="SONG NAME HERE" />
+
+                <Label
+                    Grid.Row="3"
+                    VerticalAlignment="Center"
+                    Content="Duration" />
+                <Label
+                    Grid.Row="3"
+                    Grid.Column="1"
+                    VerticalAlignment="Center"
+                    Content="05:00" />
+
+                <Label
+                    Grid.Row="4"
+                    VerticalAlignment="Center"
+                    Content="Requester" />
+                <Label
+                    Grid.Row="4"
+                    Grid.Column="1"
+                    VerticalAlignment="Center"
+                    Content="deapfoo" />
+
+                <Label
+                    Grid.Row="5"
+                    VerticalAlignment="Center"
+                    Content="Link" />
+                <Label
+                    Grid.Row="5"
+                    Grid.Column="1"
+                    VerticalAlignment="Center"
+                    Content="https://youtube.com/watch?v=gg564dfg6" />
+
+                <Label
+                    Grid.Row="6"
+                    VerticalAlignment="Center"
+                    Content="Platform" />
+                <Label
+                    Grid.Row="6"
+                    Grid.Column="1"
+                    VerticalAlignment="Center"
+                    Content="Youtube" />
+            </Grid>
+
+            <Grid Grid.Column="2">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="2*" />
+                    <RowDefinition Height="1*" />
+                    <RowDefinition Height="1*" />
+                    <RowDefinition Height="1*" />
+                    <RowDefinition Height="2*" />
+                </Grid.RowDefinitions>
+
+                <Label VerticalAlignment="Center" Content="Settings" />
+
                 <Button
+                    Grid.Column="2"
                     Width="85"
                     Height="25"
-                    Content="Clear queue" />
-                <CheckBox
-                    VerticalAlignment="Center"
-                    Content="Refund all?"/>
-                
-            </UniformGrid>
+                    Margin="16,0"
+                    HorizontalAlignment="Right"
+                    Content="Setup" />
 
-            <UniformGrid
-                Grid.Column="4"
-                Columns="3"
-                Rows="5">
-                <Label VerticalAlignment="Center" Content="Twitch" />
-                <Label />
-                <Label />
-                <Button
-                    Width="75"
-                    Height="25"
-                    Content="Connect" />
                 <Label
+                    Grid.Row="1"
                     VerticalAlignment="Center"
-                    Content="Connected to"
-                    Foreground="Green" />
-                <Label VerticalAlignment="Center" Content="Vaarattu" />
-                <Button
-                    Width="75"
-                    Height="25"
-                    Content="Connect" />
+                    Content="Twitch Broadcaster" />
                 <Label
+                    Grid.Row="1"
+                    Grid.Column="1"
+                    VerticalAlignment="Center"
+                    Content="Connected"
+                    Foreground="Green" />
+
+                <Label
+                    Grid.Row="2"
+                    VerticalAlignment="Center"
+                    Content="Twitch Bot" />
+                <Label
+                    Grid.Row="2"
+                    Grid.Column="1"
                     VerticalAlignment="Center"
                     Content="Not connected"
                     Foreground="Yellow" />
-                <Label />
-                <Label VerticalAlignment="Center" Content="Spotify" />
-                <Label />
-                <Label />
-                <Button
-                    Width="75"
-                    Height="25"
-                    Content="Connect" />
+
                 <Label
+                    Grid.Row="3"
+                    VerticalAlignment="Center"
+                    Content="Spotify" />
+                <Label
+                    Grid.Row="3"
+                    Grid.Column="1"
                     VerticalAlignment="Center"
                     Content="Disconnected"
                     Foreground="Red" />
-                <Label VerticalAlignment="Center" Content="Vaarattu" />
-            </UniformGrid>
+
+            </Grid>
+
         </Grid>
 
-        <ListView
-            Name="SongRequestsListView"
-            Grid.Row="1"
-            Margin="10"
-            SizeChanged="SongRequestsListView_SizeChanged">
-            <ListView.View>
-                <GridView>
-                    <GridViewColumn
-                        Width="Auto"
-                        DisplayMemberBinding="{Binding SongName}"
-                        Header="Name" />
-                    <GridViewColumn
-                        Width="Auto"
-                        DisplayMemberBinding="{Binding Requester}"
-                        Header="Requester" />
-                    <GridViewColumn
-                        Width="Auto"
-                        DisplayMemberBinding="{Binding Url}"
-                        Header="Url" />
-                    <GridViewColumn
-                        Width="Auto"
-                        DisplayMemberBinding="{Binding Platform}"
-                        Header="Platform" />
-                </GridView>
-            </ListView.View>
-        </ListView>
-    </DockPanel>
+        <DockPanel Grid.Row="1">
+            <DockPanel DockPanel.Dock="Top">
+                <Label
+                    Margin="8,0"
+                    VerticalAlignment="Bottom"
+                    Content="Queue" />
+                <StackPanel HorizontalAlignment="Right" Orientation="Horizontal">
+                    <CheckBox Content="Refund all?" />
+                    <Button
+                        Width="85"
+                        Height="25"
+                        Margin="16,0"
+                        Content="Clear queue" />
+                </StackPanel>
+            </DockPanel>
+
+
+            <ListView
+                Name="SongRequestsListView"
+                Margin="10"
+                ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                SizeChanged="SongRequestsListView_SizeChanged">
+                <ListView.View>
+                    <GridView AllowsColumnReorder="False">
+                        <GridView.ColumnHeaderContainerStyle>
+                            <Style BasedOn="{StaticResource {x:Type GridViewColumnHeader}}" TargetType="{x:Type GridViewColumnHeader}">
+                                <Setter Property="IsHitTestVisible" Value="False" />
+                            </Style>
+                        </GridView.ColumnHeaderContainerStyle>
+                        <GridViewColumn
+                            Width="Auto"
+                            DisplayMemberBinding="{Binding SongName}"
+                            Header="Name" />
+                        <GridViewColumn
+                            Width="Auto"
+                            DisplayMemberBinding="{Binding Duration, Converter={StaticResource MmSsConverter}}"
+                            Header="Duration" />
+                        <GridViewColumn
+                            Width="Auto"
+                            DisplayMemberBinding="{Binding Requester}"
+                            Header="Requester" />
+                        <GridViewColumn
+                            Width="Auto"
+                            DisplayMemberBinding="{Binding Url}"
+                            Header="Url" />
+                        <GridViewColumn
+                            Width="Auto"
+                            DisplayMemberBinding="{Binding Platform}"
+                            Header="Platform" />
+                        <GridViewColumn Width="Auto" Header="">
+                            <GridViewColumn.CellTemplate>
+                                <DataTemplate>
+                                    <Button Background="Red" Content="🗑️" />
+                                </DataTemplate>
+                            </GridViewColumn.CellTemplate>
+                        </GridViewColumn>
+                    </GridView>
+                </ListView.View>
+            </ListView>
+        </DockPanel>
+
+        <DockPanel Grid.Row="2">
+            <Label
+                Margin="8,0"
+                Content="History"
+                DockPanel.Dock="Top" />
+            <ListView
+                Name="SongRequestsHistoryListView"
+                Grid.Row="2"
+                Margin="10"
+                ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                SizeChanged="SongRequestsHistoryListView_SizeChanged">
+                <ListView.View>
+                    <GridView AllowsColumnReorder="False">
+                        <GridView.ColumnHeaderContainerStyle>
+                            <Style BasedOn="{StaticResource {x:Type GridViewColumnHeader}}" TargetType="{x:Type GridViewColumnHeader}">
+                                <Setter Property="IsHitTestVisible" Value="False" />
+                            </Style>
+                        </GridView.ColumnHeaderContainerStyle>
+                        <GridViewColumn
+                            Width="Auto"
+                            DisplayMemberBinding="{Binding SongName}"
+                            Header="Name" />
+                        <GridViewColumn
+                            Width="Auto"
+                            DisplayMemberBinding="{Binding Duration, Converter={StaticResource MmSsConverter}}"
+                            Header="Duration" />
+                        <GridViewColumn
+                            Width="Auto"
+                            DisplayMemberBinding="{Binding Requester}"
+                            Header="Requester" />
+                        <GridViewColumn
+                            Width="Auto"
+                            DisplayMemberBinding="{Binding Url}"
+                            Header="Url" />
+                        <GridViewColumn
+                            Width="Auto"
+                            DisplayMemberBinding="{Binding Platform}"
+                            Header="Platform" />
+                        <GridViewColumn Width="Auto" Header="">
+                            <GridViewColumn.CellTemplate>
+                                <DataTemplate>
+                                    <Button
+                                        Background="Cyan"
+                                        Content="🔄"
+                                        Foreground="Black" />
+                                </DataTemplate>
+                            </GridViewColumn.CellTemplate>
+                        </GridViewColumn>
+                    </GridView>
+                </ListView.View>
+            </ListView>
+        </DockPanel>
+    </Grid>
 
 </adonisControls:AdonisWindow>
