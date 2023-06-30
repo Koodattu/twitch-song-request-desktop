@@ -6,6 +6,7 @@ using System.Windows.Controls;
 using System.Collections;
 using TwitchSongRequest.Model;
 using System.Threading.Tasks;
+using TwitchSongRequest.Services;
 
 namespace TwitchSongRequest
 {
@@ -123,7 +124,7 @@ namespace TwitchSongRequest
             ListView listView = (ListView)sender;
             GridView gView = (GridView)listView.View;
 
-            int size = 15;
+            int size = 22;
 
             gView.Columns[0].Width = listView.ActualWidth * 0.25 - size;
             gView.Columns[1].Width = listView.ActualWidth * 0.10 - size;
@@ -191,6 +192,16 @@ namespace TwitchSongRequest
         private async void Skip_Click(object sender, RoutedEventArgs e)
         {
             ChromeBrowser.Address = "https://www.youtube.com/embed/41VlNOyPD9U?autoplay=1";
+        }
+
+        private async void Button_Click(object sender, RoutedEventArgs e)
+        {
+            SetupGrid.Visibility = Visibility.Visible;
+            //SetupGrid.Visibility = Visibility.Collapsed;
+            /*
+            ITwitchAuthenticationService service = new TwitchAuthenticationService();
+            TwitchAccessToken twitchAccessToken = await service.GetTwitchOAuthToken("3okampa6vvn9vq2l38rz7un83z3w56", "466f8l8llfop12tbsc4phuzzs0c0fe", "user:read:email");
+            */
         }
     }
 }
