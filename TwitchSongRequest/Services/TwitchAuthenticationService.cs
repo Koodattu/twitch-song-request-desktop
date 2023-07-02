@@ -22,7 +22,7 @@ namespace TwitchSongRequest.Services
         Task<TwitchAccessToken> ITwitchAuthenticationService.GetTwitchOAuthToken(string twitchClientId, string twitchClientSecret, string scopes)
         {
             // Open the browser window for authorization
-            string authorizationUrl = $"https://id.twitch.tv/oauth2/authorize?client_id={twitchClientId}&redirect_uri={Uri.EscapeUriString(RedirectUri)}&response_type=code&scope={Uri.EscapeUriString(scopes)}";
+            string authorizationUrl = $"https://id.twitch.tv/oauth2/authorize?client_id={twitchClientId}&redirect_uri={Uri.EscapeDataString(RedirectUri)}&response_type=code&scope={Uri.EscapeDataString(scopes)}";
             Process.Start(new ProcessStartInfo(authorizationUrl) { UseShellExecute = true });
 
             // Start the local HTTP server to handle the redirect

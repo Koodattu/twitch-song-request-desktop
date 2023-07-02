@@ -6,7 +6,8 @@ using System.Windows.Controls;
 using System.Collections;
 using TwitchSongRequest.Model;
 using System.Threading.Tasks;
-using TwitchSongRequest.Services;
+using TwitchSongRequest.ViewModel;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace TwitchSongRequest
 {
@@ -18,11 +19,17 @@ namespace TwitchSongRequest
         public MainWindow()
         {
             InitializeComponent();
+            //DataContext = App.Current.Services.GetService<MainWindowViewModel>();
+            //DataContext = new MainWindowViewModel();
+            /*
             CreateMockQueue();
             GetPlaybackDevices();
             ChromeBrowser.LoadingStateChanged += ChromeBrowser_LoadingStateChanged;
             ChromeBrowser.ConsoleMessage += ChromeBrowser_ConsoleMessage;
+            */
         }
+
+        //internal MainWindowViewModel ViewModel => (MainWindowViewModel)DataContext;
 
         private void ChromeBrowser_ConsoleMessage(object? sender, ConsoleMessageEventArgs e)
         {
@@ -39,10 +46,10 @@ namespace TwitchSongRequest
         {
             if (!e.IsLoading)
             {
-                ChangePlaybackDevice(playbackDevice);
+                //ChangePlaybackDevice(playbackDevice);
             }
         }
-
+        /*
         private void GetPlaybackDevices()
         {
             using (var devices = new MMDeviceEnumerator())
@@ -75,7 +82,7 @@ namespace TwitchSongRequest
             SongRequestsListView.ItemsSource = queue;
             SongRequestsHistoryListView.ItemsSource = queue;
         }
-
+        */
         private void AdonisWindow_StateChanged(object sender, System.EventArgs e)
         {
             if (this.WindowState == WindowState.Minimized)
@@ -133,7 +140,7 @@ namespace TwitchSongRequest
             gView.Columns[4].Width = listView.ActualWidth * 0.20 - size;
             gView.Columns[5].Width = size * 5;
         }
-
+        /*
         private void Play_Click(object sender, RoutedEventArgs e)
         {
             ChromeBrowser.ExecuteScriptAsync("document.querySelector('video').play();");
@@ -193,15 +200,16 @@ namespace TwitchSongRequest
         {
             ChromeBrowser.Address = "https://www.youtube.com/embed/41VlNOyPD9U?autoplay=1";
         }
-
+        */
         private async void Button_Click(object sender, RoutedEventArgs e)
         {
-            SetupGrid.Visibility = Visibility.Visible;
+            //SetupGrid.Visibility = Visibility.Visible;
             //SetupGrid.Visibility = Visibility.Collapsed;
             /*
             ITwitchAuthenticationService service = new TwitchAuthenticationService();
             TwitchAccessToken twitchAccessToken = await service.GetTwitchOAuthToken("3okampa6vvn9vq2l38rz7un83z3w56", "466f8l8llfop12tbsc4phuzzs0c0fe", "user:read:email");
             */
         }
+    
     }
 }
