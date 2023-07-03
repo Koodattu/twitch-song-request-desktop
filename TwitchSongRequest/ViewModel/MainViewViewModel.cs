@@ -1,5 +1,6 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Microsoft.Extensions.DependencyInjection;
 using NAudio.CoreAudioApi;
 using System.Collections.ObjectModel;
 using System.Windows.Input;
@@ -10,22 +11,8 @@ namespace TwitchSongRequest.ViewModel
     {
         public MainViewViewModel()
         {
-            _chromeBrowserViewModel = new();
-            _setupViewModel = new();
             OpenSetupCommand = new RelayCommand(OpenSetup);
             GetPlaybackDevices();
-        }
-
-        private ChromeBrowserViewModel _chromeBrowserViewModel;
-        public ChromeBrowserViewModel ChromeBrowserViewModel
-        {
-            get => _chromeBrowserViewModel;
-        }
-
-        private SetupViewModel _setupViewModel;
-        public SetupViewModel SetupViewModel
-        {
-            get => _setupViewModel;
         }
 
         private bool _isSetupOpen;
@@ -45,7 +32,7 @@ namespace TwitchSongRequest.ViewModel
             set
             {
                 SetProperty(ref _playbackDevice, value);
-                ChromeBrowserViewModel.ChangePlaybackDevice(value);
+                App.Current.Services.GetService<ChromeBrowserViewModel>()?.ChangePlaybackDevice(value);
             }
         }
 

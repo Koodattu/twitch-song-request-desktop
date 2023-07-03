@@ -20,12 +20,7 @@
     WindowStartupLocation="CenterScreen"
     mc:Ignorable="d">
 
-    <Window.DataContext>
-        <viewModels:MainWindowViewModel />
-    </Window.DataContext>
-
     <Grid>
-
         <tb:TaskbarIcon
             IconSource="Assets/Cassette.ico"
             ToolTipText="Twitch Song Request Bot: Currently Playing: SONG NAME"

@@ -34,6 +34,9 @@ namespace TwitchSongRequest
             // ViewModels
             //services.AddTransient<MainWindowViewModel>();
             services.AddSingleton<MainWindowViewModel>();
+            services.AddSingleton<MainViewViewModel>();
+            services.AddSingleton<ChromeBrowserViewModel>();
+            services.AddSingleton<SetupViewModel>();
 
             return services.BuildServiceProvider();
         }

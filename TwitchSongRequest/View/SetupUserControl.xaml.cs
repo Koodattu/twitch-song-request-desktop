@@ -1,4 +1,6 @@
-﻿using System.Windows.Controls;
+﻿using Microsoft.Extensions.DependencyInjection;
+using System.Windows.Controls;
+using TwitchSongRequest.ViewModel;
 
 namespace TwitchSongRequest.View
 {
@@ -10,6 +12,7 @@ namespace TwitchSongRequest.View
         public SetupUserControl()
         {
             InitializeComponent();
+            DataContext = App.Current.Services.GetService<SetupViewModel>();
         }
     }
 }

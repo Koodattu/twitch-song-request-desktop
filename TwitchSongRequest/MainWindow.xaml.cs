@@ -1,7 +1,9 @@
 ﻿using AdonisUI.Controls;
 using CefSharp;
+using Microsoft.Extensions.DependencyInjection;
 using System.Windows;
 using System.Windows.Controls;
+using TwitchSongRequest.ViewModel;
 
 namespace TwitchSongRequest
 {
@@ -13,6 +15,7 @@ namespace TwitchSongRequest
         public MainWindow()
         {
             InitializeComponent();
+            DataContext = App.Current.Services.GetService<MainWindowViewModel>();
         }
 
         private void AdonisWindow_StateChanged(object sender, System.EventArgs e)
