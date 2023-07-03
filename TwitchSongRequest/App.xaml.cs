@@ -19,7 +19,6 @@ namespace TwitchSongRequest
         public App()
         {
             Services = ConfigureServices();
-            //this.InitializeComponent();
             var settings = new CefSettings();
             settings.CefCommandLineArgs["autoplay-policy"] = "no-user-gesture-required";
             Cef.Initialize(settings, true, browserProcessHandler: null);
@@ -33,7 +32,8 @@ namespace TwitchSongRequest
             services.AddSingleton<ITwitchAuthenticationService, TwitchAuthenticationService>();
 
             // ViewModels
-            services.AddTransient<MainWindowViewModel>();
+            //services.AddTransient<MainWindowViewModel>();
+            services.AddSingleton<MainWindowViewModel>();
 
             return services.BuildServiceProvider();
         }

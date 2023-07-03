@@ -17,6 +17,11 @@
     </UserControl.DataContext>
 
     <UserControl.Resources>
+
+        <DataTemplate DataType="{x:Type viewModels:ChromeBrowserViewModel}">
+            <views:ChromeBrowserUserControl />
+        </DataTemplate>
+
         <converters:MmSsFormatConverter x:Key="MmSsConverter" />
     </UserControl.Resources>
 
@@ -28,8 +33,6 @@
             <RowDefinition Height="Auto" />
             <RowDefinition Height="2*" />
         </Grid.RowDefinitions>
-
-        <ContentControl Content="{Binding ChromeBrowser}" />
 
         <Grid>
             <Grid.ColumnDefinitions>
@@ -91,7 +94,9 @@
                     Grid.Row="2"
                     Grid.ColumnSpan="3"
                     Height="25"
-                    Margin="8,0" />
+                    Margin="8,0"
+                    ItemsSource="{Binding PlaybackDevices}"
+                    SelectedItem="{Binding PlaybackDevice}" />
             </Grid>
 
             <Grid Grid.Column="1" Margin="8">
@@ -206,7 +211,8 @@
                     Height="25"
                     Margin="16,0"
                     HorizontalAlignment="Right"
-                    Content="Setup" />
+                    Content="Setup" 
+                    Command="{Binding OpenSetupCommand, Mode=OneTime}"/>
 
                 <Label
                     Grid.Row="2"
@@ -267,7 +273,8 @@
             <ListView
                 Name="SongRequestsListView"
                 Margin="16,8"
-                ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                SizeChanged="SongRequestsListView_SizeChanged">
                 <ListView.View>
                     <GridView AllowsColumnReorder="False">
                         <GridView.ColumnHeaderContainerStyle>
@@ -330,7 +337,8 @@
                 Name="SongRequestsHistoryListView"
                 Grid.Row="2"
                 Margin="16,8"
-                ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                SizeChanged="SongRequestsHistoryListView_SizeChanged">
                 <ListView.View>
                     <GridView AllowsColumnReorder="False">
                         <GridView.ColumnHeaderContainerStyle>
@@ -382,10 +390,12 @@
         <Grid
             x:Name="SetupGrid"
             Grid.RowSpan="4"
-            Visibility="Collapsed">
+            Visibility="{Binding IsSetupOpen, Converter={StaticResource BoolToVisConverter}, FallbackValue=Hidden}">
             <views:SetupUserControl />
         </Grid>
 
+
+        <ContentControl Content="{Binding ChromeBrowserViewModel, Mode=OneTime}" />
 
     </Grid>
 </UserControl>
