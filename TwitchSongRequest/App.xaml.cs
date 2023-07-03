@@ -30,6 +30,7 @@ namespace TwitchSongRequest
 
             // Services
             services.AddSingleton<ITwitchAuthenticationService, TwitchAuthenticationService>();
+            services.AddSingleton<IAppSettingsService, AppSettingsService>();
 
             // ViewModels
             //services.AddTransient<MainWindowViewModel>();

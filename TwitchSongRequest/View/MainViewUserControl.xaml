@@ -380,8 +380,7 @@
 
         <Grid
             x:Name="SetupGrid"
-            Grid.RowSpan="4"
-            Visibility="{Binding IsSetupOpen, Converter={StaticResource BoolToVisConverter}, FallbackValue=Hidden}">
+            Grid.RowSpan="4">
             <views:SetupUserControl />
         </Grid>
 

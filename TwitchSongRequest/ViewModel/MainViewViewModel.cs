@@ -15,16 +15,6 @@ namespace TwitchSongRequest.ViewModel
             GetPlaybackDevices();
         }
 
-        private bool _isSetupOpen;
-        public bool IsSetupOpen
-        {
-            get => _isSetupOpen;
-            set
-            {
-                SetProperty(ref _isSetupOpen, value);
-            }
-        }
-
         private string _playbackDevice;
         public string PlaybackDevice
         {
@@ -44,7 +34,7 @@ namespace TwitchSongRequest.ViewModel
         }
 
         public ICommand OpenSetupCommand { get; }
-        private void OpenSetup() => IsSetupOpen = true;
+        private void OpenSetup() => App.Current.Services.GetService<SetupViewModel>()?.OpenSetupView();
 
         private void GetPlaybackDevices()
         {
