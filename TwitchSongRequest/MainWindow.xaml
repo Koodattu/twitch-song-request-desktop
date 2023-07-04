@@ -4,21 +4,38 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:adonisControls="clr-namespace:AdonisUI.Controls;assembly=AdonisUI"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:i="http://schemas.microsoft.com/xaml/behaviors"
     xmlns:local="clr-namespace:TwitchSongRequest"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:tb="http://www.hardcodet.net/taskbar"
     xmlns:viewModels="clr-namespace:TwitchSongRequest.ViewModel"
     xmlns:views="clr-namespace:TwitchSongRequest.View"
     Title="{Binding Title}"
+    Width="1000"
+    Height="600"
     d:DesignHeight="450"
     d:DesignWidth="800"
-    Height="600"
-    Width="1000"
     Icon="Assets/Cassette.ico"
     StateChanged="AdonisWindow_StateChanged"
     TitleBarBackground="{StaticResource TitleGradientBrush}"
     WindowStartupLocation="CenterScreen"
     mc:Ignorable="d">
+
+    <adonisControls:AdonisWindow.DataContext>
+        <viewModels:MainWindowViewModel />
+    </adonisControls:AdonisWindow.DataContext>
+
+    <adonisControls:AdonisWindow.Resources>
+        <DataTemplate DataType="{x:Type viewModels:MainViewViewModel}">
+            <views:MainViewUserControl />
+        </DataTemplate>
+    </adonisControls:AdonisWindow.Resources>
+
+    <i:Interaction.Triggers>
+        <i:EventTrigger EventName="Closing">
+            <i:InvokeCommandAction Command="{Binding WindowClosingCommand}" PassEventArgsToCommand="True" />
+        </i:EventTrigger>
+    </i:Interaction.Triggers>
 
     <Grid>
         <tb:TaskbarIcon
@@ -41,7 +58,7 @@
             </tb:TaskbarIcon.TrayToolTip>
         </tb:TaskbarIcon>
 
-        <views:MainViewUserControl />
+        <ContentControl Content="{Binding MainViewViewModel, Mode=OneTime}" />
     </Grid>
 
 </adonisControls:AdonisWindow>

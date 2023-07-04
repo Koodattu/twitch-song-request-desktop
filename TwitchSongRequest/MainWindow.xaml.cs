@@ -15,7 +15,6 @@ namespace TwitchSongRequest
         public MainWindow()
         {
             InitializeComponent();
-            DataContext = App.Current.Services.GetService<MainWindowViewModel>();
         }
 
         private void AdonisWindow_StateChanged(object sender, System.EventArgs e)

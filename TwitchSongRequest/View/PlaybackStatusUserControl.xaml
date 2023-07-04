@@ -1,0 +1,106 @@
+﻿<UserControl
+    x:Class="TwitchSongRequest.View.PlaybackStatusUserControl"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:converters="clr-namespace:TwitchSongRequest.Converters"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:local="clr-namespace:TwitchSongRequest.View"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    d:DesignHeight="450"
+    d:DesignWidth="800"
+    mc:Ignorable="d">
+    <UserControl.Resources>
+        <converters:MmSsFormatConverter x:Key="MmSsConverter" />
+    </UserControl.Resources>
+    <Grid Margin="8">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="1*" />
+            <ColumnDefinition Width="2*" />
+        </Grid.ColumnDefinitions>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="1*" />
+            <RowDefinition Height="1*" />
+            <RowDefinition Height="1*" />
+            <RowDefinition Height="1*" />
+            <RowDefinition Height="1*" />
+            <RowDefinition Height="1*" />
+            <RowDefinition Height="1*" />
+        </Grid.RowDefinitions>
+
+        <Label VerticalAlignment="Center" Content="Status" />
+        <Label
+            Grid.Column="1"
+            VerticalAlignment="Center"
+            Content="{Binding PlaybackStatus}" />
+
+        <Label
+            Grid.Row="1"
+            VerticalAlignment="Center"
+            Content="Current song" />
+        <Label
+            Grid.Row="1"
+            Grid.Column="1"
+            VerticalAlignment="Center"
+            Content="{Binding CurrentSong.SongName}" />
+
+        <Label
+            Grid.Row="2"
+            VerticalAlignment="Center"
+            Content="Duration" />
+        <Label
+            Grid.Row="2"
+            Grid.Column="1"
+            VerticalAlignment="Center"
+            Content="{Binding CurrentSong.Duration}" />
+
+        <Label
+            Grid.Row="3"
+            VerticalAlignment="Center"
+            Content="Requester" />
+        <Label
+            Grid.Row="3"
+            Grid.Column="1"
+            VerticalAlignment="Center"
+            Content="{Binding CurrentSong.Requester}" />
+
+        <Label
+            Grid.Row="4"
+            VerticalAlignment="Center"
+            Content="Link" />
+        <Label
+            Grid.Row="4"
+            Grid.Column="1"
+            VerticalAlignment="Center"
+            Content="{Binding CurrentSong.Url}" />
+
+        <Label
+            Grid.Row="5"
+            VerticalAlignment="Center"
+            Content="Platform" />
+        <Label
+            Grid.Row="5"
+            Grid.Column="1"
+            VerticalAlignment="Center"
+            Content="{Binding CurrentSong.Platform}" />
+
+        <Grid
+            Grid.Row="6"
+            Grid.ColumnSpan="3"
+            VerticalAlignment="Center">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="30" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="30" />
+            </Grid.ColumnDefinitions>
+            <TextBlock Text="{Binding ElementName=songPositionSlider, Path=Value, Converter={StaticResource MmSsConverter}}" />
+            <Slider
+                x:Name="songPositionSlider"
+                Grid.Column="1"
+                Margin="8,0,8,0"
+                Maximum="360"
+                Minimum="0"
+                Value="{Binding Position}" />
+            <TextBlock Grid.Column="2" Text="10:00" />
+        </Grid>
+    </Grid>
+</UserControl>

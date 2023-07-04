@@ -8,5 +8,5 @@
     d:DesignHeight="450"
     d:DesignWidth="800"
     mc:Ignorable="d">
-    <ContentControl Content="{Binding ChromeBrowser}" Visibility="Collapsed" />
+    <ContentControl Content="{Binding ChromeBrowser}" Visibility="Hidden" />
 </UserControl>

@@ -1,4 +1,4 @@
-﻿using CefSharp.Wpf;
+﻿using CefSharp.OffScreen;
 using CefSharp;
 using System;
 using System.Windows;
@@ -18,10 +18,13 @@ namespace TwitchSongRequest
 
         public App()
         {
-            Services = ConfigureServices();
             var settings = new CefSettings();
             settings.CefCommandLineArgs["autoplay-policy"] = "no-user-gesture-required";
+            settings.CefCommandLineArgs.Remove("mute-audio");
             Cef.Initialize(settings, true, browserProcessHandler: null);
+            //Cef.Initialize(settings);
+
+            Services = ConfigureServices();
         }
 
         private static IServiceProvider ConfigureServices()
@@ -31,13 +34,6 @@ namespace TwitchSongRequest
             // Services
             services.AddSingleton<ITwitchAuthenticationService, TwitchAuthenticationService>();
             services.AddSingleton<IAppSettingsService, AppSettingsService>();
-
-            // ViewModels
-            //services.AddTransient<MainWindowViewModel>();
-            services.AddSingleton<MainWindowViewModel>();
-            services.AddSingleton<MainViewViewModel>();
-            services.AddSingleton<ChromeBrowserViewModel>();
-            services.AddSingleton<SetupViewModel>();
 
             return services.BuildServiceProvider();
         }

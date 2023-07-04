@@ -1,7 +1,5 @@
-﻿using Microsoft.Extensions.DependencyInjection;
-using System.Windows;
+﻿using System.Windows;
 using System.Windows.Controls;
-using TwitchSongRequest.ViewModel;
 
 namespace TwitchSongRequest.View
 {
@@ -13,7 +11,6 @@ namespace TwitchSongRequest.View
         public MainViewUserControl()
         {
             InitializeComponent();
-            DataContext = App.Current.Services.GetService<MainViewViewModel>();
         }
 
         private void SongRequestsListView_SizeChanged(object sender, SizeChangedEventArgs e)

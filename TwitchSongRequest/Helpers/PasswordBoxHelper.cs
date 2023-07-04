@@ -6,33 +6,86 @@ namespace TwitchSongRequest.Helpers
     public static class PasswordBoxHelper
     {
         public static readonly DependencyProperty PasswordProperty =
-            DependencyProperty.RegisterAttached("Password", typeof(string), typeof(PasswordBoxHelper), new FrameworkPropertyMetadata(string.Empty, OnPasswordPropertyChanged));
+            DependencyProperty.RegisterAttached("Password",
+            typeof(string), typeof(PasswordBoxHelper),
+            new FrameworkPropertyMetadata(string.Empty, OnPasswordPropertyChanged));
 
-        public static string GetPassword(DependencyObject obj)
+        public static readonly DependencyProperty AttachProperty =
+            DependencyProperty.RegisterAttached("Attach",
+            typeof(bool), typeof(PasswordBoxHelper), new PropertyMetadata(false, Attach));
+
+        private static readonly DependencyProperty IsUpdatingProperty =
+           DependencyProperty.RegisterAttached("IsUpdating", typeof(bool),
+           typeof(PasswordBoxHelper));
+
+        public static void SetAttach(DependencyObject dp, bool value)
         {
-            return (string)obj.GetValue(PasswordProperty);
+            dp.SetValue(AttachProperty, value);
         }
 
-        public static void SetPassword(DependencyObject obj, string value)
+        public static bool GetAttach(DependencyObject dp)
         {
-            obj.SetValue(PasswordProperty, value);
+            return (bool)dp.GetValue(AttachProperty);
         }
 
-        private static void OnPasswordPropertyChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+        public static string GetPassword(DependencyObject dp)
         {
-            if (d is PasswordBox passwordBox)
+            return (string)dp.GetValue(PasswordProperty);
+        }
+
+        public static void SetPassword(DependencyObject dp, string value)
+        {
+            dp.SetValue(PasswordProperty, value);
+        }
+
+        private static bool GetIsUpdating(DependencyObject dp)
+        {
+            return (bool)dp.GetValue(IsUpdatingProperty);
+        }
+
+        private static void SetIsUpdating(DependencyObject dp, bool value)
+        {
+            dp.SetValue(IsUpdatingProperty, value);
+        }
+
+        private static void OnPasswordPropertyChanged(DependencyObject sender,
+            DependencyPropertyChangedEventArgs e)
+        {
+            PasswordBox passwordBox = sender as PasswordBox;
+            passwordBox.PasswordChanged -= PasswordChanged;
+
+            if (!(bool)GetIsUpdating(passwordBox))
             {
-                passwordBox.PasswordChanged -= PasswordBox_PasswordChanged;
-                passwordBox.PasswordChanged += PasswordBox_PasswordChanged;
+                passwordBox.Password = (string)e.NewValue;
+            }
+            passwordBox.PasswordChanged += PasswordChanged;
+        }
+
+        private static void Attach(DependencyObject sender,
+            DependencyPropertyChangedEventArgs e)
+        {
+            PasswordBox passwordBox = sender as PasswordBox;
+
+            if (passwordBox == null)
+                return;
+
+            if ((bool)e.OldValue)
+            {
+                passwordBox.PasswordChanged -= PasswordChanged;
+            }
+
+            if ((bool)e.NewValue)
+            {
+                passwordBox.PasswordChanged += PasswordChanged;
             }
         }
 
-        private static void PasswordBox_PasswordChanged(object sender, RoutedEventArgs e)
+        private static void PasswordChanged(object sender, RoutedEventArgs e)
         {
-            if (sender is PasswordBox passwordBox)
-            {
-                SetPassword(passwordBox, passwordBox.Password);
-            }
+            PasswordBox passwordBox = sender as PasswordBox;
+            SetIsUpdating(passwordBox, true);
+            SetPassword(passwordBox, passwordBox.Password);
+            SetIsUpdating(passwordBox, false);
         }
     }
 }

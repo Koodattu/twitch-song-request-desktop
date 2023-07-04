@@ -3,11 +3,11 @@
 namespace TwitchSongRequest.View
 {
     /// <summary>
-    /// Interaction logic for SetupUserControl.xaml
+    /// Interaction logic for ConnectionStatusUserControl.xaml
     /// </summary>
-    public partial class SetupUserControl : UserControl
+    public partial class ConnectionStatusUserControl : UserControl
     {
-        public SetupUserControl()
+        public ConnectionStatusUserControl()
         {
             InitializeComponent();
         }

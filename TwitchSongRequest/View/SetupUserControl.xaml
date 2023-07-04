@@ -5,11 +5,10 @@
     xmlns:adonisUi="clr-namespace:AdonisUI;assembly=AdonisUI"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:helpers="clr-namespace:TwitchSongRequest.Helpers"
-    xmlns:local="clr-namespace:TwitchSongRequest.View"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     mc:Ignorable="d">
 
-    <Grid Visibility="{Binding IsSetupOpen, Converter={StaticResource BoolToVisConverter}, FallbackValue=Visible}">
+    <Grid>
         <Rectangle Fill="Black" Opacity="0.5" />
         <Border
             Width="500"
@@ -139,7 +138,10 @@
                         <ColumnDefinition Width="2*" />
                         <ColumnDefinition Width="1*" />
                     </Grid.ColumnDefinitions>
-                    <TextBox Height="25" Margin="24,0,8,0" />
+                    <TextBox
+                        Height="25"
+                        Margin="24,0,8,0"
+                        Text="{Binding AppSettings.ChannelRedeemRewardName}" />
                     <Button
                         Grid.Column="1"
                         Height="25"
@@ -163,7 +165,8 @@
                     Grid.Column="1"
                     Grid.ColumnSpan="3"
                     Height="25"
-                    Margin="24,0" />
+                    Margin="24,0"
+                    Text="{Binding AppSettings.SpotifyClientId}" />
 
                 <Label
                     Grid.Row="7"
@@ -175,7 +178,8 @@
                     Grid.Column="1"
                     Grid.ColumnSpan="3"
                     Height="25"
-                    Margin="24,0" />
+                    Margin="24,0"
+                    helpers:PasswordBoxHelper.Password="{Binding AppSettings.SpotifyClientSecret, Mode=TwoWay}" />
 
                 <Label
                     Grid.Row="8"

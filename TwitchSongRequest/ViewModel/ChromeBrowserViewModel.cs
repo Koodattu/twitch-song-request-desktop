@@ -1,31 +1,36 @@
-﻿using CefSharp.Wpf;
-using CommunityToolkit.Mvvm.ComponentModel;
+﻿using CommunityToolkit.Mvvm.ComponentModel;
 using System.Threading.Tasks;
 using CefSharp;
+using CefSharp.OffScreen;
 using System;
+using System.Globalization;
 
 namespace TwitchSongRequest.ViewModel
 {
     internal class ChromeBrowserViewModel : ObservableObject
     {
-        public ChromeBrowserViewModel()
+        public ChromeBrowserViewModel(string playbackDevice, int volume)
         {
             ChromeBrowser.LoadingStateChanged += ChromeBrowser_LoadingStateChanged;
+            PlaybackDevice = playbackDevice;
+            Volume = volume;
         }
 
-        private void ChromeBrowser_LoadingStateChanged(object? sender, LoadingStateChangedEventArgs e)
-        {
-            ChangePlaybackDevice(PlaybackDevice);
-        }
+        internal string PlaybackDevice { get; set; }
+        internal int Volume { get; set; }
 
-        private string _playbackDevice;
-        public string PlaybackDevice
+        private async void ChromeBrowser_LoadingStateChanged(object? sender, LoadingStateChangedEventArgs e)
         {
-            get => _playbackDevice;
-            set
+            if (ChromeBrowser.CanExecuteJavascriptInMainFrame)
             {
-                SetProperty(ref _playbackDevice, value);
-                ChangePlaybackDevice(value);
+                //TODO Wait for video to start playing
+                while ((bool)(await ChromeBrowser.EvaluateScriptAsync($"document.querySelector('video').paused;")).Result)
+                {
+                    await Task.Delay(100);
+                }
+
+                ChangePlaybackDevice(PlaybackDevice);
+                SetVideoVolume(Volume);
             }
         }
 
@@ -36,12 +41,17 @@ namespace TwitchSongRequest.ViewModel
             set => SetProperty(ref _chromeBrowser, value);
         }
 
-        private void PlayVideo()
+        internal async Task<bool> PlayVideo()
         {
-            ChromeBrowser.ExecuteScriptAsync("document.querySelector('video').play();");
+            if (ChromeBrowser.CanExecuteJavascriptInMainFrame)
+            {
+                var result = await ChromeBrowser.EvaluateScriptAsPromiseAsync("document.querySelector('video').play();");
+                return result.Success;
+            }
+            return false;
         }
 
-        private void PauseVideo()
+        internal void PauseVideo()
         {
             ChromeBrowser.ExecuteScriptAsync("document.querySelector('video').pause();");
         }
@@ -49,7 +59,8 @@ namespace TwitchSongRequest.ViewModel
         internal async void ChangePlaybackDevice(string device)
         {
             string currentAddress = string.Empty;
-            ChromeBrowser.Dispatcher.Invoke(() => currentAddress = ChromeBrowser.Address);
+            //ChromeBrowser.Dispatcher.Invoke(() => currentAddress = ChromeBrowser.Address);
+            currentAddress = ChromeBrowser.Address;
             if (currentAddress != null && currentAddress.ToLower().Contains("youtube") && ChromeBrowser.CanExecuteJavascriptInMainFrame)
             {
                 var result = await ChromeBrowser.EvaluateScriptAsPromiseAsync($@"
@@ -63,24 +74,31 @@ namespace TwitchSongRequest.ViewModel
             }
         }
 
-        private async void SetVideoVolume(double volume)
+        internal async void SetVideoVolume(int volume)
         {
-            var result = await ChromeBrowser.EvaluateScriptAsync($"document.querySelector('video').volume = {volume};");
+            Volume = volume;
+            if (ChromeBrowser.CanExecuteJavascriptInMainFrame)
+            {
+                var result = await ChromeBrowser.EvaluateScriptAsync($"document.querySelector('video').volume = {(volume / 100.0).ToString(CultureInfo.InvariantCulture)};");
+            }
         }
 
-        private async void SetVideoPosition(int seconds)
+        internal async void SetVideoPosition(int seconds)
         {
-            var result = await ChromeBrowser.EvaluateScriptAsync($"document.querySelector('video').currentTime = {seconds};");
+            if (ChromeBrowser.CanExecuteJavascriptInMainFrame)
+            {
+                var result = await ChromeBrowser.EvaluateScriptAsync($"document.querySelector('video').currentTime = {seconds};");
+            }
         }
 
-        private async Task<int> GetVideoCurrentTime()
+        internal async Task<int> GetVideoCurrentTime()
         {
             var result = await ChromeBrowser.EvaluateScriptAsync($"document.querySelector('video').currentTime;");
             int currentTime = int.Parse(result.Result.ToString());
             return currentTime;
         }
 
-        private async Task<string> GetVideoTitle()
+        internal async Task<string> GetVideoTitle()
         {
             var titleResponse = await ChromeBrowser.EvaluateScriptAsync($"document.title;");
             string title = titleResponse.Result.ToString();
@@ -88,28 +106,54 @@ namespace TwitchSongRequest.ViewModel
             return title;
         }
 
-        private async Task<int> GetVideoDuration()
+        internal async Task<int> GetVideoDuration()
         {
             var result = await ChromeBrowser.EvaluateScriptAsync($"document.querySelector('video').duration;");
             int duration = int.Parse(result.Result.ToString());
             return duration;
         }
 
-        private void ChangeAddress(string url)
+        internal void ChangeAddress(string url)
         {
-            ChromeBrowser.Address = url;
+            ChromeBrowser.Load(url);
         }
 
-        private async Task<Tuple<string, int>> GetYoutubeVideoInfo(string url)
+        private ChromiumWebBrowser _youtubeBrowser = new();
+
+        internal async Task<Tuple<string, int>> GetYoutubeVideoInfo(string url)
         {
-            ChromiumWebBrowser chromiumWebBrowser = new();
-            chromiumWebBrowser.Address = url;
-            var titleResponse = await ChromeBrowser.EvaluateScriptAsync($"document.title;");
-            string title = titleResponse.Result.ToString();
-            title = title.Replace(" - YouTube", "");
-            var result = await ChromeBrowser.EvaluateScriptAsync($"document.querySelector('video').duration;");
-            int duration = int.Parse(result.Result.ToString());
-            return new Tuple<string, int>(title, duration);
+            _youtubeBrowser.GetBrowserHost().SetAudioMuted(true);
+            var tcs = new TaskCompletionSource<Tuple<string, int>>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+            EventHandler<LoadingStateChangedEventArgs> handler = null;
+            handler = async (sender, args) =>
+            {
+                //Wait for while page to finish loading not just the first frame
+                if ((sender as ChromiumWebBrowser).CanExecuteJavascriptInMainFrame && !args.IsLoading)
+                {
+                    _youtubeBrowser.LoadingStateChanged -= handler;
+
+                    // Wait for video to start playing
+                    while ((bool)(await _youtubeBrowser.EvaluateScriptAsync($"document.querySelector('video').paused;")).Result)
+                    {
+                        await Task.Delay(100);
+                    }
+
+                    var titleResponse = await _youtubeBrowser.EvaluateScriptAsync($"document.title;");
+                    string title = titleResponse.Result.ToString();
+                    title = title.Replace(" - YouTube", "");
+                    var durationResponse = await _youtubeBrowser.EvaluateScriptAsync($"document.querySelector('video').duration;");
+                    int duration = Convert.ToInt32(durationResponse.Result);
+                    tcs.TrySetResult(new Tuple<string, int>(title, duration));
+                }
+            };
+
+            _youtubeBrowser.LoadingStateChanged += handler;
+
+            await _youtubeBrowser.LoadUrlAsync(url);
+
+            return await tcs.Task;
         }
+        
     }
 }
