@@ -22,19 +22,29 @@
             <RowDefinition Height="3*" />
         </Grid.RowDefinitions>
 
-        <Button
-            Grid.Column="2"
-            Width="85"
-            Height="25"
-            Margin="16,0"
+        <StackPanel
+            Grid.ColumnSpan="2"
             HorizontalAlignment="Right"
-            Command="{Binding OpenSetupCommand, Mode=OneTime}"
-            Content="Setup" />
+            Orientation="Horizontal">
+            <Button
+                Width="85"
+                Height="25"
+                Margin="16,0"
+                Command="{Binding OpenSettingsCommand, Mode=OneTime}"
+                Content="Settings" />
+
+            <Button
+                Width="85"
+                Height="25"
+                Margin="16,0"
+                Command="{Binding OpenSetupCommand, Mode=OneTime}"
+                Content="Setup" />
+        </StackPanel>
 
         <Label
             Grid.Row="2"
             VerticalAlignment="Center"
-            Content="Twitch Broadcaster" />
+            Content="Twitch Streamer" />
         <Label
             Grid.Row="2"
             Grid.Column="1"

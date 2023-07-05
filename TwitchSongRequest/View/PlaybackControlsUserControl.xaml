@@ -10,36 +10,51 @@
     mc:Ignorable="d">
 
     <Grid Margin="8,16">
-        <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="*" />
-            <ColumnDefinition Width="*" />
-            <ColumnDefinition Width="*" />
-        </Grid.ColumnDefinitions>
         <Grid.RowDefinitions>
             <RowDefinition Height="*" />
             <RowDefinition Height="*" />
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
-        <Button
-            Width="48"
-            Height="28"
-            Command="{Binding PlayCommand}"
-            Content="Play" />
-        <Button
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
+
+        <Label
+            Margin="16,0"
+            HorizontalAlignment="Right"
+            VerticalAlignment="Center"
+            Content="Status" />
+        <Label
             Grid.Column="1"
-            Width="48"
-            Height="28"
-            Command="{Binding PauseCommand}"
-            Content="Pause" />
-        <Button
-            Grid.Column="2"
-            Width="48"
-            Height="28"
-            Command="{Binding SkipCommand}"
-            Content="Skip" />
-        <Grid
+            Margin="16,0"
+            VerticalAlignment="Center"
+            Content="{Binding PlaybackStatus}" />
+
+        <StackPanel
             Grid.Row="1"
-            Grid.ColumnSpan="3"
+            Grid.ColumnSpan="2"
+            HorizontalAlignment="Center"
+            Orientation="Horizontal">
+            <Button
+                Width="48"
+                Height="28"
+                Command="{Binding PlayCommand}"
+                Content="Play" />
+            <Button
+                Width="48"
+                Height="28"
+                Command="{Binding PauseCommand}"
+                Content="Pause" />
+            <Button
+                Width="48"
+                Height="28"
+                Command="{Binding SkipCommand}"
+                Content="Skip" />
+        </StackPanel>
+        <Grid
+            Grid.Row="2"
+            Grid.ColumnSpan="2"
             Margin="8,0"
             VerticalAlignment="Center">
             <Grid.ColumnDefinitions>
@@ -59,14 +74,5 @@
                 Value="{Binding Volume}" />
             <TextBlock Grid.Column="2" Text="{Binding ElementName=volumeSlider, Path=Value, StringFormat={}{0:N0}}" />
         </Grid>
-
-        <ComboBox
-            Name="PlaybackDevicesComboBox"
-            Grid.Row="2"
-            Grid.ColumnSpan="3"
-            Height="25"
-            Margin="8,0"
-            ItemsSource="{Binding PlaybackDevices}"
-            SelectedItem="{Binding PlaybackDevice}" />
     </Grid>
 </UserControl>

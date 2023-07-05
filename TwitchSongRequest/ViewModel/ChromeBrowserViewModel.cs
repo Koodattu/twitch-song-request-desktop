@@ -16,17 +16,19 @@ namespace TwitchSongRequest.ViewModel
             Volume = volume;
         }
 
-        internal string PlaybackDevice { get; set; }
-        internal int Volume { get; set; }
+        private string PlaybackDevice { get; set; }
+        private int Volume { get; set; }
 
         private async void ChromeBrowser_LoadingStateChanged(object? sender, LoadingStateChangedEventArgs e)
         {
             if (ChromeBrowser.CanExecuteJavascriptInMainFrame)
             {
                 //TODO Wait for video to start playing
-                while ((bool)(await ChromeBrowser.EvaluateScriptAsync($"document.querySelector('video').paused;")).Result)
+                bool paused = true;
+                while (paused)
                 {
                     await Task.Delay(100);
+                    paused = (bool)(await ChromeBrowser.EvaluateScriptAsync($"document.querySelector('video').paused;")).Result;
                 }
 
                 ChangePlaybackDevice(PlaybackDevice);
@@ -133,10 +135,12 @@ namespace TwitchSongRequest.ViewModel
                 {
                     _youtubeBrowser.LoadingStateChanged -= handler;
 
-                    // Wait for video to start playing
-                    while ((bool)(await _youtubeBrowser.EvaluateScriptAsync($"document.querySelector('video').paused;")).Result)
+                    //TODO Wait for video to start playing
+                    bool paused = true;
+                    while (paused)
                     {
                         await Task.Delay(100);
+                        paused = (bool)(await _youtubeBrowser.EvaluateScriptAsync($"document.querySelector('video').paused;")).Result;
                     }
 
                     var titleResponse = await _youtubeBrowser.EvaluateScriptAsync($"document.title;");

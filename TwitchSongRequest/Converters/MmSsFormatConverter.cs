@@ -7,6 +7,10 @@ namespace TwitchSongRequest.Converters
     {
         public object Convert(object value, Type targetType, object parameter, System.Globalization.CultureInfo culture)
         {
+            if (value is null)
+            {
+                return "00:00";
+            }
             int ss = value is double ? System.Convert.ToInt32((double)value) : (int)value;
             int mm = ss / 60;
             ss %= 60;

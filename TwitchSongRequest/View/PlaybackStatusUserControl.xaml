@@ -12,79 +12,60 @@
     <UserControl.Resources>
         <converters:MmSsFormatConverter x:Key="MmSsConverter" />
     </UserControl.Resources>
-    <Grid Margin="8">
+    <Grid Margin="8,16">
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="1*" />
             <ColumnDefinition Width="2*" />
         </Grid.ColumnDefinitions>
         <Grid.RowDefinitions>
-            <RowDefinition Height="1*" />
-            <RowDefinition Height="1*" />
-            <RowDefinition Height="1*" />
-            <RowDefinition Height="1*" />
-            <RowDefinition Height="1*" />
-            <RowDefinition Height="1*" />
-            <RowDefinition Height="1*" />
+            <RowDefinition Height="2*" />
+            <RowDefinition Height="2*" />
+            <RowDefinition Height="2*" />
+            <RowDefinition Height="2*" />
+            <RowDefinition Height="3*" />
         </Grid.RowDefinitions>
 
-        <Label VerticalAlignment="Center" Content="Status" />
-        <Label
+        <Label VerticalAlignment="Center" Content="Current song" />
+        <TextBlock
             Grid.Column="1"
             VerticalAlignment="Center"
-            Content="{Binding PlaybackStatus}" />
+            Text="{Binding CurrentSong.SongName}"
+            TextTrimming="CharacterEllipsis"
+            ToolTip="{Binding CurrentSong.SongName}" />
 
         <Label
             Grid.Row="1"
-            VerticalAlignment="Center"
-            Content="Current song" />
-        <Label
-            Grid.Row="1"
-            Grid.Column="1"
-            VerticalAlignment="Center"
-            Content="{Binding CurrentSong.SongName}" />
-
-        <Label
-            Grid.Row="2"
-            VerticalAlignment="Center"
-            Content="Duration" />
-        <Label
-            Grid.Row="2"
-            Grid.Column="1"
-            VerticalAlignment="Center"
-            Content="{Binding CurrentSong.Duration}" />
-
-        <Label
-            Grid.Row="3"
             VerticalAlignment="Center"
             Content="Requester" />
+        <TextBlock
+            Grid.Row="1"
+            Grid.Column="1"
+            VerticalAlignment="Center"
+            Text="{Binding CurrentSong.Requester}" />
+
         <Label
+            Grid.Row="2"
+            VerticalAlignment="Center"
+            Content="Link" />
+        <TextBlock Grid.Row="2" Grid.Column="1">
+            <Hyperlink Command="{Binding OpenSongUrlCommand}" CommandParameter="{Binding CurrentSong.Url}">
+                <TextBlock Text="{Binding CurrentSong.Url}" TextTrimming="CharacterEllipsis" />
+            </Hyperlink>
+        </TextBlock>
+        <Label VerticalAlignment="Center" Content="" />
+
+        <Label
+            Grid.Row="3"
+            VerticalAlignment="Center"
+            Content="Platform" />
+        <TextBlock
             Grid.Row="3"
             Grid.Column="1"
             VerticalAlignment="Center"
-            Content="{Binding CurrentSong.Requester}" />
-
-        <Label
-            Grid.Row="4"
-            VerticalAlignment="Center"
-            Content="Link" />
-        <Label
-            Grid.Row="4"
-            Grid.Column="1"
-            VerticalAlignment="Center"
-            Content="{Binding CurrentSong.Url}" />
-
-        <Label
-            Grid.Row="5"
-            VerticalAlignment="Center"
-            Content="Platform" />
-        <Label
-            Grid.Row="5"
-            Grid.Column="1"
-            VerticalAlignment="Center"
-            Content="{Binding CurrentSong.Platform}" />
+            Text="{Binding CurrentSong.Platform}" />
 
         <Grid
-            Grid.Row="6"
+            Grid.Row="4"
             Grid.ColumnSpan="3"
             VerticalAlignment="Center">
             <Grid.ColumnDefinitions>
@@ -97,10 +78,10 @@
                 x:Name="songPositionSlider"
                 Grid.Column="1"
                 Margin="8,0,8,0"
-                Maximum="360"
+                Maximum="{Binding CurrentSong.Duration}"
                 Minimum="0"
                 Value="{Binding Position}" />
-            <TextBlock Grid.Column="2" Text="10:00" />
+            <TextBlock Grid.Column="2" Text="{Binding CurrentSong.Duration, Converter={StaticResource MmSsConverter}}" />
         </Grid>
     </Grid>
 </UserControl>

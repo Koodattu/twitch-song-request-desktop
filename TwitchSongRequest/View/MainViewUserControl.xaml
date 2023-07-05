@@ -66,6 +66,7 @@
             <ListView
                 Name="SongRequestsListView"
                 Margin="16,8"
+                ItemsSource="{Binding SongRequestQueue}"
                 ScrollViewer.HorizontalScrollBarVisibility="Disabled"
                 SizeChanged="SongRequestsListView_SizeChanged">
                 <ListView.View>
@@ -75,10 +76,13 @@
                                 <Setter Property="IsHitTestVisible" Value="False" />
                             </Style>
                         </GridView.ColumnHeaderContainerStyle>
-                        <GridViewColumn
-                            Width="Auto"
-                            DisplayMemberBinding="{Binding SongName}"
-                            Header="Name" />
+                        <GridViewColumn Width="Auto" Header="Name">
+                            <GridViewColumn.CellTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding SongName}" TextTrimming="CharacterEllipsis" />
+                                </DataTemplate>
+                            </GridViewColumn.CellTemplate>
+                        </GridViewColumn>
                         <GridViewColumn
                             Width="Auto"
                             DisplayMemberBinding="{Binding Duration, Converter={StaticResource MmSsConverter}}"
@@ -87,10 +91,17 @@
                             Width="Auto"
                             DisplayMemberBinding="{Binding Requester}"
                             Header="Requester" />
-                        <GridViewColumn
-                            Width="Auto"
-                            DisplayMemberBinding="{Binding Url}"
-                            Header="Url" />
+                        <GridViewColumn Width="Auto" Header="Url">
+                            <GridViewColumn.CellTemplate>
+                                <DataTemplate>
+                                    <TextBlock>
+                                        <Hyperlink Command="{Binding DataContext.OpenSongUrlCommand, RelativeSource={RelativeSource AncestorType=ListView, Mode=FindAncestor}}" CommandParameter="{Binding Url}">
+                                            <TextBlock Text="{Binding Url}" TextTrimming="CharacterEllipsis" />
+                                        </Hyperlink>
+                                    </TextBlock>
+                                </DataTemplate>
+                            </GridViewColumn.CellTemplate>
+                        </GridViewColumn>
                         <GridViewColumn
                             Width="Auto"
                             DisplayMemberBinding="{Binding Platform}"
@@ -98,7 +109,11 @@
                         <GridViewColumn Width="Auto" Header="">
                             <GridViewColumn.CellTemplate>
                                 <DataTemplate>
-                                    <Button Background="Red" Content="🗑️" />
+                                    <Button
+                                        Background="Red"
+                                        Command="{Binding DataContext.RemoveSongQueueCommand, RelativeSource={RelativeSource AncestorType=ListView, Mode=FindAncestor}}"
+                                        CommandParameter="{Binding}"
+                                        Content="🗑️" />
                                 </DataTemplate>
                             </GridViewColumn.CellTemplate>
                         </GridViewColumn>
@@ -123,6 +138,7 @@
                     Height="25"
                     Margin="16,0"
                     HorizontalAlignment="Right"
+                    Command="{Binding ClearHistoryCommand}"
                     Content="Clear history" />
             </Grid>
 
@@ -130,6 +146,7 @@
                 Name="SongRequestsHistoryListView"
                 Grid.Row="2"
                 Margin="16,8"
+                ItemsSource="{Binding SongRequestHistory}"
                 ScrollViewer.HorizontalScrollBarVisibility="Disabled"
                 SizeChanged="SongRequestsHistoryListView_SizeChanged">
                 <ListView.View>
@@ -139,10 +156,13 @@
                                 <Setter Property="IsHitTestVisible" Value="False" />
                             </Style>
                         </GridView.ColumnHeaderContainerStyle>
-                        <GridViewColumn
-                            Width="Auto"
-                            DisplayMemberBinding="{Binding SongName}"
-                            Header="Name" />
+                        <GridViewColumn Width="Auto" Header="Name">
+                            <GridViewColumn.CellTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding SongName}" TextTrimming="CharacterEllipsis" />
+                                </DataTemplate>
+                            </GridViewColumn.CellTemplate>
+                        </GridViewColumn>
                         <GridViewColumn
                             Width="Auto"
                             DisplayMemberBinding="{Binding Duration, Converter={StaticResource MmSsConverter}}"
@@ -151,10 +171,17 @@
                             Width="Auto"
                             DisplayMemberBinding="{Binding Requester}"
                             Header="Requester" />
-                        <GridViewColumn
-                            Width="Auto"
-                            DisplayMemberBinding="{Binding Url}"
-                            Header="Url" />
+                        <GridViewColumn Width="Auto" Header="Url">
+                            <GridViewColumn.CellTemplate>
+                                <DataTemplate>
+                                    <TextBlock>
+                                        <Hyperlink Command="{Binding DataContext.OpenSongUrlCommand, RelativeSource={RelativeSource AncestorType=ListView, Mode=FindAncestor}}" CommandParameter="{Binding Url}">
+                                            <TextBlock Text="{Binding Url}" TextTrimming="CharacterEllipsis" />
+                                        </Hyperlink>
+                                    </TextBlock>
+                                </DataTemplate>
+                            </GridViewColumn.CellTemplate>
+                        </GridViewColumn>
                         <GridViewColumn
                             Width="Auto"
                             DisplayMemberBinding="{Binding Platform}"
@@ -165,11 +192,15 @@
                                     <StackPanel Orientation="Horizontal">
                                         <Button
                                             Background="Cyan"
+                                            Command="{Binding DataContext.ReplaySongHistoryCommand, RelativeSource={RelativeSource AncestorType=ListView, Mode=FindAncestor}}"
+                                            CommandParameter="{Binding}"
                                             Content="🔄"
                                             Foreground="Black" />
                                         <Button
                                             Margin="4,0,0,0"
                                             Background="Red"
+                                            Command="{Binding DataContext.RemoveSongHistoryCommand, RelativeSource={RelativeSource AncestorType=ListView, Mode=FindAncestor}}"
+                                            CommandParameter="{Binding}"
                                             Content="🗑️" />
                                     </StackPanel>
                                 </DataTemplate>
@@ -180,8 +211,7 @@
             </ListView>
         </DockPanel>
 
+        <views:SettingsUserControl Grid.RowSpan="4" Visibility="{Binding IsSettingsOpen, Converter={StaticResource BoolToVisConverter}, FallbackValue=Collapsed}" />
         <views:SetupUserControl Grid.RowSpan="4" Visibility="{Binding IsSetupOpen, Converter={StaticResource BoolToVisConverter}, FallbackValue=Collapsed}" />
-        <!--
-        <ContentControl Content="{Binding ChromeBrowserViewModel, Mode=OneTime}" />        -->
     </Grid>
 </UserControl>
