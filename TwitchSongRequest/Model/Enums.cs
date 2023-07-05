@@ -10,13 +10,23 @@
     {
         NOT_CONNECTED,
         DISCONNECTED,
-        CONNECTED
+        CONNECTED,
+        CONNECTING,
+        ERROR
     }
 
     internal enum PlaybackStatus
     {
+        WAITING,
         ERROR,
         PLAYING,
         PAUSED
+    }
+
+    internal enum RewardCreationStatus
+    {
+        SUCCESS,
+        ERROR,
+        ALREADY_EXISTS
     }
 }

@@ -334,6 +334,23 @@ namespace TwitchSongRequest.ViewModel
             appSettingsService.SaveAppSettings(AppSettings);
         }
 
+        internal void AddSongToQueue(string input)
+        {
+            input = input.Trim();
+            if (input.Contains("youtube.com", StringComparison.OrdinalIgnoreCase) || input.Contains("youtu.be", StringComparison.OrdinalIgnoreCase))
+            {
+                
+            } 
+            else if (input.Contains("spotify.com", StringComparison.OrdinalIgnoreCase))
+            {
+
+            } 
+            else
+            {
+
+            }
+        }
+
         private static List<string> GetPlaybackDevices()
         {
             using var devices = new MMDeviceEnumerator();

@@ -3,10 +3,15 @@
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:adonisUi="clr-namespace:AdonisUI;assembly=AdonisUI"
+    xmlns:converters="clr-namespace:TwitchSongRequest.Converters"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:helpers="clr-namespace:TwitchSongRequest.Helpers"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     mc:Ignorable="d">
+
+    <UserControl.Resources>
+        <converters:StatusToColorConverter x:Key="StatusToColorConverter" />
+    </UserControl.Resources>
 
     <Grid>
         <Rectangle Fill="Black" Opacity="0.5" />
@@ -82,6 +87,7 @@
                     Grid.Column="1"
                     Height="25"
                     Margin="24,0"
+                    Command="{Binding ConnectTwitchStreamerCommand}"
                     Content="Connect" />
                 <Label
                     Grid.Row="3"
@@ -89,14 +95,15 @@
                     Margin="8,0"
                     HorizontalAlignment="Center"
                     VerticalAlignment="Center"
-                    Content="Connected to" />
+                    Content="{Binding Connections.TwitchStreamerStatus}"
+                    Foreground="{Binding Connections.TwitchStreamerStatus, Converter={StaticResource StatusToColorConverter}}" />
                 <Label
                     Grid.Row="3"
                     Grid.Column="3"
                     Margin="8,0"
                     HorizontalAlignment="Left"
                     VerticalAlignment="Center"
-                    Content="Vaarattu" />
+                    Content="{Binding AppSettings.TwitchStreamerName}" />
 
                 <Label
                     Grid.Row="4"
@@ -108,6 +115,7 @@
                     Grid.Column="1"
                     Height="25"
                     Margin="24,0"
+                    Command="{Binding ConnectTwitchBotCommand}"
                     Content="Connect" />
                 <Label
                     Grid.Row="4"
@@ -115,21 +123,21 @@
                     Margin="8,0"
                     HorizontalAlignment="Center"
                     VerticalAlignment="Center"
-                    Content="Connected to" />
+                    Content="{Binding Connections.TwitchBotStatus}"
+                    Foreground="{Binding Connections.TwitchBotStatus, Converter={StaticResource StatusToColorConverter}}" />
                 <Label
                     Grid.Row="4"
                     Grid.Column="3"
                     Margin="8,0"
                     HorizontalAlignment="Left"
                     VerticalAlignment="Center"
-                    Content="VaaraBot" />
-
+                    Content="{Binding AppSettings.TwitchBotName}" />
 
                 <Label
                     Grid.Row="5"
                     HorizontalAlignment="Right"
                     VerticalAlignment="Center"
-                    Content="CPR Reward Name" />
+                    Content="Reward Name" />
                 <Grid
                     Grid.Row="5"
                     Grid.Column="1"
@@ -146,6 +154,7 @@
                         Grid.Column="1"
                         Height="25"
                         Margin="8,0"
+                        Command="{Binding CreateRewardCommand}"
                         Content="Create" />
                 </Grid>
                 <Label
@@ -153,7 +162,8 @@
                     Grid.Column="3"
                     Margin="8,0"
                     VerticalAlignment="Center"
-                    Content="Created!" />
+                    Content="{Binding AppSettings.RewardCreationStatus}"
+                    Foreground="{Binding AppSettings.RewardCreationStatus, Converter={StaticResource StatusToColorConverter}}" />
 
                 <Label
                     Grid.Row="6"
@@ -191,6 +201,7 @@
                     Grid.Column="1"
                     Height="25"
                     Margin="24,0"
+                    Command="{Binding ConnectSpotifyCommand}"
                     Content="Connect" />
                 <Label
                     Grid.Row="8"
@@ -198,14 +209,15 @@
                     Margin="8,0"
                     HorizontalAlignment="Center"
                     VerticalAlignment="Center"
-                    Content="Connected to" />
+                    Content="{Binding Connections.SpotifyStatus}"
+                    Foreground="{Binding Connections.SpotifyStatus, Converter={StaticResource StatusToColorConverter}}" />
                 <Label
                     Grid.Row="8"
                     Grid.Column="3"
                     Margin="8,0"
                     HorizontalAlignment="Left"
                     VerticalAlignment="Center"
-                    Content="Vaarattu" />
+                    Content="{Binding AppSettings.SpotifyAccountName}" />
 
                 <Button
                     Grid.Row="9"

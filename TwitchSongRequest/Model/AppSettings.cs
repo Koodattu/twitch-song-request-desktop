@@ -19,5 +19,9 @@
         public string? SpotifyAccountName { get; set; }
         public int? Volume { get; set; }
         public string? PlaybackDevice { get; set; }
+        public int? MaxSongLengthMinutes { get; set; }
+        public int? MaxSongLengthSeconds { get; set; }
+        public SongRequestPlatform SongSearchPlatform { get; set; }
+        public RewardCreationStatus RewardCreationStatus { get; set; }
     }
 }
