@@ -4,7 +4,6 @@ using System;
 using System.Windows;
 using Microsoft.Extensions.DependencyInjection;
 using TwitchSongRequest.Services;
-using TwitchSongRequest.ViewModel;
 
 namespace TwitchSongRequest
 {
@@ -22,8 +21,6 @@ namespace TwitchSongRequest
             settings.CefCommandLineArgs["autoplay-policy"] = "no-user-gesture-required";
             settings.CefCommandLineArgs.Remove("mute-audio");
             Cef.Initialize(settings, true, browserProcessHandler: null);
-            //Cef.Initialize(settings);
-
             Services = ConfigureServices();
         }
 
@@ -32,7 +29,7 @@ namespace TwitchSongRequest
             var services = new ServiceCollection();
 
             // Services
-            services.AddSingleton<ITwitchAuthenticationService, TwitchAuthenticationService>();
+            services.AddSingleton<ITwitchAuthService, TwitchAuthService>();
             services.AddSingleton<IAppSettingsService, AppSettingsService>();
 
             return services.BuildServiceProvider();

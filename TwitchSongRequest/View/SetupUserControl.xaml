@@ -81,13 +81,13 @@
                     Grid.Row="3"
                     HorizontalAlignment="Right"
                     VerticalAlignment="Center"
-                    Content="Twitch Broadcaster" />
+                    Content="Twitch Streamer" />
                 <Button
                     Grid.Row="3"
                     Grid.Column="1"
                     Height="25"
                     Margin="24,0"
-                    Command="{Binding ConnectTwitchStreamerCommand}"
+                    Command="{Binding ConnectStreamerCommand}"
                     Content="Connect" />
                 <Label
                     Grid.Row="3"

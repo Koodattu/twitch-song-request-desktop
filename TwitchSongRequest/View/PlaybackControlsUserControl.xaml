@@ -75,6 +75,7 @@
                 Margin="-4,0,8,0"
                 Maximum="100"
                 Minimum="0"
+                Style="{StaticResource AccentSlider}"
                 TickFrequency="10"
                 TickPlacement="BottomRight"
                 Value="{Binding Volume}" />

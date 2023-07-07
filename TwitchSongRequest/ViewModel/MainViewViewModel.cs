@@ -1,16 +1,14 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.VisualBasic;
 using NAudio.CoreAudioApi;
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
-using System.Linq;
+using System.Windows;
 using System.Windows.Input;
-using TwitchSongRequest.Helpers;
+using System.Windows.Threading;
 using TwitchSongRequest.Model;
 using TwitchSongRequest.Services;
 
@@ -18,23 +16,52 @@ namespace TwitchSongRequest.ViewModel
 {
     internal class MainViewViewModel : ObservableObject
     {
+        internal static YoutubeSongService youtubeSongService = new();
+        internal static SpotifySongService spotifySongService = new();
+
         private readonly IAppSettingsService appSettingsService;
-        private readonly ISpotifyService spotifyService;
-        private readonly ITwitchAuthenticationService twitchAuthService;
+        private readonly ITwitchAuthService twitchAuthService;
+        private readonly ISpotifyAuthService spotifyAuthService;
+        
+        private readonly DispatcherTimer dispatcherTimer;
 
         public MainViewViewModel()
         {
             appSettingsService = App.Current.Services.GetService<IAppSettingsService>()!;
-            spotifyService = App.Current.Services.GetService<ISpotifyService>()!;
-            twitchAuthService = App.Current.Services.GetService<ITwitchAuthenticationService>()!;
+            twitchAuthService = App.Current.Services.GetService<ITwitchAuthService>()!;
+            spotifyAuthService = App.Current.Services.GetService<ISpotifyAuthService>()!;
 
             _appSettings = appSettingsService.GetAppSettings();
             _playbackDevice = _appSettings.PlaybackDevice ?? GetDefaultPlaybackDevice();
             _volume = _appSettings.Volume ?? 100;
 
-            _chromeBrowserViewModel = new ChromeBrowserViewModel(_playbackDevice, _volume);
+            youtubeSongService.SetPlaybackDevice(_playbackDevice);
+            youtubeSongService.SetVolume(_volume);
 
             GenerateMockRequests();
+
+            dispatcherTimer = new DispatcherTimer(new TimeSpan(0, 0, 1), DispatcherPriority.Normal, TimerCallback, Application.Current.Dispatcher);
+            dispatcherTimer.Start();
+        }
+
+        private async void TimerCallback(object? sender, EventArgs e)
+        {
+            if (PlaybackStatus != PlaybackStatus.PLAYING)
+            {
+                return;
+            }
+
+            int curTime = await CurrentSong.Service!.GetPosition();
+
+            if (curTime == -1)
+            {
+                return;
+            }
+
+            if (_position != curTime)
+            {
+                SetProperty(ref _position, curTime, nameof(Position));
+            }
         }
 
         private void GenerateMockRequests()
@@ -47,7 +74,8 @@ namespace TwitchSongRequest.ViewModel
                     Duration = 100 * i,
                     Requester = $"Requester {i}",
                     Url = $"https://www.youtube.com/watch?v=41VlNOyPD9U?t=10s&autoplay={i}",
-                    Platform = i % 2 == 0 ? SongRequestPlatform.YOUTUBE : SongRequestPlatform.SPOTIFY
+                    Platform = i % 2 == 0 ? SongRequestPlatform.YOUTUBE : SongRequestPlatform.SPOTIFY,
+                    Service = i % 2 == 0 ? youtubeSongService : spotifySongService
                 });
             }
             for (int i = 0; i < 4; i++)
@@ -58,16 +86,10 @@ namespace TwitchSongRequest.ViewModel
                     Duration = 100 * i,
                     Requester = $"Requester {i}",
                     Url = $"Url {i}",
-                    Platform = i % 2 == 0 ? SongRequestPlatform.YOUTUBE : SongRequestPlatform.SPOTIFY
+                    Platform = i % 2 == 0 ? SongRequestPlatform.YOUTUBE : SongRequestPlatform.SPOTIFY,
+                    Service = i % 2 == 0 ? youtubeSongService : spotifySongService
                 });
             }
-        }
-
-        private ChromeBrowserViewModel _chromeBrowserViewModel;
-        public ChromeBrowserViewModel ChromeBrowserViewModel
-        {
-            get => _chromeBrowserViewModel;
-            set => SetProperty(ref _chromeBrowserViewModel, value);
         }
 
         private string _playbackDevice;
@@ -76,9 +98,9 @@ namespace TwitchSongRequest.ViewModel
             get => _playbackDevice;
             set
             {
+                AppSettings.PlaybackDevice = value;
+                _ = youtubeSongService.SetPlaybackDevice(value);
                 SetProperty(ref _playbackDevice, value);
-                _chromeBrowserViewModel.ChangePlaybackDevice(value);
-                _appSettings.PlaybackDevice = value;
             }
         }
 
@@ -144,9 +166,9 @@ namespace TwitchSongRequest.ViewModel
             get => _volume;
             set
             {
+                AppSettings.Volume = value;
+                _ = youtubeSongService.SetVolume(value);
                 SetProperty(ref _volume, value);
-                _chromeBrowserViewModel.SetVideoVolume(value);
-                _appSettings.Volume = value;
             }
         }
 
@@ -156,8 +178,8 @@ namespace TwitchSongRequest.ViewModel
             get => _position;
             set
             {
+                CurrentSong.Service?.SetPosition(value);
                 SetProperty(ref _position, value);
-                _chromeBrowserViewModel.SetVideoPosition(value);
             }
         }
 
@@ -190,48 +212,37 @@ namespace TwitchSongRequest.ViewModel
 
         private async void Play()
         {
-            bool result = false;
-            if (_currentSong.Platform == SongRequestPlatform.YOUTUBE)
-            {
-                result = await _chromeBrowserViewModel.PlayVideo();
-            }
-            else
-            {
-                result = await spotifyService.Play();
-            }
+            bool result = await _currentSong.Service!.Play();
             PlaybackStatus = result ? PlaybackStatus.PLAYING : PlaybackStatus.ERROR;
         }
 
-        private void Pause()
+        private async void Pause()
         {
-            if (_currentSong.Platform == SongRequestPlatform.YOUTUBE)
-            {
-                _chromeBrowserViewModel.PauseVideo();
-            }
-            else
-            {
-                spotifyService.Pause();
-            }
+            bool result = await _currentSong.Service!.Pause();
             PlaybackStatus = PlaybackStatus.PAUSED;
         }
 
         private async void Skip()
         {
+            //bool result = await _currentSong.Service.Skip();
+
             //TODO: Skip song
             string url = "https://www.youtube.com/watch?v=41VlNOyPD9U?t=10s&autoplay=1";
             string[] urlSplit = url.Split('?', '&');
             string embedUrl = (urlSplit[0] + "?" + urlSplit[1]).Replace("watch?v=", "embed/") + "?autoplay=1";
-            var info = await _chromeBrowserViewModel.GetYoutubeVideoInfo(embedUrl);
+            string videoId = urlSplit[1].Replace("v=", "");
+            var info = await youtubeSongService.GetSongInfo(videoId);
             CurrentSong = new SongRequest()
             {
-                SongName = info.Item1,
+                SongName = info.SongName,
                 Requester = "Test",
-                Duration = info.Item2,
+                Duration = info.Duration,
                 Platform = SongRequestPlatform.YOUTUBE,
-                Url = url
+                Url = url,
+                Service = youtubeSongService,
             };
             PlaybackStatus = PlaybackStatus.PLAYING;
-            _chromeBrowserViewModel.ChangeAddress(embedUrl);
+            await youtubeSongService.PlaySong(videoId);
         }
         
         private void OpenSongUrl(string? url)
@@ -281,9 +292,10 @@ namespace TwitchSongRequest.ViewModel
             SongRequestHistory.Clear();
         }
 
-        private void ConnectStreamer()
+        private async void ConnectStreamer()
         {
-            //TODO: Connect to Twitch streamer account
+            var accessTokenResult = await twitchAuthService.GenerateTwitchAccesTokens(AppSettings.TwitchClientId!, AppSettings.TwitchClientSecret!, "user:read:email");
+
         }
 
         private void ConnectBot()

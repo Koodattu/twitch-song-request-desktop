@@ -73,13 +73,14 @@
                 <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="30" />
             </Grid.ColumnDefinitions>
-            <TextBlock Text="{Binding ElementName=songPositionSlider, Path=Value, Converter={StaticResource MmSsConverter}}" />
+            <TextBlock Text="{Binding Position, Converter={StaticResource MmSsConverter}}" />
             <Slider
                 x:Name="songPositionSlider"
                 Grid.Column="1"
                 Margin="8,0,8,0"
                 Maximum="{Binding CurrentSong.Duration}"
                 Minimum="0"
+                Style="{StaticResource AccentSlider}"
                 Value="{Binding Position}" />
             <TextBlock Grid.Column="2" Text="{Binding CurrentSong.Duration, Converter={StaticResource MmSsConverter}}" />
         </Grid>

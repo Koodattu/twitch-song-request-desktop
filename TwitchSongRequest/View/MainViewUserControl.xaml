@@ -13,9 +13,6 @@
     mc:Ignorable="d">
 
     <UserControl.Resources>
-        <DataTemplate DataType="{x:Type viewModels:ChromeBrowserViewModel}">
-            <views:ChromeBrowserUserControl />
-        </DataTemplate>
         <converters:MmSsFormatConverter x:Key="MmSsConverter" />
     </UserControl.Resources>
 

@@ -1,9 +1,5 @@
 ﻿using AdonisUI.Controls;
-using CefSharp;
-using Microsoft.Extensions.DependencyInjection;
 using System.Windows;
-using System.Windows.Controls;
-using TwitchSongRequest.ViewModel;
 
 namespace TwitchSongRequest
 {

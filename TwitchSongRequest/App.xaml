@@ -2,15 +2,14 @@
     x:Class="TwitchSongRequest.App"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    xmlns:adonisUi="clr-namespace:AdonisUI;assembly=AdonisUI"
-    xmlns:local="clr-namespace:TwitchSongRequest"
     StartupUri="MainWindow.xaml">
     <Application.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
                 <ResourceDictionary Source="pack://application:,,,/AdonisUI;component/ColorSchemes/Dark.xaml" />
                 <ResourceDictionary Source="pack://application:,,,/AdonisUI.ClassicTheme;component/Resources.xaml" />
-                <ResourceDictionary Source="pack://application:,,,/Resources.xaml" />
+                <ResourceDictionary Source="pack://application:,,,/Styles/Resources.xaml" />
+                <ResourceDictionary Source="pack://application:,,,/Styles/AccentSlider.xaml" />
             </ResourceDictionary.MergedDictionaries>
         </ResourceDictionary>
     </Application.Resources>
