@@ -1,16 +1,14 @@
 ﻿using Newtonsoft.Json;
-using System;
 using System.IO;
-using TwitchSongRequest.Helpers;
 using TwitchSongRequest.Model;
 
 namespace TwitchSongRequest.Services
 {
     internal class AppSettingsService : IAppSettingsService
     {
-        private readonly string filePath = "appsettings.json";
+        private readonly string filePath = "AppSettings.json";
 
-        AppSettings IAppSettingsService.GetAppSettings()
+        public AppSettings GetAppSettings()
         {
             if (!File.Exists(filePath))
             {
@@ -27,12 +25,21 @@ namespace TwitchSongRequest.Services
             return appSettings;
         }
 
-        void IAppSettingsService.SaveAppSettings(AppSettings appSettings)
+        public void SaveAppSettings(AppSettings appSettings)
         {
             //Secure secure = new Secure(Environment.MachineName);
             //appSettings.TwitchClientSecret = secure.EncryptAndEncode(appSettings.TwitchClientSecret);
             string json = JsonConvert.SerializeObject(appSettings, Formatting.Indented);
             File.WriteAllText(filePath, json);
+        }
+
+        public AppSettings ResetAppSettings()
+        {
+            if (!File.Exists(filePath))
+            {
+                File.Delete(filePath);
+            }
+            return new AppSettings();
         }
     }
 }

@@ -3,7 +3,7 @@ using System.Text.Json.Serialization;
 
 namespace TwitchSongRequest.Model
 {
-    internal class TwitchAccessToken
+    internal class ServiceOAuthToken
     {
         [JsonPropertyName("access_token")]
         public string? AccessToken { get; set; }

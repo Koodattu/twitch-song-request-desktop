@@ -13,6 +13,8 @@
         DISCONNECTED,
         CONNECTED,
         CONNECTING,
+        REFRESHING,
+        CANCELLED,
         ERROR
     }
 

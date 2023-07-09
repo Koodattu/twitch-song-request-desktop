@@ -109,6 +109,13 @@
 
                 <Button
                     Grid.Row="4"
+                    Height="25"
+                    Margin="16,0"
+                    VerticalAlignment="Bottom"
+                    Command="{Binding ResetSettingsCommand}"
+                    Content="Reset" />
+                <Button
+                    Grid.Row="4"
                     Grid.Column="3"
                     Height="25"
                     Margin="16,0"

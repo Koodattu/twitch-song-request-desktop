@@ -2,7 +2,6 @@
 using CefSharp.OffScreen;
 using System;
 using System.Globalization;
-using System.Security.Policy;
 using System.Threading.Tasks;
 using TwitchSongRequest.Model;
 

@@ -11,6 +11,7 @@
 
     <UserControl.Resources>
         <converters:StatusToColorConverter x:Key="StatusToColorConverter" />
+        <converters:ValuesCloneMultiConverter x:Key="ValuesCloneMultiConverter" />
     </UserControl.Resources>
 
     <Grid>
@@ -63,7 +64,7 @@
                     Grid.ColumnSpan="3"
                     Height="25"
                     Margin="24,0"
-                    Text="{Binding AppSettings.TwitchClientId}" />
+                    Text="{Binding AppSettings.TwitchClient.ClientId}" />
 
                 <Label
                     Grid.Row="2"
@@ -76,7 +77,7 @@
                     Grid.ColumnSpan="3"
                     Height="25"
                     Margin="24,0"
-                    helpers:PasswordBoxHelper.Password="{Binding AppSettings.TwitchClientSecret, Mode=TwoWay}" />
+                    helpers:PasswordBoxHelper.Password="{Binding AppSettings.TwitchClient.ClientSecret, Mode=TwoWay}" />
 
                 <Label
                     Grid.Row="3"
@@ -84,11 +85,13 @@
                     VerticalAlignment="Center"
                     Content="Twitch Streamer" />
                 <ComboBox
+                    x:Name="StreamerBrowserComboBox"
                     Grid.Row="3"
                     Grid.Column="1"
                     Height="25"
                     Margin="24,0,-16,0"
-                    ItemsSource="{Binding WebBrowsers}" />
+                    ItemsSource="{Binding WebBrowsers}"
+                    SelectedItem="{Binding AppSettings.StreamerInfo.Browser}" />
                 <Button
                     Grid.Row="3"
                     Grid.Column="2"
@@ -113,7 +116,7 @@
                     <Label
                         Grid.Row="2"
                         HorizontalAlignment="Center"
-                        Content="{Binding AppSettings.TwitchStreamerName}" />
+                        Content="{Binding AppSettings.StreamerInfo.AccountName}" />
                 </Grid>
 
                 <Label
@@ -122,11 +125,13 @@
                     VerticalAlignment="Center"
                     Content="Twitch Bot" />
                 <ComboBox
+                    x:Name="BotBrowserComboBox"
                     Grid.Row="4"
                     Grid.Column="1"
                     Height="25"
                     Margin="24,0,-16,0"
-                    ItemsSource="{Binding WebBrowsers}" />
+                    ItemsSource="{Binding WebBrowsers}"
+                    SelectedItem="{Binding AppSettings.BotInfo.Browser}" />
                 <Button
                     Grid.Row="4"
                     Grid.Column="2"
@@ -151,7 +156,7 @@
                     <Label
                         Grid.Row="2"
                         HorizontalAlignment="Center"
-                        Content="{Binding AppSettings.TwitchBotName}" />
+                        Content="{Binding AppSettings.BotInfo.AccountName}" />
                 </Grid>
 
                 <Label
@@ -192,7 +197,7 @@
                     Grid.ColumnSpan="3"
                     Height="25"
                     Margin="24,0"
-                    Text="{Binding AppSettings.SpotifyClientId}" />
+                    Text="{Binding AppSettings.SpotifyClient.ClientId}" />
 
                 <Label
                     Grid.Row="7"
@@ -205,7 +210,7 @@
                     Grid.ColumnSpan="3"
                     Height="25"
                     Margin="24,0"
-                    helpers:PasswordBoxHelper.Password="{Binding AppSettings.SpotifyClientSecret, Mode=TwoWay}" />
+                    helpers:PasswordBoxHelper.Password="{Binding AppSettings.SpotifyClient.ClientSecret, Mode=TwoWay}" />
 
                 <Label
                     Grid.Row="8"
@@ -217,7 +222,8 @@
                     Grid.Column="1"
                     Height="25"
                     Margin="24,0,-16,0"
-                    ItemsSource="{Binding WebBrowsers}" />
+                    ItemsSource="{Binding WebBrowsers}"
+                    SelectedItem="{Binding AppSettings.SpotifyInfo.Browser}" />
                 <Button
                     Grid.Row="8"
                     Grid.Column="2"
@@ -242,7 +248,7 @@
                     <Label
                         Grid.Row="2"
                         HorizontalAlignment="Center"
-                        Content="{Binding AppSettings.SpotifyAccountName}" />
+                        Content="{Binding AppSettings.SpotifyInfo.AccountName}" />
                 </Grid>
 
                 <Button
@@ -271,21 +277,64 @@
                     Content="Close" />
 
                 <Button
+                    Grid.Column="4"
+                    HorizontalAlignment="Left"
+                    VerticalAlignment="Top"
+                    Command="{Binding ProcessStartUriCommand}"
+                    CommandParameter="appsettings.json"
+                    Content="↗"
+                    Style="{DynamicResource {x:Static adonisUi:Styles.AccentButton}}"
+                    ToolTip="Open settings file" />
+                <Button
                     Grid.Row="1"
                     Grid.RowSpan="2"
                     Grid.Column="4"
                     HorizontalAlignment="Left"
                     VerticalAlignment="Center"
-                    Command="{Binding OpenBrowserCommand}"
+                    Command="{Binding ProcessStartUriCommand}"
+                    CommandParameter="{StaticResource TwitchConsole}"
                     Content="↗"
                     Style="{DynamicResource {x:Static adonisUi:Styles.AccentButton}}"
                     ToolTip="Open Twitch developer console" />
+                <Button
+                    Grid.Row="3"
+                    Grid.Column="4"
+                    HorizontalAlignment="Left"
+                    VerticalAlignment="Center"
+                    Command="{Binding ProcessStartBrowserUrlCommand}"
+                    Content="↗"
+                    Style="{DynamicResource {x:Static adonisUi:Styles.AccentButton}}"
+                    ToolTip="Open Twitch connections">
+                    <Button.CommandParameter>
+                        <MultiBinding Converter="{StaticResource ValuesCloneMultiConverter}">
+                            <Binding ElementName="StreamerBrowserComboBox" Path="SelectedItem" />
+                            <Binding Source="{StaticResource TwitchConnections}" />
+                        </MultiBinding>
+                    </Button.CommandParameter>
+                </Button>
+                <Button
+                    Grid.Row="4"
+                    Grid.Column="4"
+                    HorizontalAlignment="Left"
+                    VerticalAlignment="Center"
+                    Command="{Binding ProcessStartBrowserUrlCommand}"
+                    Content="↗"
+                    Style="{DynamicResource {x:Static adonisUi:Styles.AccentButton}}"
+                    ToolTip="Open Twitch connections">
+                    <Button.CommandParameter>
+                        <MultiBinding Converter="{StaticResource ValuesCloneMultiConverter}">
+                            <Binding ElementName="BotBrowserComboBox" Path="SelectedItem" />
+                            <Binding Source="{StaticResource TwitchConnections}" />
+                        </MultiBinding>
+                    </Button.CommandParameter>
+                </Button>
                 <Button
                     Grid.Row="5"
                     Grid.Column="4"
                     HorizontalAlignment="Left"
                     VerticalAlignment="Center"
-                    Command="{Binding OpenBrowserCommand}"
+                    Command="{Binding ProcessStartUriCommand}"
+                    CommandParameter="{StaticResource TwitchRedeemRewards}"
                     Content="↗"
                     Style="{DynamicResource {x:Static adonisUi:Styles.AccentButton}}"
                     ToolTip="Open Twitch channel points redeem rewards" />
@@ -295,7 +344,8 @@
                     Grid.Column="4"
                     HorizontalAlignment="Left"
                     VerticalAlignment="Center"
-                    Command="{Binding OpenBrowserCommand}"
+                    Command="{Binding ProcessStartUriCommand}"
+                    CommandParameter="{StaticResource SpotifyConsole}"
                     Content="↗"
                     Style="{DynamicResource {x:Static adonisUi:Styles.AccentButton}}"
                     ToolTip="Open Spotify developer console" />

@@ -48,7 +48,7 @@
             VerticalAlignment="Center"
             Content="Link" />
         <TextBlock Grid.Row="2" Grid.Column="1">
-            <Hyperlink Command="{Binding OpenSongUrlCommand}" CommandParameter="{Binding CurrentSong.Url}">
+            <Hyperlink Command="{Binding ProcessStartUriCommand}" CommandParameter="{Binding CurrentSong.Url}">
                 <TextBlock Text="{Binding CurrentSong.Url}" TextTrimming="CharacterEllipsis" />
             </Hyperlink>
         </TextBlock>

@@ -2,29 +2,32 @@
 {
     internal class AppSettings
     {
-        public TwitchAccessToken? StreamerAccessTokens { get; set; }
-        public TwitchAccessToken? BotAccessTokens { get; set; }
-        public SpotifyAccessToken? SpotifyAccessTokens { get; set; }
-        public string? TwitchClientId { get; set; }
-        public string? TwitchClientSecret { get; set; }
-        public string? TwitchStreamerAccessToken { get; set; }
-        public string? TwitchStreamerRefreshToken { get; set; }
-        public string? TwitchBotAccessToken { get; set; }
-        public string? TwitchBotRefreshToken { get; set; }
-        public string? SpotifyClientId { get; set; }
-        public string? SpotifyClientSecret { get; set; }
-        public string? SpotifyAccessToken { get; set; }
-        public string? SpotifyRefreshToken { get; set; }
+        public ServiceOAuthToken StreamerAccessTokens { get; set; }
+        public ServiceOAuthToken BotAccessTokens { get; set; }
+        public ServiceOAuthToken SpotifyAccessTokens { get; set; }
+        public ClientCredentials TwitchClient { get; set; }
+        public ClientCredentials SpotifyClient { get; set; }
+        public ClientInfo StreamerInfo { get; set; }
+        public ClientInfo BotInfo { get; set; }
+        public ClientInfo SpotifyInfo { get; set; }
         public string? ChannelRedeemRewardName { get; set; }
         public string? ChannelRedeemRewardId { get; set; }
-        public string? TwitchStreamerName { get; set; }
-        public string? TwitchBotName { get; set; }
-        public string? SpotifyAccountName { get; set; }
         public int? Volume { get; set; }
         public string? PlaybackDevice { get; set; }
-        public int? MaxSongLengthMinutes { get; set; }
-        public int? MaxSongLengthSeconds { get; set; }
+        public int? MaxSongDurationMinutes { get; set; }
+        public int? MaxSongDurationSeconds { get; set; }
         public SongRequestPlatform SongSearchPlatform { get; set; }
         public RewardCreationStatus RewardCreationStatus { get; set; }
+        public AppSettings()
+        {
+            StreamerAccessTokens = new ServiceOAuthToken();
+            BotAccessTokens = new ServiceOAuthToken();
+            SpotifyAccessTokens = new ServiceOAuthToken();
+            TwitchClient = new ClientCredentials();
+            SpotifyClient = new ClientCredentials();
+            StreamerInfo = new ClientInfo();
+            BotInfo = new ClientInfo();
+            SpotifyInfo = new ClientInfo();
+        }
     }
 }

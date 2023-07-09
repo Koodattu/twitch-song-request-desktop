@@ -1,4 +1,7 @@
-﻿<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+﻿<ResourceDictionary
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:system="clr-namespace:System;assembly=mscorlib">
 
     <LinearGradientBrush x:Key="TitleGradientBrush" StartPoint="0,0" EndPoint="1,1">
         <GradientStop Offset="0.0" Color="Purple" />
@@ -6,5 +9,10 @@
     </LinearGradientBrush>
 
     <BooleanToVisibilityConverter x:Key="BoolToVisConverter" />
+
+    <system:String x:Key="TwitchConnections">https://www.twitch.tv/settings/connections</system:String>
+    <system:String x:Key="TwitchRedeemRewards">https://dashboard.twitch.tv/u/vaarattu/viewer-rewards/channel-points/rewards</system:String>
+    <system:String x:Key="TwitchConsole">https://dev.twitch.tv/console</system:String>
+    <system:String x:Key="SpotifyConsole">https://developer.spotify.com/dashboard</system:String>
 
 </ResourceDictionary>

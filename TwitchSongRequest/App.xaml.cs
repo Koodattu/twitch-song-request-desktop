@@ -12,6 +12,12 @@ namespace TwitchSongRequest
     /// </summary>
     public partial class App : Application
     {
+        internal static YoutubeSongService YoutubeSongService = new();
+        internal static SpotifySongService SpotifySongService = new();
+
+        internal static TwitchAuthService TwitchAuthService = new();
+        internal static SpotifyAuthService SpotifyAuthService = new();
+
         internal IServiceProvider Services { get; }
         internal new static App Current => (App)Application.Current;
 
@@ -29,7 +35,6 @@ namespace TwitchSongRequest
             var services = new ServiceCollection();
 
             // Services
-            services.AddSingleton<ITwitchAuthService, TwitchAuthService>();
             services.AddSingleton<IAppSettingsService, AppSettingsService>();
 
             return services.BuildServiceProvider();

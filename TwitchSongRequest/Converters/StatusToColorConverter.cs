@@ -18,9 +18,11 @@ namespace TwitchSongRequest.Converters
                         return new SolidColorBrush(Colors.Green);
                     case ConnectionStatus.DISCONNECTED:
                     case ConnectionStatus.ERROR:
+                    case ConnectionStatus.CANCELLED:
                         return new SolidColorBrush(Colors.Red);
                     case ConnectionStatus.NOT_CONNECTED:
                     case ConnectionStatus.CONNECTING:
+                    case ConnectionStatus.REFRESHING:
                         return new SolidColorBrush(Colors.Yellow);
                     default:
                         return new SolidColorBrush(Colors.White);
@@ -53,6 +55,10 @@ namespace TwitchSongRequest.Converters
                     case RewardCreationStatus.ERROR:
                     case RewardCreationStatus.ALREADY_EXISTS:
                         return new SolidColorBrush(Colors.Red);
+                    case RewardCreationStatus.WAITING:
+                        return new SolidColorBrush(Colors.Cyan);
+                    case RewardCreationStatus.PENDING:
+                        return new SolidColorBrush(Colors.Yellow);
                     default:
                         return new SolidColorBrush(Colors.White);
                 }

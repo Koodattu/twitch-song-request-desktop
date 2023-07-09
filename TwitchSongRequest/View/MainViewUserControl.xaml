@@ -14,6 +14,10 @@
 
     <UserControl.Resources>
         <converters:MmSsFormatConverter x:Key="MmSsConverter" />
+
+        <DataTemplate DataType="{x:Type viewModels:ConfirmationDialogViewModel}">
+            <views:ConfirmationDialogUserControl />
+        </DataTemplate>
     </UserControl.Resources>
 
     <Grid>
@@ -93,7 +97,7 @@
                             <GridViewColumn.CellTemplate>
                                 <DataTemplate>
                                     <TextBlock>
-                                        <Hyperlink Command="{Binding DataContext.OpenSongUrlCommand, RelativeSource={RelativeSource AncestorType=ListView, Mode=FindAncestor}}" CommandParameter="{Binding Url}">
+                                        <Hyperlink Command="{Binding DataContext.ProcessStartUriCommand, RelativeSource={RelativeSource AncestorType=ListView, Mode=FindAncestor}}" CommandParameter="{Binding Url}">
                                             <TextBlock Text="{Binding Url}" TextTrimming="CharacterEllipsis" />
                                         </Hyperlink>
                                     </TextBlock>
@@ -173,7 +177,7 @@
                             <GridViewColumn.CellTemplate>
                                 <DataTemplate>
                                     <TextBlock>
-                                        <Hyperlink Command="{Binding DataContext.OpenSongUrlCommand, RelativeSource={RelativeSource AncestorType=ListView, Mode=FindAncestor}}" CommandParameter="{Binding Url}">
+                                        <Hyperlink Command="{Binding DataContext.ProcessStartUriCommand, RelativeSource={RelativeSource AncestorType=ListView, Mode=FindAncestor}}" CommandParameter="{Binding Url}">
                                             <TextBlock Text="{Binding Url}" TextTrimming="CharacterEllipsis" />
                                         </Hyperlink>
                                     </TextBlock>
@@ -210,5 +214,7 @@
 
         <views:SettingsUserControl Grid.RowSpan="4" Visibility="{Binding IsSettingsOpen, Converter={StaticResource BoolToVisConverter}, FallbackValue=Collapsed}" />
         <views:SetupUserControl Grid.RowSpan="4" Visibility="{Binding IsSetupOpen, Converter={StaticResource BoolToVisConverter}, FallbackValue=Collapsed}" />
+        <ContentControl Grid.RowSpan="4" Content="{Binding ConfirmationDialogViewModel, Mode=OneTime}" />
+
     </Grid>
 </UserControl>

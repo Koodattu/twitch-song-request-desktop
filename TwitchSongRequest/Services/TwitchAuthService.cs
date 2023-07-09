@@ -1,62 +1,77 @@
 ﻿using Newtonsoft.Json;
 using RestSharp;
 using System;
-using System.ComponentModel.DataAnnotations;
-using System.Diagnostics;
 using System.Net;
-using System.Security.Authentication;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using TwitchSongRequest.Helpers;
 using TwitchSongRequest.Model;
 
 namespace TwitchSongRequest.Services
 {
-    internal class TwitchAuthService : ITwitchAuthService
+    internal class TwitchAuthService : IAuthService
     {
         private const string RedirectUri = "http://localhost:8080";
-        HttpListener httpListener = new HttpListener() { Prefixes = { RedirectUri + "/"} };
+        private readonly HttpListener httpListener = new HttpListener() { Prefixes = { RedirectUri + "/"} };
 
-        public async Task<TwitchAccessToken> GenerateTwitchAccesTokens(string twitchClientId, string twitchClientSecret, string scopes)
+        public async Task<ServiceOAuthToken> GenerateOAuthTokens(ClientCredentials credentials, ClientInfo info, CancellationToken cancellationToken)
         {
             // Open the browser window for authorization
-            string authorizationUrl = $"https://id.twitch.tv/oauth2/authorize?client_id={twitchClientId}&redirect_uri={Uri.EscapeDataString(RedirectUri)}&response_type=code&scope={Uri.EscapeDataString(scopes)}";
-            Process.Start(new ProcessStartInfo(authorizationUrl) { UseShellExecute = true });
+            string authorizationUrl = $"https://id.twitch.tv/oauth2/authorize?client_id={credentials.ClientId}&redirect_uri={Uri.EscapeDataString(RedirectUri)}&response_type=code&scope={Uri.EscapeDataString(info.Scope!)}";
+            WebBrowserLauncher.Launch(info.Browser, authorizationUrl);
 
             // Start the local HTTP server to handle the redirect
-            string code = await StartHttpServer();
+            string code = await StartHttpServer(cancellationToken);
 
             // Exchange the authorization code for an access token
-            TwitchAccessToken token = ExchangeAuthorizationCodeForToken(twitchClientId, twitchClientSecret, code);
+            ServiceOAuthToken token = ExchangeAuthorizationCodeForToken(credentials.ClientId!, credentials.ClientSecret!, code);
             return token;
         }
 
-        public async Task<string?> ValidateTwitchAccessTokens(TwitchAccessToken accessTokens, string clientId, string clientSecret)
+        public async Task<string> ValidateOAuthTokens(ServiceOAuthToken tokens)
         {
-            var client = new RestClient("https://id.twitch.tv/oauth2/validate");
+            var restClient = new RestClient("https://id.twitch.tv/oauth2/validate");
             var request = new RestRequest("/", Method.Get);
 
-            request.AddHeader("Authorization", $"OAuth {accessTokens.AccessToken}");
+            request.AddHeader("Authorization", $"OAuth {tokens.AccessToken}");
 
-            var response = await client.ExecuteAsync<TwitchAccessToken>(request);
+            var response = await restClient.ExecuteAsync(request);
 
-            if (response.IsSuccessful && response.StatusCode == HttpStatusCode.OK)
+            if (response.IsSuccessful && response.StatusCode == HttpStatusCode.OK && response.Content != null)
             {
                 var obj = JsonConvert.DeserializeObject<dynamic>(response.Content);
                 return obj.login;
             }
             else
             {
-                throw new ValidationException($"Error validating Twitch OAuth access token: {response.ErrorMessage}");
+                throw new HttpResponseException(response.StatusCode, $"Error validating Twitch OAuth access token: {response.ErrorMessage}");
             }
         }
 
-        public Task<TwitchAccessToken> RefreshTwitchAccessTokens(TwitchAccessToken accessTokens, string twitchClientId, string twitchClientSecret)
+        public async Task<ServiceOAuthToken> RefreshOAuthTokens(ServiceOAuthToken tokens, ClientCredentials credentials)
         {
-            throw new NotImplementedException();
+            var restClient = new RestClient("https://id.twitch.tv/oauth2/token");
+            var request = new RestRequest("/", Method.Post);
+            request.AddParameter("Content-Type", "application/x-www-form-urlencoded");
+            request.AddParameter("client_id", credentials.ClientId);
+            request.AddParameter("client_secret", credentials.ClientSecret);
+            request.AddParameter("refresh_token", tokens.RefreshToken);
+            request.AddParameter("grant_type", "refresh_token");
+
+            var response = await restClient.ExecuteAsync<ServiceOAuthToken>(request);
+
+            if (response.IsSuccessful && response.Data != null)
+            {
+                return response.Data;
+            }
+            else
+            {
+                throw new HttpResponseException(response.StatusCode, $"Error exchanging Twitch authorization code: {response.ErrorMessage}");
+            }
         }
 
-        private async Task<string> StartHttpServer()
+        private async Task<string> StartHttpServer(CancellationToken cancellationToken)
         {
             if (!httpListener!.IsListening)
             {
@@ -71,11 +86,17 @@ namespace TwitchSongRequest.Services
                 // Handle the redirect asynchronously with timeout
                 var contextTask = httpListener.GetContextAsync();
                 var timeoutTask = Task.Delay(TimeSpan.FromMinutes(1), cts.Token);
-                var completedTask = await Task.WhenAny(contextTask, timeoutTask);
+                var cancelTask = Task.Delay(TimeSpan.FromMinutes(2), cancellationToken);
+                var completedTask = await Task.WhenAny(contextTask, timeoutTask, cancelTask);
 
                 if (completedTask == timeoutTask)
                 {
-                    throw new TimeoutException("Timeout while waiting for authorization code.");
+                    throw new TaskCanceledException("Timeout while waiting for authorization code.");
+                }
+
+                if (completedTask == cancelTask)
+                {
+                    throw new TaskCanceledException("User cancelled authorization.");
                 }
 
                 // Proceed with handling the received callback
@@ -102,9 +123,9 @@ namespace TwitchSongRequest.Services
             }
         }
 
-        private TwitchAccessToken ExchangeAuthorizationCodeForToken(string clientId, string clientSecret, string code)
+        private ServiceOAuthToken ExchangeAuthorizationCodeForToken(string clientId, string clientSecret, string code)
         {
-            var client = new RestClient("https://id.twitch.tv/oauth2/token");
+            var restClient = new RestClient("https://id.twitch.tv/oauth2/token");
             var request = new RestRequest("/", Method.Post);
 
             request.AddParameter("client_id", clientId);
@@ -113,15 +134,15 @@ namespace TwitchSongRequest.Services
             request.AddParameter("grant_type", "authorization_code");
             request.AddParameter("redirect_uri", RedirectUri);
 
-            var response = client.Execute<TwitchAccessToken>(request);
+            var response = restClient.Execute<ServiceOAuthToken>(request);
 
-            if (response.IsSuccessful)
+            if (response.IsSuccessful && response.Data != null)
             {
                 return response.Data;
             }
             else
             {
-                throw new AuthenticationException($"Error exchanging Twitch authorization code: {response.ErrorMessage}");
+                throw new HttpResponseException(response.StatusCode, $"Error exchanging Twitch authorization code: {response.ErrorMessage}");
             }
         }
     }
