@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
+using System.Linq;
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Threading;
@@ -38,10 +39,68 @@ namespace TwitchSongRequest.ViewModel
             youtubeSongService.SetPlaybackDevice(_playbackDevice);
             youtubeSongService.SetVolume(_volume);
 
+            ValidateStreamerLogin();
+            ValidateBotLogin();
+            ValidateSpotifyLogin();
+
             GenerateMockRequests();
 
             dispatcherTimer = new DispatcherTimer(new TimeSpan(0, 0, 1), DispatcherPriority.Normal, TimerCallback, Application.Current.Dispatcher);
             dispatcherTimer.Start();
+        }
+
+        private async void ValidateStreamerLogin()
+        {
+            // 1. try to validate token
+            Connections.StreamerStatus = ConnectionStatus.CONNECTING;
+
+            try
+            {
+                AppSettings.TwitchStreamerName = await twitchAuthService.ValidateTwitchAccessTokens(AppSettings.StreamerAccessTokens!, AppSettings.TwitchClientId!, AppSettings.TwitchClientSecret!);
+                Connections.StreamerStatus = ConnectionStatus.CONNECTED;
+                return;
+            }
+            catch (Exception ex)
+            {
+                // TODO: Log error
+                Connections.StreamerStatus = ConnectionStatus.ERROR;
+            }
+
+            // 2. if not logged in, try to refresh token
+            try
+            {
+                AppSettings.StreamerAccessTokens = await twitchAuthService.RefreshTwitchAccessTokens(AppSettings.StreamerAccessTokens!, AppSettings.TwitchClientId!, AppSettings.TwitchClientSecret!);
+                Connections.StreamerStatus = ConnectionStatus.CONNECTED;
+                return;
+            }
+            catch (Exception ex)
+            {
+                // TODO: Log error
+                Connections.StreamerStatus = ConnectionStatus.ERROR;
+            }
+
+            // 3. revalidate token
+            try
+            {
+                AppSettings.TwitchStreamerName = await twitchAuthService.ValidateTwitchAccessTokens(AppSettings.StreamerAccessTokens!, AppSettings.TwitchClientId!, AppSettings.TwitchClientSecret!);
+                Connections.StreamerStatus = ConnectionStatus.CONNECTED;
+                return;
+            }
+            catch (Exception ex)
+            {
+                // TODO: Log error
+                Connections.StreamerStatus = ConnectionStatus.ERROR;
+            }
+        }
+
+        private void ValidateBotLogin()
+        {
+
+        }
+
+        private void ValidateSpotifyLogin()
+        {
+
         }
 
         private async void TimerCallback(object? sender, EventArgs e)
@@ -58,10 +117,7 @@ namespace TwitchSongRequest.ViewModel
                 return;
             }
 
-            if (_position != curTime)
-            {
-                SetProperty(ref _position, curTime, nameof(Position));
-            }
+            SetProperty(ref _position, curTime, nameof(Position));
         }
 
         private void GenerateMockRequests()
@@ -190,6 +246,16 @@ namespace TwitchSongRequest.ViewModel
             set => SetProperty(ref _connections, value);
         }
 
+        public IEnumerable<SongRequestPlatform> SongRequestPlatforms
+        {
+            get => Enum.GetValues(typeof(SongRequestPlatform)).Cast<SongRequestPlatform>();
+        }
+
+        public IEnumerable<WebBrowser> WebBrowsers
+        {
+            get => Enum.GetValues(typeof(WebBrowser)).Cast<WebBrowser>();
+        }
+
         public ICommand PlayCommand => new RelayCommand(Play);
         public ICommand PauseCommand => new RelayCommand(Pause);
         public ICommand SkipCommand => new RelayCommand(Skip);
@@ -294,13 +360,44 @@ namespace TwitchSongRequest.ViewModel
 
         private async void ConnectStreamer()
         {
-            var accessTokenResult = await twitchAuthService.GenerateTwitchAccesTokens(AppSettings.TwitchClientId!, AppSettings.TwitchClientSecret!, "user:read:email");
+            Connections.StreamerStatus = ConnectionStatus.CONNECTING;
 
+            try
+            {
+                TwitchAccessToken twitchAccessToken = await twitchAuthService.GenerateTwitchAccesTokens(AppSettings.TwitchClientId!, AppSettings.TwitchClientSecret!, "channel:read:redemptions channel:manage:redemptions");
+                string accountName = await twitchAuthService.ValidateTwitchAccessTokens(twitchAccessToken, AppSettings.TwitchClientId!, AppSettings.TwitchClientSecret!);
+                AppSettings.StreamerAccessTokens = twitchAccessToken;
+                AppSettings.TwitchStreamerName = accountName;
+                Connections.StreamerStatus = ConnectionStatus.CONNECTED;
+            }
+            catch (Exception ex)
+            {
+                // TODO: Log error
+                Connections.StreamerStatus = ConnectionStatus.ERROR;
+            }
+
+            OnPropertyChanged(nameof(AppSettings));
         }
 
-        private void ConnectBot()
+        private async void ConnectBot()
         {
-            //TODO: Connect to Twitch bot account
+            Connections.BotStatus = ConnectionStatus.CONNECTING;
+
+            try
+            {
+                TwitchAccessToken twitchAccessToken = await twitchAuthService.GenerateTwitchAccesTokens(AppSettings.TwitchClientId!, AppSettings.TwitchClientSecret!, "chat:read chat:edit");
+                string accountName = await twitchAuthService.ValidateTwitchAccessTokens(twitchAccessToken, AppSettings.TwitchClientId!, AppSettings.TwitchClientSecret!);
+                AppSettings.BotAccessTokens = twitchAccessToken;
+                AppSettings.TwitchBotName = accountName;
+                Connections.BotStatus = ConnectionStatus.CONNECTED;
+            }
+            catch (Exception ex)
+            {
+                // TODO: Log error
+                Connections.BotStatus = ConnectionStatus.ERROR;
+            }
+
+            OnPropertyChanged(nameof(AppSettings));
         }
 
         private void CreateReward()

@@ -55,8 +55,8 @@
             Grid.Row="2"
             Grid.Column="1"
             VerticalAlignment="Center"
-            Content="{Binding Connections.TwitchStreamerStatus}"
-            Foreground="{Binding Connections.TwitchStreamerStatus, Converter={StaticResource StatusToColorConverter}}" />
+            Content="{Binding Connections.StreamerStatus}"
+            Foreground="{Binding Connections.StreamerStatus, Converter={StaticResource StatusToColorConverter}}" />
 
         <Label
             Grid.Row="3"
@@ -66,8 +66,8 @@
             Grid.Row="3"
             Grid.Column="1"
             VerticalAlignment="Center"
-            Content="{Binding Connections.TwitchBotStatus}"
-            Foreground="{Binding Connections.TwitchBotStatus, Converter={StaticResource StatusToColorConverter}}" />
+            Content="{Binding Connections.BotStatus}"
+            Foreground="{Binding Connections.BotStatus, Converter={StaticResource StatusToColorConverter}}" />
 
         <Label
             Grid.Row="4"

@@ -2,8 +2,9 @@
 {
     internal enum SongRequestPlatform
     {
+        SPOTIFY,
         YOUTUBE,
-        SPOTIFY
+        SOUNDCLOUD
     }
 
     internal enum ConnectionStatus
@@ -25,8 +26,17 @@
 
     internal enum RewardCreationStatus
     {
-        SUCCESS,
+        WAITING,
+        PENDING,
         ERROR,
+        SUCCESS,
         ALREADY_EXISTS
+    }
+
+    internal enum WebBrowser
+    {
+        CHROME,
+        FIREFOX,
+        EDGE
     }
 }

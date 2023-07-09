@@ -1,9 +1,28 @@
-﻿namespace TwitchSongRequest.Model
+﻿using CommunityToolkit.Mvvm.ComponentModel;
+
+namespace TwitchSongRequest.Model
 {
-    internal class ConnectionsStatus
+    internal class ConnectionsStatus : ObservableObject
     {
-        public ConnectionStatus TwitchStreamerStatus { get; set; }
-        public ConnectionStatus TwitchBotStatus { get; set; }
-        public ConnectionStatus SpotifyStatus { get; set; }
+        private ConnectionStatus _streamerStatus;
+        public ConnectionStatus StreamerStatus
+        {
+            get => _streamerStatus;
+            set => SetProperty(ref _streamerStatus, value);
+        }
+
+        private ConnectionStatus _botStatus;
+        public ConnectionStatus BotStatus
+        {
+            get => _botStatus;
+            set => SetProperty(ref _botStatus, value);
+        }
+
+        private ConnectionStatus _spotifyStatus;
+        public ConnectionStatus SpotifyStatus
+        {
+            get => _spotifyStatus;
+            set => SetProperty(ref _spotifyStatus, value);
+        }
     }
 }

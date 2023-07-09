@@ -2,6 +2,9 @@
 {
     internal class AppSettings
     {
+        public TwitchAccessToken? StreamerAccessTokens { get; set; }
+        public TwitchAccessToken? BotAccessTokens { get; set; }
+        public SpotifyAccessToken? SpotifyAccessTokens { get; set; }
         public string? TwitchClientId { get; set; }
         public string? TwitchClientSecret { get; set; }
         public string? TwitchStreamerAccessToken { get; set; }

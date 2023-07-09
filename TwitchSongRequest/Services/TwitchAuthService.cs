@@ -1,7 +1,10 @@
-﻿using RestSharp;
+﻿using Newtonsoft.Json;
+using RestSharp;
 using System;
+using System.ComponentModel.DataAnnotations;
 using System.Diagnostics;
 using System.Net;
+using System.Security.Authentication;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -28,9 +31,24 @@ namespace TwitchSongRequest.Services
             return token;
         }
 
-        public Task<bool> ValidateTwitchAccessTokens(TwitchAccessToken accessTokens, string twitchClientId, string twitchClientSecret)
+        public async Task<string?> ValidateTwitchAccessTokens(TwitchAccessToken accessTokens, string clientId, string clientSecret)
         {
-            throw new NotImplementedException();
+            var client = new RestClient("https://id.twitch.tv/oauth2/validate");
+            var request = new RestRequest("/", Method.Get);
+
+            request.AddHeader("Authorization", $"OAuth {accessTokens.AccessToken}");
+
+            var response = await client.ExecuteAsync<TwitchAccessToken>(request);
+
+            if (response.IsSuccessful && response.StatusCode == HttpStatusCode.OK)
+            {
+                var obj = JsonConvert.DeserializeObject<dynamic>(response.Content);
+                return obj.login;
+            }
+            else
+            {
+                throw new ValidationException($"Error validating Twitch OAuth access token: {response.ErrorMessage}");
+            }
         }
 
         public Task<TwitchAccessToken> RefreshTwitchAccessTokens(TwitchAccessToken accessTokens, string twitchClientId, string twitchClientSecret)
@@ -52,12 +70,12 @@ namespace TwitchSongRequest.Services
             {
                 // Handle the redirect asynchronously with timeout
                 var contextTask = httpListener.GetContextAsync();
-                var timeoutTask = Task.Delay(TimeSpan.FromSeconds(5), cts.Token);
+                var timeoutTask = Task.Delay(TimeSpan.FromMinutes(1), cts.Token);
                 var completedTask = await Task.WhenAny(contextTask, timeoutTask);
 
                 if (completedTask == timeoutTask)
                 {
-                    //TODO SERVER SHUTDOWN
+                    throw new TimeoutException("Timeout while waiting for authorization code.");
                 }
 
                 // Proceed with handling the received callback
@@ -103,7 +121,7 @@ namespace TwitchSongRequest.Services
             }
             else
             {
-                throw new Exception($"Error exchanging authorization code: {response.ErrorMessage}");
+                throw new AuthenticationException($"Error exchanging Twitch authorization code: {response.ErrorMessage}");
             }
         }
     }

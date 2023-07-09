@@ -103,9 +103,9 @@
                     Grid.Column="1"
                     Grid.ColumnSpan="2"
                     Height="25"
-                    Margin="24,0"
-                    ItemsSource="{Binding Platforms}"
-                    SelectedItem="{Binding SearchPlatform}" />
+                    Margin="24,0,64,0"
+                    ItemsSource="{Binding SongRequestPlatforms}"
+                    SelectedItem="{Binding AppSettings.SongSearchPlatform}" />
 
                 <Button
                     Grid.Row="4"
@@ -119,7 +119,7 @@
                     Grid.Row="4"
                     Grid.Column="2"
                     Height="25"
-                    Margin="16,0"
+                    Margin="16,0,0,0"
                     VerticalAlignment="Bottom"
                     Command="{Binding SaveSettingsCommand}"
                     Content="Save"

@@ -16,7 +16,7 @@
     <Grid>
         <Rectangle Fill="Black" Opacity="0.5" />
         <Border
-            Width="500"
+            Width="600"
             Height="500"
             Padding="8,16"
             Background="{DynamicResource {x:Static adonisUi:Brushes.Layer0BackgroundBrush}}"
@@ -25,9 +25,10 @@
             CornerRadius="8">
             <Grid>
                 <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="1*" />
-                    <ColumnDefinition Width="1*" />
-                    <ColumnDefinition Width="1*" />
+                    <ColumnDefinition Width="4*" />
+                    <ColumnDefinition Width="4*" />
+                    <ColumnDefinition Width="4*" />
+                    <ColumnDefinition Width="4*" />
                     <ColumnDefinition Width="1*" />
                 </Grid.ColumnDefinitions>
                 <Grid.RowDefinitions>
@@ -82,85 +83,100 @@
                     HorizontalAlignment="Right"
                     VerticalAlignment="Center"
                     Content="Twitch Streamer" />
-                <Button
+                <ComboBox
                     Grid.Row="3"
                     Grid.Column="1"
                     Height="25"
-                    Margin="24,0"
-                    Command="{Binding ConnectStreamerCommand}"
-                    Content="Connect" />
-                <Label
+                    Margin="24,0,-16,0"
+                    ItemsSource="{Binding WebBrowsers}" />
+                <Button
                     Grid.Row="3"
                     Grid.Column="2"
-                    Margin="8,0"
-                    HorizontalAlignment="Center"
-                    VerticalAlignment="Center"
-                    Content="{Binding Connections.TwitchStreamerStatus}"
-                    Foreground="{Binding Connections.TwitchStreamerStatus, Converter={StaticResource StatusToColorConverter}}" />
-                <Label
+                    Height="25"
+                    Margin="32,0,8,0"
+                    Command="{Binding ConnectStreamerCommand}"
+                    Content="Connect" />
+
+                <Grid
                     Grid.Row="3"
                     Grid.Column="3"
                     Margin="8,0"
-                    HorizontalAlignment="Left"
-                    VerticalAlignment="Center"
-                    Content="{Binding AppSettings.TwitchStreamerName}" />
+                    VerticalAlignment="Center">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="1*" />
+                        <RowDefinition Height="1*" />
+                    </Grid.RowDefinitions>
+                    <Label
+                        HorizontalAlignment="Center"
+                        Content="{Binding Connections.StreamerStatus}"
+                        Foreground="{Binding Connections.StreamerStatus, Converter={StaticResource StatusToColorConverter}}" />
+                    <Label
+                        Grid.Row="2"
+                        HorizontalAlignment="Center"
+                        Content="{Binding AppSettings.TwitchStreamerName}" />
+                </Grid>
 
                 <Label
                     Grid.Row="4"
                     HorizontalAlignment="Right"
                     VerticalAlignment="Center"
                     Content="Twitch Bot" />
-                <Button
+                <ComboBox
                     Grid.Row="4"
                     Grid.Column="1"
                     Height="25"
-                    Margin="24,0"
-                    Command="{Binding ConnectTwitchBotCommand}"
-                    Content="Connect" />
-                <Label
+                    Margin="24,0,-16,0"
+                    ItemsSource="{Binding WebBrowsers}" />
+                <Button
                     Grid.Row="4"
                     Grid.Column="2"
-                    Margin="8,0"
-                    HorizontalAlignment="Center"
-                    VerticalAlignment="Center"
-                    Content="{Binding Connections.TwitchBotStatus}"
-                    Foreground="{Binding Connections.TwitchBotStatus, Converter={StaticResource StatusToColorConverter}}" />
-                <Label
+                    Height="25"
+                    Margin="32,0,8,0"
+                    Command="{Binding ConnectBotCommand}"
+                    Content="Connect" />
+
+                <Grid
                     Grid.Row="4"
                     Grid.Column="3"
                     Margin="8,0"
-                    HorizontalAlignment="Left"
-                    VerticalAlignment="Center"
-                    Content="{Binding AppSettings.TwitchBotName}" />
+                    VerticalAlignment="Center">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="1*" />
+                        <RowDefinition Height="1*" />
+                    </Grid.RowDefinitions>
+                    <Label
+                        HorizontalAlignment="Center"
+                        Content="{Binding Connections.BotStatus}"
+                        Foreground="{Binding Connections.BotStatus, Converter={StaticResource StatusToColorConverter}}" />
+                    <Label
+                        Grid.Row="2"
+                        HorizontalAlignment="Center"
+                        Content="{Binding AppSettings.TwitchBotName}" />
+                </Grid>
 
                 <Label
                     Grid.Row="5"
                     HorizontalAlignment="Right"
                     VerticalAlignment="Center"
                     Content="Reward Name" />
-                <Grid
+                <TextBox
                     Grid.Row="5"
                     Grid.Column="1"
-                    Grid.ColumnSpan="2">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="2*" />
-                        <ColumnDefinition Width="1*" />
-                    </Grid.ColumnDefinitions>
-                    <TextBox
-                        Height="25"
-                        Margin="24,0,8,0"
-                        Text="{Binding AppSettings.ChannelRedeemRewardName}" />
-                    <Button
-                        Grid.Column="1"
-                        Height="25"
-                        Margin="8,0"
-                        Command="{Binding CreateRewardCommand}"
-                        Content="Create" />
-                </Grid>
+                    Height="25"
+                    Margin="24,0,-16,0"
+                    Text="{Binding AppSettings.ChannelRedeemRewardName}" />
+                <Button
+                    Grid.Row="5"
+                    Grid.Column="2"
+                    Height="25"
+                    Margin="32,0,8,0"
+                    Command="{Binding CreateRewardCommand}"
+                    Content="Create" />
                 <Label
                     Grid.Row="5"
                     Grid.Column="3"
                     Margin="8,0"
+                    HorizontalAlignment="Center"
                     VerticalAlignment="Center"
                     Content="{Binding AppSettings.RewardCreationStatus}"
                     Foreground="{Binding AppSettings.RewardCreationStatus, Converter={StaticResource StatusToColorConverter}}" />
@@ -196,46 +212,93 @@
                     HorizontalAlignment="Right"
                     VerticalAlignment="Center"
                     Content="Spotify" />
-                <Button
+                <ComboBox
                     Grid.Row="8"
                     Grid.Column="1"
                     Height="25"
-                    Margin="24,0"
-                    Command="{Binding ConnectSpotifyCommand}"
-                    Content="Connect" />
-                <Label
+                    Margin="24,0,-16,0"
+                    ItemsSource="{Binding WebBrowsers}" />
+                <Button
                     Grid.Row="8"
                     Grid.Column="2"
-                    Margin="8,0"
-                    HorizontalAlignment="Center"
-                    VerticalAlignment="Center"
-                    Content="{Binding Connections.SpotifyStatus}"
-                    Foreground="{Binding Connections.SpotifyStatus, Converter={StaticResource StatusToColorConverter}}" />
-                <Label
+                    Height="25"
+                    Margin="32,0,8,0"
+                    Command="{Binding ConnectSpotifyCommand}"
+                    Content="Connect" />
+
+                <Grid
                     Grid.Row="8"
                     Grid.Column="3"
                     Margin="8,0"
-                    HorizontalAlignment="Left"
-                    VerticalAlignment="Center"
-                    Content="{Binding AppSettings.SpotifyAccountName}" />
+                    VerticalAlignment="Center">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="1*" />
+                        <RowDefinition Height="1*" />
+                    </Grid.RowDefinitions>
+                    <Label
+                        HorizontalAlignment="Center"
+                        Content="{Binding Connections.SpotifyStatus}"
+                        Foreground="{Binding Connections.SpotifyStatus, Converter={StaticResource StatusToColorConverter}}" />
+                    <Label
+                        Grid.Row="2"
+                        HorizontalAlignment="Center"
+                        Content="{Binding AppSettings.SpotifyAccountName}" />
+                </Grid>
 
                 <Button
                     Grid.Row="9"
-                    Grid.Column="3"
                     Height="25"
                     Margin="16,0"
                     VerticalAlignment="Bottom"
-                    Command="{Binding CloseSetupCommand}"
-                    Content="Close" />
+                    Command="{Binding ResetSetupCommand}"
+                    Content="Reset" />
                 <Button
                     Grid.Row="9"
                     Grid.Column="2"
                     Height="25"
-                    Margin="16,0"
+                    Margin="32,0,8,0"
                     VerticalAlignment="Bottom"
                     Command="{Binding SaveSetupCommand}"
                     Content="Save"
                     Style="{DynamicResource {x:Static adonisUi:Styles.AccentButton}}" />
+                <Button
+                    Grid.Row="9"
+                    Grid.Column="3"
+                    Height="25"
+                    Margin="24,0"
+                    VerticalAlignment="Bottom"
+                    Command="{Binding CloseSetupCommand}"
+                    Content="Close" />
+
+                <Button
+                    Grid.Row="1"
+                    Grid.RowSpan="2"
+                    Grid.Column="4"
+                    HorizontalAlignment="Left"
+                    VerticalAlignment="Center"
+                    Command="{Binding OpenBrowserCommand}"
+                    Content="↗"
+                    Style="{DynamicResource {x:Static adonisUi:Styles.AccentButton}}"
+                    ToolTip="Open Twitch developer console" />
+                <Button
+                    Grid.Row="5"
+                    Grid.Column="4"
+                    HorizontalAlignment="Left"
+                    VerticalAlignment="Center"
+                    Command="{Binding OpenBrowserCommand}"
+                    Content="↗"
+                    Style="{DynamicResource {x:Static adonisUi:Styles.AccentButton}}"
+                    ToolTip="Open Twitch channel points redeem rewards" />
+                <Button
+                    Grid.Row="6"
+                    Grid.RowSpan="2"
+                    Grid.Column="4"
+                    HorizontalAlignment="Left"
+                    VerticalAlignment="Center"
+                    Command="{Binding OpenBrowserCommand}"
+                    Content="↗"
+                    Style="{DynamicResource {x:Static adonisUi:Styles.AccentButton}}"
+                    ToolTip="Open Spotify developer console" />
 
             </Grid>
 
