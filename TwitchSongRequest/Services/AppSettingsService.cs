@@ -8,38 +8,42 @@ namespace TwitchSongRequest.Services
     {
         private readonly string filePath = "AppSettings.json";
 
-        public AppSettings GetAppSettings()
+        public AppSettings AppSettings { get; private set; }
+
+        public AppSettingsService()
         {
             if (!File.Exists(filePath))
             {
-                return new AppSettings();
+                AppSettings = new AppSettings();
+                return;
             }
             string json = File.ReadAllText(filePath);
             AppSettings? appSettings = JsonConvert.DeserializeObject<AppSettings>(json);
             if (appSettings == null)
             {
-                return new AppSettings();
+                AppSettings = new AppSettings();
+                return;
             }
             //Secure secure = new Secure(Environment.MachineName);
             //appSettings.TwitchClientSecret = secure.DecodeAndDecrypt(appSettings.TwitchClientSecret);
-            return appSettings;
+            AppSettings = appSettings;
         }
 
-        public void SaveAppSettings(AppSettings appSettings)
+        public void SaveAppSettings()
         {
             //Secure secure = new Secure(Environment.MachineName);
             //appSettings.TwitchClientSecret = secure.EncryptAndEncode(appSettings.TwitchClientSecret);
-            string json = JsonConvert.SerializeObject(appSettings, Formatting.Indented);
+            string json = JsonConvert.SerializeObject(AppSettings, Formatting.Indented);
             File.WriteAllText(filePath, json);
         }
 
-        public AppSettings ResetAppSettings()
+        public void ResetAppSettings()
         {
             if (!File.Exists(filePath))
             {
                 File.Delete(filePath);
             }
-            return new AppSettings();
+            AppSettings = new AppSettings();
         }
     }
 }

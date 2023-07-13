@@ -11,7 +11,7 @@
 
     <UserControl.Resources>
         <converters:StatusToColorConverter x:Key="StatusToColorConverter" />
-        <converters:ValuesCloneMultiConverter x:Key="ValuesCloneMultiConverter" />
+        <converters:BrowserStartInfoMultiConverter x:Key="BrowserStartInfoMultiConverter" />
     </UserControl.Resources>
 
     <Grid>
@@ -218,6 +218,7 @@
                     VerticalAlignment="Center"
                     Content="Spotify" />
                 <ComboBox
+                    x:Name="SpotifyBrowserComboBox"
                     Grid.Row="8"
                     Grid.Column="1"
                     Height="25"
@@ -306,7 +307,7 @@
                     Style="{DynamicResource {x:Static adonisUi:Styles.AccentButton}}"
                     ToolTip="Open Twitch connections">
                     <Button.CommandParameter>
-                        <MultiBinding Converter="{StaticResource ValuesCloneMultiConverter}">
+                        <MultiBinding Converter="{StaticResource BrowserStartInfoMultiConverter}">
                             <Binding ElementName="StreamerBrowserComboBox" Path="SelectedItem" />
                             <Binding Source="{StaticResource TwitchConnections}" />
                         </MultiBinding>
@@ -322,7 +323,7 @@
                     Style="{DynamicResource {x:Static adonisUi:Styles.AccentButton}}"
                     ToolTip="Open Twitch connections">
                     <Button.CommandParameter>
-                        <MultiBinding Converter="{StaticResource ValuesCloneMultiConverter}">
+                        <MultiBinding Converter="{StaticResource BrowserStartInfoMultiConverter}">
                             <Binding ElementName="BotBrowserComboBox" Path="SelectedItem" />
                             <Binding Source="{StaticResource TwitchConnections}" />
                         </MultiBinding>
@@ -349,6 +350,22 @@
                     Content="↗"
                     Style="{DynamicResource {x:Static adonisUi:Styles.AccentButton}}"
                     ToolTip="Open Spotify developer console" />
+                <Button
+                    Grid.Row="8"
+                    Grid.Column="4"
+                    HorizontalAlignment="Left"
+                    VerticalAlignment="Center"
+                    Command="{Binding ProcessStartBrowserUrlCommand}"
+                    Content="↗"
+                    Style="{DynamicResource {x:Static adonisUi:Styles.AccentButton}}"
+                    ToolTip="Open Spotify connections">
+                    <Button.CommandParameter>
+                        <MultiBinding Converter="{StaticResource BrowserStartInfoMultiConverter}">
+                            <Binding ElementName="SpotifyBrowserComboBox" Path="SelectedItem" />
+                            <Binding Source="{StaticResource SpotifyConnections}" />
+                        </MultiBinding>
+                    </Button.CommandParameter>
+                </Button>
 
             </Grid>
 

@@ -4,8 +4,8 @@ namespace TwitchSongRequest.Services
 {
     internal interface IAppSettingsService
     {
-        AppSettings GetAppSettings();
-        void SaveAppSettings(AppSettings appSettings);
-        AppSettings ResetAppSettings();
+        AppSettings AppSettings { get; }
+        void SaveAppSettings();
+        void ResetAppSettings();
     }
 }

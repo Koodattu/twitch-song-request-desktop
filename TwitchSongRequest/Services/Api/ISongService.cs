@@ -1,7 +1,7 @@
 ﻿using System.Threading.Tasks;
 using TwitchSongRequest.Model;
 
-namespace TwitchSongRequest.Services
+namespace TwitchSongRequest.Services.Api
 {
     internal interface ISongService
     {

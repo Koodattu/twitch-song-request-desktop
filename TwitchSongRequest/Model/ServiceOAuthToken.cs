@@ -12,7 +12,7 @@ namespace TwitchSongRequest.Model
         [JsonPropertyName("expires_in")]
         public int ExpiresIn { get; set; }
         [JsonPropertyName("scope")]
-        public List<string>? Scope { get; set; }
+        public object? Scope { get; set; }
         [JsonPropertyName("token_type")]
         public string? TokenType { get; set; }
     }

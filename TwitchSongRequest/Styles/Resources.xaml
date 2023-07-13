@@ -14,5 +14,6 @@
     <system:String x:Key="TwitchRedeemRewards">https://dashboard.twitch.tv/u/vaarattu/viewer-rewards/channel-points/rewards</system:String>
     <system:String x:Key="TwitchConsole">https://dev.twitch.tv/console</system:String>
     <system:String x:Key="SpotifyConsole">https://developer.spotify.com/dashboard</system:String>
+    <system:String x:Key="SpotifyConnections">https://www.spotify.com/account/apps/</system:String>
 
 </ResourceDictionary>

@@ -1,5 +1,5 @@
 ﻿using Newtonsoft.Json;
-using TwitchSongRequest.Services;
+using TwitchSongRequest.Services.Api;
 
 namespace TwitchSongRequest.Model
 {

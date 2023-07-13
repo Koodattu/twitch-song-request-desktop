@@ -5,7 +5,7 @@ using TwitchSongRequest.Model;
 
 namespace TwitchSongRequest.Converters
 {
-    public class ValuesCloneMultiConverter : IMultiValueConverter
+    public class BrowserStartInfoMultiConverter : IMultiValueConverter
     {
         public object Convert(object[] values, Type targetType, object parameter, CultureInfo culture)
         {

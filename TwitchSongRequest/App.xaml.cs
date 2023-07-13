@@ -4,6 +4,9 @@ using System;
 using System.Windows;
 using Microsoft.Extensions.DependencyInjection;
 using TwitchSongRequest.Services;
+using TwitchSongRequest.Services.Authentication;
+using TwitchSongRequest.Services.Api;
+using TwitchSongRequest.ViewModel;
 
 namespace TwitchSongRequest
 {
@@ -12,12 +15,6 @@ namespace TwitchSongRequest
     /// </summary>
     public partial class App : Application
     {
-        internal static YoutubeSongService YoutubeSongService = new();
-        internal static SpotifySongService SpotifySongService = new();
-
-        internal static TwitchAuthService TwitchAuthService = new();
-        internal static SpotifyAuthService SpotifyAuthService = new();
-
         internal IServiceProvider Services { get; }
         internal new static App Current => (App)Application.Current;
 
@@ -36,6 +33,16 @@ namespace TwitchSongRequest
 
             // Services
             services.AddSingleton<IAppSettingsService, AppSettingsService>();
+
+            services.AddSingleton<ITwitchAuthService, TwitchAuthService>();
+            services.AddSingleton<ISpotifyAuthService, SpotifyAuthService>();
+
+            services.AddSingleton<ISpotifySongService, SpotifySongService>();
+            services.AddSingleton<IYoutubeSongService, YoutubeSongService>();
+
+            // Viewmodels
+            services.AddTransient<MainWindowViewModel>();
+            services.AddTransient<MainViewViewModel>();
 
             return services.BuildServiceProvider();
         }

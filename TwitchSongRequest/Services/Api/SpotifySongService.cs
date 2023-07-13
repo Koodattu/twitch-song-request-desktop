@@ -2,13 +2,15 @@
 using System.Threading.Tasks;
 using TwitchSongRequest.Model;
 
-namespace TwitchSongRequest.Services
+namespace TwitchSongRequest.Services.Api
 {
-    internal class SpotifySongService : ISongService
+    internal class SpotifySongService : ISpotifySongService
     {
-        public SpotifySongService()
+        private readonly IAppSettingsService _appSettingsService;
+
+        public SpotifySongService(IAppSettingsService appSettingsService)
         {
-            
+            _appSettingsService = appSettingsService;
         }
 
         public Task<string> GetPlaybackDevice()

@@ -5,16 +5,19 @@ using System.Globalization;
 using System.Threading.Tasks;
 using TwitchSongRequest.Model;
 
-namespace TwitchSongRequest.Services
+namespace TwitchSongRequest.Services.Api
 {
-    internal class YoutubeSongService : ISongService
+    internal class YoutubeSongService : IYoutubeSongService
     {
         private ChromiumWebBrowser ChromeBrowser;
         private string? PlaybackDevice;
         private int Volume;
 
-        public YoutubeSongService()
+        private readonly IAppSettingsService _appSettingsService;
+
+        public YoutubeSongService(IAppSettingsService appSettingsService)
         {
+            _appSettingsService = appSettingsService;
             ChromeBrowser = new ChromiumWebBrowser();
             ChromeBrowser.LoadingStateChanged += ChromeBrowser_LoadingStateChanged;
         }

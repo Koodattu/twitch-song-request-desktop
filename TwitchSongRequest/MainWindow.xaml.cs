@@ -1,5 +1,7 @@
 ﻿using AdonisUI.Controls;
+using Microsoft.Extensions.DependencyInjection;
 using System.Windows;
+using TwitchSongRequest.ViewModel;
 
 namespace TwitchSongRequest
 {
@@ -11,6 +13,7 @@ namespace TwitchSongRequest
         public MainWindow()
         {
             InitializeComponent();
+            this.DataContext = App.Current.Services.GetService<MainWindowViewModel>();
         }
 
         private void AdonisWindow_StateChanged(object sender, System.EventArgs e)
