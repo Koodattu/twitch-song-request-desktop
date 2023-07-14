@@ -14,15 +14,15 @@ namespace TwitchSongRequest.Converters
             {
                 switch (value)
                 {
-                    case ConnectionStatus.CONNECTED:
+                    case ConnectionStatus.Connected:
                         return new SolidColorBrush(Colors.Green);
-                    case ConnectionStatus.DISCONNECTED:
-                    case ConnectionStatus.ERROR:
-                    case ConnectionStatus.CANCELLED:
+                    case ConnectionStatus.Disconnected:
+                    case ConnectionStatus.Error:
+                    case ConnectionStatus.Cancelled:
                         return new SolidColorBrush(Colors.Red);
-                    case ConnectionStatus.NOT_CONNECTED:
-                    case ConnectionStatus.CONNECTING:
-                    case ConnectionStatus.REFRESHING:
+                    case ConnectionStatus.NotConnected:
+                    case ConnectionStatus.Connecting:
+                    case ConnectionStatus.Refreshing:
                         return new SolidColorBrush(Colors.Yellow);
                     default:
                         return new SolidColorBrush(Colors.White);
@@ -33,13 +33,13 @@ namespace TwitchSongRequest.Converters
             {
                 switch (value)
                 {
-                    case PlaybackStatus.PLAYING:
+                    case PlaybackStatus.Playing:
                         return new SolidColorBrush(Colors.Green);
-                    case PlaybackStatus.ERROR:
+                    case PlaybackStatus.Error:
                         return new SolidColorBrush(Colors.Red);
-                    case PlaybackStatus.PAUSED:
+                    case PlaybackStatus.Paused:
                         return new SolidColorBrush(Colors.Yellow);
-                    case PlaybackStatus.WAITING:
+                    case PlaybackStatus.Waiting:
                         return new SolidColorBrush(Colors.Cyan);
                     default:
                         return new SolidColorBrush(Colors.White);
@@ -50,14 +50,14 @@ namespace TwitchSongRequest.Converters
             {
                 switch (value)
                 {
-                    case RewardCreationStatus.SUCCESS:
+                    case RewardCreationStatus.Created:
                         return new SolidColorBrush(Colors.Green);
-                    case RewardCreationStatus.ERROR:
-                    case RewardCreationStatus.ALREADY_EXISTS:
+                    case RewardCreationStatus.Error:
+                    case RewardCreationStatus.AlreadyExists:
                         return new SolidColorBrush(Colors.Red);
-                    case RewardCreationStatus.WAITING:
+                    case RewardCreationStatus.Waiting:
                         return new SolidColorBrush(Colors.Cyan);
-                    case RewardCreationStatus.PENDING:
+                    case RewardCreationStatus.Creating:
                         return new SolidColorBrush(Colors.Yellow);
                     default:
                         return new SolidColorBrush(Colors.White);

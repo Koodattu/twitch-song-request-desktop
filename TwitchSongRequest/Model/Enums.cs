@@ -2,43 +2,43 @@
 {
     internal enum SongRequestPlatform
     {
-        SPOTIFY,
-        YOUTUBE,
-        SOUNDCLOUD
+        Spotify,
+        Youtube,
+        Soundcloud
     }
 
     internal enum ConnectionStatus
     {
-        NOT_CONNECTED,
-        DISCONNECTED,
-        CONNECTED,
-        CONNECTING,
-        REFRESHING,
-        CANCELLED,
-        ERROR
+        NotConnected,
+        Disconnected,
+        Connected,
+        Connecting,
+        Refreshing,
+        Cancelled,
+        Error
     }
 
     internal enum PlaybackStatus
     {
-        WAITING,
-        ERROR,
-        PLAYING,
-        PAUSED
+        Waiting,
+        Error,
+        Playing,
+        Paused
     }
 
     internal enum RewardCreationStatus
     {
-        WAITING,
-        PENDING,
-        ERROR,
-        SUCCESS,
-        ALREADY_EXISTS
+        Waiting,
+        Creating,
+        Error,
+        Created,
+        AlreadyExists
     }
 
     internal enum WebBrowser
     {
-        CHROME,
-        FIREFOX,
-        EDGE
+        Chrome,
+        Firefox,
+        Edge
     }
 }

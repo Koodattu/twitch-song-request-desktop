@@ -37,6 +37,8 @@ namespace TwitchSongRequest
             services.AddSingleton<ITwitchAuthService, TwitchAuthService>();
             services.AddSingleton<ISpotifyAuthService, SpotifyAuthService>();
 
+            services.AddSingleton<ITwitchApiService, TwitchApiService>();
+
             services.AddSingleton<ISpotifySongService, SpotifySongService>();
             services.AddSingleton<IYoutubeSongService, YoutubeSongService>();
 

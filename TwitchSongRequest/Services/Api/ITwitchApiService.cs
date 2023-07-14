@@ -1,9 +1,12 @@
 ﻿using System.Threading.Tasks;
+using TwitchLib.Client;
 
 namespace TwitchSongRequest.Services.Api
 {
     internal interface ITwitchApiService
     {
-        Task<bool> CreateReward(string name, string accessToken, int broadcasterId, string clientId);
+        TwitchClient SetupTwitchStreamerClient();
+        TwitchClient SetupTwitchBotClient();
+        Task<string?> CreateReward(string name);
     }
 }

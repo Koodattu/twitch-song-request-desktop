@@ -12,13 +12,13 @@ namespace TwitchSongRequest.Helpers
             string browserKeyPath;
             switch (browser)
             {
-                case WebBrowser.CHROME:
+                case WebBrowser.Chrome:
                     browserKeyPath = @"SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\chrome.exe";
                     break;
-                case WebBrowser.FIREFOX:
+                case WebBrowser.Firefox:
                     browserKeyPath = @"SOFTWARE\Mozilla\Mozilla Firefox";
                     break;
-                case WebBrowser.EDGE:
+                case WebBrowser.Edge:
                     browserKeyPath = @"SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\msedge.exe";
                     break;
                 default:

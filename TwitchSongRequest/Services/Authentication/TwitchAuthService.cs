@@ -97,6 +97,7 @@ namespace TwitchSongRequest.Services.Authentication
             }
             else
             {
+                response.ErrorException!.Data.Add("Response", response.Content);
                 throw response.ErrorException!;
             }
         }
@@ -119,6 +120,7 @@ namespace TwitchSongRequest.Services.Authentication
             }
             else
             {
+                response.ErrorException!.Data.Add("Response", response.Content);
                 throw response.ErrorException!;
             }
         }
@@ -196,6 +198,7 @@ namespace TwitchSongRequest.Services.Authentication
             }
             else
             {
+                response.ErrorException!.Data.Add("Response", response.Content);
                 throw response.ErrorException!;
             }
         }

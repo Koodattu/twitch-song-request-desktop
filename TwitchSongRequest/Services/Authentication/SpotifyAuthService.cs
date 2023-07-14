@@ -58,10 +58,13 @@ namespace TwitchSongRequest.Services.Authentication
 
             if (response.IsSuccessful && response.Data != null)
             {
-                return response.Data;
+                ServiceOAuthToken newTokens = response.Data;
+                newTokens.RefreshToken = tokens.RefreshToken;
+                return newTokens;
             }
             else
             {
+                response.ErrorException!.Data.Add("Response", response.Content);
                 throw response.ErrorException!;
             }
         }
@@ -84,6 +87,7 @@ namespace TwitchSongRequest.Services.Authentication
             }
             else
             {
+                response.ErrorException!.Data.Add("Response", response.Content);
                 throw response.ErrorException!;
             }
         }
@@ -161,6 +165,7 @@ namespace TwitchSongRequest.Services.Authentication
             }
             else
             {
+                response.ErrorException!.Data.Add("Response", response.Content);
                 throw response.ErrorException!;
             }
         }

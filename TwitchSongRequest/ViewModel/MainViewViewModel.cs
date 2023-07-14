@@ -1,11 +1,14 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using NAudio.CoreAudioApi;
+using NLog;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.Linq;
+using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
@@ -21,22 +24,28 @@ namespace TwitchSongRequest.ViewModel
 {
     internal class MainViewViewModel : ObservableObject
     {
+        private static readonly Logger _logger = LogManager.GetCurrentClassLogger();
+
         private readonly IAppSettingsService _appSettingsService;
 
         private readonly ITwitchAuthService _twitchAuthService;
         private readonly ISpotifyAuthService _spotifyAuthService;
+
+        private readonly ITwitchApiService _twitchApiService;
 
         private readonly ISpotifySongService _spotifySongService;
         private readonly IYoutubeSongService _youtubeSongService;
 
         private readonly DispatcherTimer dispatcherTimer;
 
-        public MainViewViewModel(IAppSettingsService appSettingsService, ITwitchAuthService twitchAuthService, ISpotifyAuthService spotifyAuthService, ISpotifySongService spotifySongService, IYoutubeSongService youtubeSongService)
+        public MainViewViewModel(IAppSettingsService appSettingsService, ITwitchAuthService twitchAuthService, ISpotifyAuthService spotifyAuthService, ITwitchApiService twitchApiService, ISpotifySongService spotifySongService, IYoutubeSongService youtubeSongService)
         {
             _appSettingsService = appSettingsService;
 
             _twitchAuthService = twitchAuthService;
             _spotifyAuthService = spotifyAuthService;
+
+            _twitchApiService = twitchApiService;
 
             _spotifySongService = spotifySongService;
             _youtubeSongService = youtubeSongService;
@@ -166,6 +175,9 @@ namespace TwitchSongRequest.ViewModel
             set => SetProperty(ref _confirmationDialogViewModel, value);
         }
 
+        public bool StreamerConnecting { get => streamerCts != null; }
+        public bool BotConnecting { get => botCts != null; }
+        public bool SpotifyConnecting { get => spotifyCts != null; }
 
         public ICommand PlayCommand => new RelayCommand(Play);
         public ICommand PauseCommand => new RelayCommand(Pause);
@@ -180,7 +192,7 @@ namespace TwitchSongRequest.ViewModel
         public ICommand ConnectStreamerCommand => new RelayCommand(ConnectOrCancelStreamer);
         public ICommand ConnectBotCommand => new RelayCommand(ConnectOrCancelBot);
         public ICommand ConnectSpotifyCommand => new RelayCommand(ConnectOrCancelSpotify);
-        public ICommand CreateRewardCommand => new RelayCommand(CreateReward);
+        public ICommand CreateRewardCommand => new RelayCommand<string?>((e) => CreateReward(e));
         public ICommand OpenSetupCommand => new RelayCommand(OpenSetup);
         public ICommand SaveSetupCommand => new RelayCommand(() => CloseSetup(true));
         public ICommand CloseSetupCommand => new RelayCommand(() => CloseSetup(false));
@@ -193,13 +205,13 @@ namespace TwitchSongRequest.ViewModel
         private async void Play()
         {
             bool result = await _currentSong.Service!.Play();
-            PlaybackStatus = result ? PlaybackStatus.PLAYING : PlaybackStatus.ERROR;
+            PlaybackStatus = result ? PlaybackStatus.Playing : PlaybackStatus.Error;
         }
 
         private async void Pause()
         {
             bool result = await _currentSong.Service!.Pause();
-            PlaybackStatus = result ? PlaybackStatus.PAUSED : PlaybackStatus.ERROR;
+            PlaybackStatus = result ? PlaybackStatus.Paused : PlaybackStatus.Error;
         }
 
         private async void Skip()
@@ -223,9 +235,9 @@ namespace TwitchSongRequest.ViewModel
             }
         }
 
-        private void ProcessStartBrowserUrl(Tuple<WebBrowser, string> browserStartInfo)
+        private void ProcessStartBrowserUrl(Tuple<WebBrowser, string>? browserStartInfo)
         {
-            WebBrowserLauncher.Launch(browserStartInfo.Item1, browserStartInfo.Item2);
+            WebBrowserLauncher.Launch(browserStartInfo!.Item1, browserStartInfo!.Item2);
         }
 
         private void RemoveSongQueue(SongRequest? e)
@@ -283,24 +295,30 @@ namespace TwitchSongRequest.ViewModel
             {
                 streamerCts.Cancel();
                 streamerCts = null;
-                Connections.StreamerStatus = ConnectionStatus.CANCELLED;
+                Connections.StreamerStatus = ConnectionStatus.Cancelled;
                 return;
             }
 
+            Connections.StreamerStatus = ConnectionStatus.Connecting;
             streamerCts = new CancellationTokenSource();
-            Progress<ConnectionStatus> progress = new();
 
             try
             {
                 AppSettings.StreamerInfo.Scope = "chat:read channel:read:redemptions channel:manage:redemptions";
                 AppSettings.StreamerAccessTokens = await _twitchAuthService.GenerateStreamerOAuthTokens(streamerCts.Token);
                 AppSettings.StreamerInfo.AccountName = await _twitchAuthService.ValidateStreamerOAuthTokens();
-                Connections.StreamerStatus = ConnectionStatus.CONNECTED;
+                Connections.StreamerStatus = ConnectionStatus.Connected;
+            }
+            catch (HttpRequestException ex)
+            {
+                string dataString = string.Join(",", ex.Data.Values.Cast<object>().Select(v => v.ToString()));
+                _logger.Log(LogLevel.Error, ex, $"Error connecting to Twitch Streamer Account, Data: {dataString}");
+                Connections.StreamerStatus = ConnectionStatus.Error;
             }
             catch (Exception ex)
             {
-                //TODO: Log error
-                Connections.StreamerStatus = ConnectionStatus.ERROR;
+                _logger.Log(LogLevel.Error, ex, "Error connecting to Twitch Streamer Account");
+                Connections.StreamerStatus = ConnectionStatus.Error;
             }
             finally
             {
@@ -321,10 +339,11 @@ namespace TwitchSongRequest.ViewModel
             {
                 botCts.Cancel();
                 botCts = null;
-                Connections.BotStatus = ConnectionStatus.CANCELLED;
+                Connections.BotStatus = ConnectionStatus.Cancelled;
                 return;
             }
 
+            Connections.BotStatus = ConnectionStatus.Connecting;
             botCts = new CancellationTokenSource();
 
             try
@@ -332,12 +351,18 @@ namespace TwitchSongRequest.ViewModel
                 AppSettings.BotInfo.Scope = "chat:edit";
                 AppSettings.BotAccessTokens= await _twitchAuthService.GenerateBotOAuthTokens(botCts.Token);
                 AppSettings.BotInfo.AccountName = await _twitchAuthService.ValidateBotOAuthTokens();
-                Connections.BotStatus = ConnectionStatus.CONNECTED;
+                Connections.BotStatus = ConnectionStatus.Connected;
+            }
+            catch (HttpRequestException ex)
+            {
+                string dataString = string.Join(",", ex.Data.Values.Cast<object>().Select(v => v.ToString()));
+                _logger.Log(LogLevel.Error, ex, $"Error connecting to Twitch Bot Account, Data: {dataString}");
+                Connections.BotStatus = ConnectionStatus.Error;
             }
             catch (Exception ex)
             {
-                //TODO: Log error
-                Connections.BotStatus = ConnectionStatus.ERROR;
+                _logger.Log(LogLevel.Error, ex, "Error connecting to Twitch Bot Account");
+                Connections.BotStatus = ConnectionStatus.Error;
             }
             finally
             {
@@ -358,10 +383,11 @@ namespace TwitchSongRequest.ViewModel
             {
                 spotifyCts.Cancel();
                 spotifyCts = null;
-                Connections.SpotifyStatus = ConnectionStatus.CANCELLED;
+                Connections.SpotifyStatus = ConnectionStatus.Cancelled;
                 return;
             }
 
+            Connections.SpotifyStatus = ConnectionStatus.Connecting;
             spotifyCts = new CancellationTokenSource();
 
             try
@@ -369,12 +395,19 @@ namespace TwitchSongRequest.ViewModel
                 AppSettings.SpotifyInfo.Scope = "user-modify-playback-state user-read-playback-state user-read-currently-playing";
                 AppSettings.SpotifyAccessTokens = await _spotifyAuthService.GenerateOAuthTokens(spotifyCts.Token);
                 AppSettings.SpotifyInfo.AccountName = await _spotifyAuthService.ValidateOAuthTokens();
-                Connections.SpotifyStatus = ConnectionStatus.CONNECTED;
+
+                Connections.SpotifyStatus = ConnectionStatus.Connected;
+            }
+            catch (HttpRequestException ex)
+            {
+                string dataString = string.Join(",", ex.Data.Values.Cast<object>().Select(v => v.ToString()));
+                _logger.Log(LogLevel.Error, ex, $"Error connecting to Spotify Account, Data: {dataString}");
+                Connections.SpotifyStatus = ConnectionStatus.Error;
             }
             catch (Exception ex)
             {
-                //TODO: Log error
-                Connections.SpotifyStatus = ConnectionStatus.ERROR;
+                _logger.Log(LogLevel.Error, ex, "Error connecting to Spotify Account");
+                Connections.SpotifyStatus = ConnectionStatus.Error;
             }
             finally
             {
@@ -388,9 +421,29 @@ namespace TwitchSongRequest.ViewModel
             OnPropertyChanged(nameof(AppSettings));
         }
 
-        private void CreateReward()
+        private async void CreateReward(string? rewardName)
         {
-            //TODO: Create Twitch reward
+            _appSettingsService.AppSettings.RewardCreationStatus = RewardCreationStatus.Creating;
+            OnPropertyChanged(nameof(AppSettings));
+            try
+            {
+                string? rewardId = await _twitchApiService.CreateReward(rewardName!);
+                if (!string.IsNullOrWhiteSpace(rewardId))
+                {
+                    _appSettingsService.AppSettings.ChannelRedeemRewardId = rewardId;
+                    _appSettingsService.AppSettings.RewardCreationStatus = RewardCreationStatus.Created;
+                }
+                else
+                {
+                    _appSettingsService.AppSettings.RewardCreationStatus = RewardCreationStatus.AlreadyExists;
+                }
+            }
+            catch (Exception ex)
+            {
+                _appSettingsService.AppSettings.RewardCreationStatus = RewardCreationStatus.Error;
+                _logger.Log(LogLevel.Error, ex, "Error creating reward");
+            }
+            OnPropertyChanged(nameof(AppSettings));
         }
 
         private void OpenSettings()
@@ -435,7 +488,7 @@ namespace TwitchSongRequest.ViewModel
             }
             catch (Exception ex)
             {
-                //TODO: Log error
+                _logger.Log(LogLevel.Error, ex, "Error resetting settings");
             }
             OnPropertyChanged(nameof(AppSettings));
         }
@@ -453,7 +506,7 @@ namespace TwitchSongRequest.ViewModel
             }
             catch (Exception ex)
             {
-                //TODO: Log error
+                _logger.Log(LogLevel.Error, ex, "Error saving settings");
             }
         }
 
@@ -492,9 +545,14 @@ namespace TwitchSongRequest.ViewModel
                 {
                     await ValidateTwitchStreamerLogin();
                 }
+                catch (HttpRequestException ex)
+                {
+                    string dataString = string.Join(",", ex.Data.Values.Cast<object>().Select(v => v.ToString()));
+                    _logger.Log(LogLevel.Error, ex, $"Error validating Twitch Streamer login, Data: {dataString}");
+                }
                 catch (Exception ex)
                 {
-                    //TODO: Log error
+                    _logger.Log(LogLevel.Error, ex, "Error validating Twitch Streamer login");
                 }
             }
             if (AppSettings.BotAccessTokens.AccessToken != null)
@@ -503,9 +561,14 @@ namespace TwitchSongRequest.ViewModel
                 {
                     await ValidateTwitchBotLogin();
                 }
+                catch (HttpRequestException ex)
+                {
+                    string dataString = string.Join(",", ex.Data.Values.Cast<object>().Select(v => v.ToString()));
+                    _logger.Log(LogLevel.Error, ex, $"Error validating Twitch Bot login, Data: {dataString}");
+                }
                 catch (Exception ex)
                 {
-                    //TODO: Log error
+                    _logger.Log(LogLevel.Error, ex, "Error validating Twitch Bot login");
                 }
             }
             if (AppSettings.SpotifyAccessTokens.AccessToken != null)
@@ -514,38 +577,42 @@ namespace TwitchSongRequest.ViewModel
                 {
                     await ValidateSpotifyLogin();
                 }
+                catch (HttpRequestException ex)
+                {
+                    string dataString = string.Join(",", ex.Data.Values.Cast<object>().Select(v => v.ToString()));
+                    _logger.Log(LogLevel.Error, ex, $"Error validating Spotify login, Data: {dataString}");
+                }
                 catch (Exception ex)
                 {
-                    //TODO: Log error
-                    Debug.WriteLine(ex.Message);
+                    _logger.Log(LogLevel.Error, ex, "Error validating Spotify login");
                 }
             }
         }
 
         private async Task ValidateTwitchStreamerLogin()
         {
-            Connections.StreamerStatus = ConnectionStatus.CONNECTING;
+            Connections.StreamerStatus = ConnectionStatus.Connecting;
 
             // 1. try to validate token
             try
             {
                 AppSettings.StreamerInfo.AccountName = await _twitchAuthService.ValidateStreamerOAuthTokens();
-                Connections.StreamerStatus = ConnectionStatus.CONNECTED;
+                Connections.StreamerStatus = ConnectionStatus.Connected;
             }
             catch
             {
-                Connections.StreamerStatus = ConnectionStatus.REFRESHING;
+                Connections.StreamerStatus = ConnectionStatus.Refreshing;
             }
 
             // 2. if not logged in, try to refresh token
             try
             {
                 AppSettings.StreamerAccessTokens = await _twitchAuthService.RefreshStreamerOAuthTokens();
-                Connections.StreamerStatus = ConnectionStatus.CONNECTED;
+                Connections.StreamerStatus = ConnectionStatus.Connected;
             }
             catch
             {
-                Connections.StreamerStatus = ConnectionStatus.ERROR;
+                Connections.StreamerStatus = ConnectionStatus.Error;
                 throw;
             }
 
@@ -553,39 +620,39 @@ namespace TwitchSongRequest.ViewModel
             try
             {
                 AppSettings.StreamerInfo.AccountName = await _twitchAuthService.ValidateStreamerOAuthTokens();
-                Connections.StreamerStatus = ConnectionStatus.CONNECTED;
+                Connections.StreamerStatus = ConnectionStatus.Connected;
             }
             catch
             {
-                Connections.StreamerStatus = ConnectionStatus.ERROR;
+                Connections.StreamerStatus = ConnectionStatus.Error;
                 throw;
             }
         }
 
         private async Task ValidateTwitchBotLogin()
         {
-            Connections.BotStatus = ConnectionStatus.CONNECTING;
+            Connections.BotStatus = ConnectionStatus.Connecting;
 
             // 1. try to validate token
             try
             {
                 AppSettings.BotInfo.AccountName = await _twitchAuthService.ValidateBotOAuthTokens();
-                Connections.BotStatus = ConnectionStatus.CONNECTED;
+                Connections.BotStatus = ConnectionStatus.Connected;
             }
             catch
             {
-                Connections.BotStatus = ConnectionStatus.REFRESHING;
+                Connections.BotStatus = ConnectionStatus.Refreshing;
             }
 
             // 2. if not logged in, try to refresh token
             try
             {
                 AppSettings.BotAccessTokens = await _twitchAuthService.RefreshBotOAuthTokens();
-                Connections.BotStatus = ConnectionStatus.CONNECTED;
+                Connections.BotStatus = ConnectionStatus.Connected;
             }
             catch
             {
-                Connections.BotStatus = ConnectionStatus.ERROR;
+                Connections.BotStatus = ConnectionStatus.Error;
                 throw;
             }
 
@@ -593,39 +660,39 @@ namespace TwitchSongRequest.ViewModel
             try
             {
                 AppSettings.BotInfo.AccountName = await _twitchAuthService.ValidateBotOAuthTokens();
-                Connections.BotStatus = ConnectionStatus.CONNECTED;
+                Connections.BotStatus = ConnectionStatus.Connected;
             }
             catch
             {
-                Connections.BotStatus = ConnectionStatus.ERROR;
+                Connections.BotStatus = ConnectionStatus.Error;
                 throw;
             }
         }
 
         private async Task ValidateSpotifyLogin()
         {
-            Connections.SpotifyStatus = ConnectionStatus.CONNECTING;
+            Connections.SpotifyStatus = ConnectionStatus.Connecting;
 
             // 1. try to validate token
             try
             {
                 AppSettings.SpotifyInfo.AccountName = await _spotifyAuthService.ValidateOAuthTokens();
-                Connections.SpotifyStatus = ConnectionStatus.CONNECTED;
+                Connections.SpotifyStatus = ConnectionStatus.Connected;
             }
             catch
             {
-                Connections.SpotifyStatus = ConnectionStatus.REFRESHING;
+                Connections.SpotifyStatus = ConnectionStatus.Refreshing;
             }
 
             // 2. if not logged in, try to refresh token
             try
             {
                 AppSettings.SpotifyAccessTokens = await _spotifyAuthService.RefreshOAuthTokens();
-                Connections.SpotifyStatus = ConnectionStatus.CONNECTED;
+                Connections.SpotifyStatus = ConnectionStatus.Connected;
             }
             catch
             {
-                Connections.SpotifyStatus = ConnectionStatus.ERROR;
+                Connections.SpotifyStatus = ConnectionStatus.Error;
                 throw;
             }
 
@@ -633,18 +700,18 @@ namespace TwitchSongRequest.ViewModel
             try
             {
                 AppSettings.SpotifyInfo.AccountName = await _spotifyAuthService.ValidateOAuthTokens();
-                Connections.SpotifyStatus = ConnectionStatus.CONNECTED;
+                Connections.SpotifyStatus = ConnectionStatus.Connected;
             }
             catch
             {
-                Connections.SpotifyStatus = ConnectionStatus.ERROR;
+                Connections.SpotifyStatus = ConnectionStatus.Error;
                 throw;
             }
         }
 
         private async void TimerCallback(object? sender, EventArgs e)
         {
-            if (PlaybackStatus != PlaybackStatus.PLAYING)
+            if (PlaybackStatus != PlaybackStatus.Playing)
             {
                 return;
             }
@@ -661,21 +728,39 @@ namespace TwitchSongRequest.ViewModel
 
         private static List<string> GetPlaybackDevices()
         {
-            using var devices = new MMDeviceEnumerator();
             var playbackDevices = new List<string>();
-            foreach (var device in devices.EnumerateAudioEndPoints(DataFlow.Render, DeviceState.Active))
+
+            try
             {
-                playbackDevices.Add(device.FriendlyName);
+                using var devices = new MMDeviceEnumerator();
+                foreach (var device in devices.EnumerateAudioEndPoints(DataFlow.Render, DeviceState.Active))
+                {
+                    playbackDevices.Add(device.FriendlyName);
+                }
             }
+            catch (Exception ex)
+            {
+                _logger.Log(LogLevel.Error, ex, "Error getting playback devices");
+            }
+
             return playbackDevices;
         }
 
         private string GetDefaultPlaybackDevice()
         {
-            using (var devices = new MMDeviceEnumerator())
+            try
             {
-                return devices.GetDefaultAudioEndpoint(DataFlow.Render, Role.Multimedia).FriendlyName;
+                using (var devices = new MMDeviceEnumerator())
+                {
+                    return devices.GetDefaultAudioEndpoint(DataFlow.Render, Role.Multimedia).FriendlyName;
+                }
             }
+            catch (Exception ex)
+            {
+                _logger.Log(LogLevel.Error, ex, "Error getting default playback device");
+            }
+
+            return string.Empty;
         }
 
         private void GenerateMockRequests()
@@ -688,7 +773,7 @@ namespace TwitchSongRequest.ViewModel
                     Duration = 100 * i,
                     Requester = $"Requester {i}",
                     Url = $"https://www.youtube.com/watch?v=41VlNOyPD9U?t=10s&autoplay={i}",
-                    Platform = i % 2 == 0 ? SongRequestPlatform.YOUTUBE : SongRequestPlatform.SPOTIFY,
+                    Platform = i % 2 == 0 ? SongRequestPlatform.Youtube : SongRequestPlatform.Spotify,
                     Service = i % 2 == 0 ? _youtubeSongService : _spotifySongService
                 });
             }
@@ -700,7 +785,7 @@ namespace TwitchSongRequest.ViewModel
                     Duration = 100 * i,
                     Requester = $"Requester {i}",
                     Url = $"Url {i}",
-                    Platform = i % 2 == 0 ? SongRequestPlatform.YOUTUBE : SongRequestPlatform.SPOTIFY,
+                    Platform = i % 2 == 0 ? SongRequestPlatform.Youtube : SongRequestPlatform.Spotify,
                     Service = i % 2 == 0 ? _youtubeSongService : _spotifySongService
                 });
             }
@@ -718,7 +803,7 @@ namespace TwitchSongRequest.ViewModel
                 SongName = info.SongName,
                 Requester = "Test",
                 Duration = info.Duration,
-                Platform = SongRequestPlatform.YOUTUBE,
+                Platform = SongRequestPlatform.Youtube,
                 Url = url,
                 Service = _youtubeSongService,
             };
