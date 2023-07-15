@@ -14,26 +14,37 @@ namespace TwitchSongRequest.Services.Api
     {
         private readonly IAppSettingsService _appSettingsService;
 
+        private TwitchClient? streamerClient;
+        private TwitchClient? botClient;
+
         public TwitchApiService(IAppSettingsService appSettingsService)
         {
             _appSettingsService = appSettingsService;
         }
 
-        public TwitchClient SetupTwitchStreamerClient()
+        public TwitchClient GetTwitchStreamerClient()
         {
-            string streamerName = _appSettingsService.AppSettings.StreamerInfo.AccountName!;
-            string accessToken = _appSettingsService.AppSettings.StreamerAccessTokens.AccessToken!;
-
-            return SetupTwitchClient(streamerName, accessToken, streamerName);
+            if (streamerClient == null)
+            {
+                string streamerName = _appSettingsService.AppSettings.StreamerInfo.AccountName!;
+                string accessToken = _appSettingsService.AppSettings.StreamerAccessTokens.AccessToken!;
+                streamerClient = SetupTwitchClient(streamerName, accessToken, streamerName);
+            }
+            
+            return streamerClient;
         }
 
-        public TwitchClient SetupTwitchBotClient()
+        public TwitchClient GetTwitchBotClient()
         {
-            string botName = _appSettingsService.AppSettings.BotInfo.AccountName!;
-            string accessToken = _appSettingsService.AppSettings.BotAccessTokens.AccessToken!;
-            string streamerName = _appSettingsService.AppSettings.StreamerInfo.AccountName!;
+            if (botClient == null)
+            {
+                string botName = _appSettingsService.AppSettings.BotInfo.AccountName!;
+                string accessToken = _appSettingsService.AppSettings.BotAccessTokens.AccessToken!;
+                string streamerName = _appSettingsService.AppSettings.StreamerInfo.AccountName!;
+                botClient = SetupTwitchClient(botName, accessToken, streamerName);
+            }
 
-            return SetupTwitchClient(botName, accessToken, streamerName);
+            return botClient;
         }
 
         private TwitchClient SetupTwitchClient(string clientName, string accessToken, string channelName)

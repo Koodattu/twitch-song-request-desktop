@@ -11,6 +11,7 @@
     {
         NotConnected,
         Disconnected,
+        Authenticated,
         Connected,
         Connecting,
         Refreshing,

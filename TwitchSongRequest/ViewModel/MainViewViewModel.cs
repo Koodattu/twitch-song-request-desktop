@@ -175,9 +175,9 @@ namespace TwitchSongRequest.ViewModel
             set => SetProperty(ref _confirmationDialogViewModel, value);
         }
 
-        public bool StreamerConnecting { get => streamerCts != null; }
-        public bool BotConnecting { get => botCts != null; }
-        public bool SpotifyConnecting { get => spotifyCts != null; }
+        public bool StreamerConnecting { get => Connections.StreamerStatus == ConnectionStatus.Connecting; }
+        public bool BotConnecting { get => Connections.BotStatus == ConnectionStatus.Connecting; }
+        public bool SpotifyConnecting { get => Connections.SpotifyStatus == ConnectionStatus.Connecting; }
 
         public ICommand PlayCommand => new RelayCommand(Play);
         public ICommand PauseCommand => new RelayCommand(Pause);
@@ -288,137 +288,84 @@ namespace TwitchSongRequest.ViewModel
             }
         }
 
-        private CancellationTokenSource? streamerCts;
+        private CancellationTokenSource? connectCts;
+        private async Task<bool> ConnectOrCancel(Action<ServiceOAuthToken> setTokens, Func<CancellationToken, Task<ServiceOAuthToken>> generateTokens, Func<Task<string>> validateTokens, Action<ConnectionStatus> setStatus, string account)
+        {
+            if (connectCts != null)
+            {
+                connectCts.Cancel();
+                connectCts = null;
+                setStatus(ConnectionStatus.Cancelled);
+                return false;
+            }
+
+            setStatus(ConnectionStatus.Connecting);
+            connectCts = new CancellationTokenSource();
+
+            try
+            {
+                setTokens(await generateTokens(connectCts.Token));
+                setStatus(ConnectionStatus.Authenticated);
+                return true;
+            }
+            catch (HttpRequestException ex)
+            {
+                string dataString = string.Join(",", ex.Data.Values.Cast<object>().Select(v => v.ToString()));
+                _logger.Log(LogLevel.Error, ex, $"Error connecting to {account}, Data: {dataString}");
+                setStatus(ConnectionStatus.Error);
+            }
+            catch (Exception ex)
+            {
+                _logger.Log(LogLevel.Error, ex, $"Error connecting to {account}");
+                setStatus(ConnectionStatus.Error);
+            }
+            finally
+            {
+                if (connectCts != null)
+                {
+                    connectCts.Cancel();
+                    connectCts = null;
+                }
+            }
+
+            OnPropertyChanged(nameof(AppSettings));
+
+            return false;
+        }
+
         private async void ConnectOrCancelStreamer()
         {
-            if (streamerCts != null)
+            AppSettings.StreamerInfo.Scope = "chat:read channel:read:redemptions channel:manage:redemptions";
+            var setTokensAction = new Action<ServiceOAuthToken>(tokens => AppSettings.StreamerAccessTokens = tokens);
+            bool result = await ConnectOrCancel(setTokensAction, _twitchAuthService.GenerateStreamerOAuthTokens, _twitchAuthService.ValidateStreamerOAuthTokens, status => Connections.StreamerStatus = status, "Twitch Streamer");
+            if (result)
             {
-                streamerCts.Cancel();
-                streamerCts = null;
-                Connections.StreamerStatus = ConnectionStatus.Cancelled;
-                return;
+                await ValidateStreamerLogin();
+                //await ConnectStreamerTwitchClient();
             }
-
-            Connections.StreamerStatus = ConnectionStatus.Connecting;
-            streamerCts = new CancellationTokenSource();
-
-            try
-            {
-                AppSettings.StreamerInfo.Scope = "chat:read channel:read:redemptions channel:manage:redemptions";
-                AppSettings.StreamerAccessTokens = await _twitchAuthService.GenerateStreamerOAuthTokens(streamerCts.Token);
-                AppSettings.StreamerInfo.AccountName = await _twitchAuthService.ValidateStreamerOAuthTokens();
-                Connections.StreamerStatus = ConnectionStatus.Connected;
-            }
-            catch (HttpRequestException ex)
-            {
-                string dataString = string.Join(",", ex.Data.Values.Cast<object>().Select(v => v.ToString()));
-                _logger.Log(LogLevel.Error, ex, $"Error connecting to Twitch Streamer Account, Data: {dataString}");
-                Connections.StreamerStatus = ConnectionStatus.Error;
-            }
-            catch (Exception ex)
-            {
-                _logger.Log(LogLevel.Error, ex, "Error connecting to Twitch Streamer Account");
-                Connections.StreamerStatus = ConnectionStatus.Error;
-            }
-            finally
-            {
-                if (streamerCts != null)
-                {
-                    streamerCts.Cancel();
-                    streamerCts = null;
-                }
-            }
-
-            OnPropertyChanged(nameof(AppSettings));
         }
 
-        private CancellationTokenSource? botCts;
         private async void ConnectOrCancelBot()
         {
-            if (botCts != null)
+            AppSettings.BotInfo.Scope = "chat:edit";
+            var setTokensAction = new Action<ServiceOAuthToken>(tokens => AppSettings.BotAccessTokens = tokens);
+            bool result = await ConnectOrCancel(setTokensAction, _twitchAuthService.GenerateBotOAuthTokens, _twitchAuthService.ValidateBotOAuthTokens, status => Connections.BotStatus = status, "Twitch Bot");
+            if (result)
             {
-                botCts.Cancel();
-                botCts = null;
-                Connections.BotStatus = ConnectionStatus.Cancelled;
-                return;
+                await ValidateBotLogin();
+                //await ConnectBotTwitchClient();
             }
-
-            Connections.BotStatus = ConnectionStatus.Connecting;
-            botCts = new CancellationTokenSource();
-
-            try
-            {
-                AppSettings.BotInfo.Scope = "chat:edit";
-                AppSettings.BotAccessTokens= await _twitchAuthService.GenerateBotOAuthTokens(botCts.Token);
-                AppSettings.BotInfo.AccountName = await _twitchAuthService.ValidateBotOAuthTokens();
-                Connections.BotStatus = ConnectionStatus.Connected;
-            }
-            catch (HttpRequestException ex)
-            {
-                string dataString = string.Join(",", ex.Data.Values.Cast<object>().Select(v => v.ToString()));
-                _logger.Log(LogLevel.Error, ex, $"Error connecting to Twitch Bot Account, Data: {dataString}");
-                Connections.BotStatus = ConnectionStatus.Error;
-            }
-            catch (Exception ex)
-            {
-                _logger.Log(LogLevel.Error, ex, "Error connecting to Twitch Bot Account");
-                Connections.BotStatus = ConnectionStatus.Error;
-            }
-            finally
-            {
-                if (botCts != null)
-                {
-                    botCts.Cancel();
-                    botCts = null;
-                }
-            }
-
-            OnPropertyChanged(nameof(AppSettings));
         }
 
-        private CancellationTokenSource? spotifyCts;
         private async void ConnectOrCancelSpotify()
         {
-            if (spotifyCts != null)
+            AppSettings.SpotifyInfo.Scope = "user-modify-playback-state user-read-playback-state user-read-currently-playing";
+            var setTokensAction = new Action<ServiceOAuthToken>(tokens => AppSettings.SpotifyAccessTokens = tokens);
+            bool result = await ConnectOrCancel(setTokensAction, _spotifyAuthService.GenerateOAuthTokens, _spotifyAuthService.ValidateOAuthTokens, status => Connections.SpotifyStatus = status, "Spotify");
+            if (result)
             {
-                spotifyCts.Cancel();
-                spotifyCts = null;
-                Connections.SpotifyStatus = ConnectionStatus.Cancelled;
-                return;
+                await ValidateSpotifyLogin();
             }
-
-            Connections.SpotifyStatus = ConnectionStatus.Connecting;
-            spotifyCts = new CancellationTokenSource();
-
-            try
-            {
-                AppSettings.SpotifyInfo.Scope = "user-modify-playback-state user-read-playback-state user-read-currently-playing";
-                AppSettings.SpotifyAccessTokens = await _spotifyAuthService.GenerateOAuthTokens(spotifyCts.Token);
-                AppSettings.SpotifyInfo.AccountName = await _spotifyAuthService.ValidateOAuthTokens();
-
-                Connections.SpotifyStatus = ConnectionStatus.Connected;
-            }
-            catch (HttpRequestException ex)
-            {
-                string dataString = string.Join(",", ex.Data.Values.Cast<object>().Select(v => v.ToString()));
-                _logger.Log(LogLevel.Error, ex, $"Error connecting to Spotify Account, Data: {dataString}");
-                Connections.SpotifyStatus = ConnectionStatus.Error;
-            }
-            catch (Exception ex)
-            {
-                _logger.Log(LogLevel.Error, ex, "Error connecting to Spotify Account");
-                Connections.SpotifyStatus = ConnectionStatus.Error;
-            }
-            finally
-            {
-                if (spotifyCts != null)
-                {
-                    spotifyCts.Cancel();
-                    spotifyCts = null;
-                }
-            }
-
-            OnPropertyChanged(nameof(AppSettings));
         }
 
         private async void CreateReward(string? rewardName)
@@ -541,170 +488,114 @@ namespace TwitchSongRequest.ViewModel
         {
             if (AppSettings.StreamerAccessTokens.AccessToken != null)
             {
-                try
-                {
-                    await ValidateTwitchStreamerLogin();
-                }
-                catch (HttpRequestException ex)
-                {
-                    string dataString = string.Join(",", ex.Data.Values.Cast<object>().Select(v => v.ToString()));
-                    _logger.Log(LogLevel.Error, ex, $"Error validating Twitch Streamer login, Data: {dataString}");
-                }
-                catch (Exception ex)
-                {
-                    _logger.Log(LogLevel.Error, ex, "Error validating Twitch Streamer login");
-                }
+                await ValidateStreamerLogin();
             }
             if (AppSettings.BotAccessTokens.AccessToken != null)
             {
-                try
-                {
-                    await ValidateTwitchBotLogin();
-                }
-                catch (HttpRequestException ex)
-                {
-                    string dataString = string.Join(",", ex.Data.Values.Cast<object>().Select(v => v.ToString()));
-                    _logger.Log(LogLevel.Error, ex, $"Error validating Twitch Bot login, Data: {dataString}");
-                }
-                catch (Exception ex)
-                {
-                    _logger.Log(LogLevel.Error, ex, "Error validating Twitch Bot login");
-                }
+                await ValidateBotLogin();
             }
             if (AppSettings.SpotifyAccessTokens.AccessToken != null)
             {
-                try
-                {
-                    await ValidateSpotifyLogin();
-                }
-                catch (HttpRequestException ex)
-                {
-                    string dataString = string.Join(",", ex.Data.Values.Cast<object>().Select(v => v.ToString()));
-                    _logger.Log(LogLevel.Error, ex, $"Error validating Spotify login, Data: {dataString}");
-                }
-                catch (Exception ex)
-                {
-                    _logger.Log(LogLevel.Error, ex, "Error validating Spotify login");
-                }
+                await ValidateSpotifyLogin();
             }
         }
 
-        private async Task ValidateTwitchStreamerLogin()
+        private async Task ValidateStreamerLogin()
         {
-            Connections.StreamerStatus = ConnectionStatus.Connecting;
-
-            // 1. try to validate token
             try
             {
-                AppSettings.StreamerInfo.AccountName = await _twitchAuthService.ValidateStreamerOAuthTokens();
-                Connections.StreamerStatus = ConnectionStatus.Connected;
+                var statusAction = new Action<ConnectionStatus>(status => Connections.StreamerStatus = status);
+                var setTokensAction = new Action<ServiceOAuthToken>(tokens => AppSettings.StreamerAccessTokens = tokens);
+                var setNameAction = new Action<string>(name => AppSettings.StreamerInfo.AccountName = name);
+                await ValidateLogin(statusAction, _twitchAuthService.ValidateStreamerOAuthTokens, _twitchAuthService.RefreshStreamerOAuthTokens, setTokensAction, setNameAction);
             }
-            catch
+            catch (HttpRequestException ex)
             {
-                Connections.StreamerStatus = ConnectionStatus.Refreshing;
+                string dataString = string.Join(",", ex.Data.Values.Cast<object>().Select(v => v.ToString()));
+                _logger.Log(LogLevel.Error, ex, $"Error validating Twitch Streamer login, Data: {dataString}");
             }
-
-            // 2. if not logged in, try to refresh token
-            try
+            catch (Exception ex)
             {
-                AppSettings.StreamerAccessTokens = await _twitchAuthService.RefreshStreamerOAuthTokens();
-                Connections.StreamerStatus = ConnectionStatus.Connected;
-            }
-            catch
-            {
-                Connections.StreamerStatus = ConnectionStatus.Error;
-                throw;
-            }
-
-            // 3. revalidate token
-            try
-            {
-                AppSettings.StreamerInfo.AccountName = await _twitchAuthService.ValidateStreamerOAuthTokens();
-                Connections.StreamerStatus = ConnectionStatus.Connected;
-            }
-            catch
-            {
-                Connections.StreamerStatus = ConnectionStatus.Error;
-                throw;
+                _logger.Log(LogLevel.Error, ex, "Error validating Twitch Streamer login");
             }
         }
 
-        private async Task ValidateTwitchBotLogin()
+        private async Task ValidateBotLogin()
         {
-            Connections.BotStatus = ConnectionStatus.Connecting;
-
-            // 1. try to validate token
             try
             {
-                AppSettings.BotInfo.AccountName = await _twitchAuthService.ValidateBotOAuthTokens();
-                Connections.BotStatus = ConnectionStatus.Connected;
+                var statusAction = new Action<ConnectionStatus>(status => Connections.BotStatus = status);
+                var setTokensAction = new Action<ServiceOAuthToken>(tokens => AppSettings.BotAccessTokens = tokens);
+                var setNameAction = new Action<string>(name => AppSettings.BotInfo.AccountName = name);
+                await ValidateLogin(statusAction, _twitchAuthService.ValidateBotOAuthTokens, _twitchAuthService.RefreshBotOAuthTokens, setTokensAction, setNameAction);
             }
-            catch
+            catch (HttpRequestException ex)
             {
-                Connections.BotStatus = ConnectionStatus.Refreshing;
+                string dataString = string.Join(",", ex.Data.Values.Cast<object>().Select(v => v.ToString()));
+                _logger.Log(LogLevel.Error, ex, $"Error validating Twitch Bot login, Data: {dataString}");
             }
-
-            // 2. if not logged in, try to refresh token
-            try
+            catch (Exception ex)
             {
-                AppSettings.BotAccessTokens = await _twitchAuthService.RefreshBotOAuthTokens();
-                Connections.BotStatus = ConnectionStatus.Connected;
-            }
-            catch
-            {
-                Connections.BotStatus = ConnectionStatus.Error;
-                throw;
-            }
-
-            // 3. revalidate token
-            try
-            {
-                AppSettings.BotInfo.AccountName = await _twitchAuthService.ValidateBotOAuthTokens();
-                Connections.BotStatus = ConnectionStatus.Connected;
-            }
-            catch
-            {
-                Connections.BotStatus = ConnectionStatus.Error;
-                throw;
+                _logger.Log(LogLevel.Error, ex, "Error validating Twitch Bot login");
             }
         }
 
         private async Task ValidateSpotifyLogin()
         {
-            Connections.SpotifyStatus = ConnectionStatus.Connecting;
+            try
+            {
+                var statusAction = new Action<ConnectionStatus>(status => Connections.SpotifyStatus = status);
+                var setTokensAction = new Action<ServiceOAuthToken>(tokens => AppSettings.SpotifyAccessTokens = tokens);
+                var setNameAction = new Action<string>(name => AppSettings.SpotifyInfo.AccountName = name);
+                await ValidateLogin(statusAction, _spotifyAuthService.ValidateOAuthTokens, _spotifyAuthService.RefreshOAuthTokens, setTokensAction, setNameAction);
+            }
+            catch (HttpRequestException ex)
+            {
+                string dataString = string.Join(",", ex.Data.Values.Cast<object>().Select(v => v.ToString()));
+                _logger.Log(LogLevel.Error, ex, $"Error validating Spotify login, Data: {dataString}");
+            }
+            catch (Exception ex)
+            {
+                _logger.Log(LogLevel.Error, ex, "Error validating Spotify login");
+            }
+        }
+
+        private async Task ValidateLogin(Action<ConnectionStatus> setStatus, Func<Task<string>> validateTokens, Func<Task<ServiceOAuthToken>> refreshTokens, Action<ServiceOAuthToken> setTokens, Action<string> setAccountName)
+        {
+            setStatus(ConnectionStatus.Connecting);
 
             // 1. try to validate token
             try
             {
-                AppSettings.SpotifyInfo.AccountName = await _spotifyAuthService.ValidateOAuthTokens();
-                Connections.SpotifyStatus = ConnectionStatus.Connected;
+                setAccountName(await validateTokens());
+                setStatus(ConnectionStatus.Connected);
             }
             catch
             {
-                Connections.SpotifyStatus = ConnectionStatus.Refreshing;
+                setStatus(ConnectionStatus.Refreshing);
             }
 
             // 2. if not logged in, try to refresh token
             try
             {
-                AppSettings.SpotifyAccessTokens = await _spotifyAuthService.RefreshOAuthTokens();
-                Connections.SpotifyStatus = ConnectionStatus.Connected;
+                setTokens(await refreshTokens());
+                setStatus(ConnectionStatus.Connected);
             }
             catch
             {
-                Connections.SpotifyStatus = ConnectionStatus.Error;
+                setStatus(ConnectionStatus.Error);
                 throw;
             }
 
             // 3. revalidate token
             try
             {
-                AppSettings.SpotifyInfo.AccountName = await _spotifyAuthService.ValidateOAuthTokens();
-                Connections.SpotifyStatus = ConnectionStatus.Connected;
+                setAccountName(await validateTokens());
+                setStatus(ConnectionStatus.Connected);
             }
             catch
             {
-                Connections.SpotifyStatus = ConnectionStatus.Error;
+                setStatus(ConnectionStatus.Error);
                 throw;
             }
         }

@@ -148,11 +148,6 @@ namespace TwitchSongRequest.Services.Authentication
                     throw new TaskCanceledException("Timeout while waiting for authorization code.");
                 }
 
-                if (completedTask == cancelTask)
-                {
-                    throw new TaskCanceledException("User cancelled authorization.");
-                }
-
                 // Proceed with handling the received callback
                 var context = await contextTask;
                 var request = context.Request;
