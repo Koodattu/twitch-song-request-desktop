@@ -22,26 +22,26 @@ namespace TwitchSongRequest.Services.Api
             _appSettingsService = appSettingsService;
         }
 
-        public TwitchClient GetTwitchStreamerClient()
+        public async Task<TwitchClient> GetTwitchStreamerClient()
         {
             if (streamerClient == null)
             {
                 string streamerName = _appSettingsService.AppSettings.StreamerInfo.AccountName!;
                 string accessToken = _appSettingsService.AppSettings.StreamerAccessTokens.AccessToken!;
-                streamerClient = SetupTwitchClient(streamerName, accessToken, streamerName);
+                streamerClient = await Task.Run(() => SetupTwitchClient(streamerName, accessToken, streamerName));
             }
             
             return streamerClient;
         }
 
-        public TwitchClient GetTwitchBotClient()
+        public async Task<TwitchClient> GetTwitchBotClient()
         {
             if (botClient == null)
             {
                 string botName = _appSettingsService.AppSettings.BotInfo.AccountName!;
                 string accessToken = _appSettingsService.AppSettings.BotAccessTokens.AccessToken!;
                 string streamerName = _appSettingsService.AppSettings.StreamerInfo.AccountName!;
-                botClient = SetupTwitchClient(botName, accessToken, streamerName);
+                botClient = await Task.Run(() => SetupTwitchClient(botName, accessToken, streamerName));
             }
 
             return botClient;
@@ -99,6 +99,21 @@ namespace TwitchSongRequest.Services.Api
             }
 
             return null;
+        }
+
+        public async Task ReplyToChatMessage(string channel, string replyId, string message)
+        {
+            TwitchClient twitchClient = _appSettingsService.AppSettings.ReplyWithBot ? botClient! : streamerClient!;
+
+            // check that we have joined the channel before sending a message
+            if (twitchClient.JoinedChannels.Any(x => x.Channel == channel))
+            {
+                await Task.Run(() => twitchClient.SendReply(channel, replyId, message));
+            }
+            else
+            {
+                throw new Exception($"Twitch client has not joined channel {channel}");
+            }
         }
     }
 }

@@ -14,6 +14,7 @@ using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Threading;
+using TwitchLib.Client.Events;
 using TwitchSongRequest.Helpers;
 using TwitchSongRequest.Model;
 using TwitchSongRequest.Services;
@@ -335,13 +336,13 @@ namespace TwitchSongRequest.ViewModel
 
         private async void ConnectOrCancelStreamer()
         {
-            AppSettings.StreamerInfo.Scope = "chat:read channel:read:redemptions channel:manage:redemptions";
+            AppSettings.StreamerInfo.Scope = "chat:edit channel:read:redemptions channel:manage:redemptions";
             var setTokensAction = new Action<ServiceOAuthToken>(tokens => AppSettings.StreamerAccessTokens = tokens);
             bool result = await ConnectOrCancel(setTokensAction, _twitchAuthService.GenerateStreamerOAuthTokens, _twitchAuthService.ValidateStreamerOAuthTokens, status => Connections.StreamerStatus = status, "Twitch Streamer");
             if (result)
             {
                 await ValidateStreamerLogin();
-                //await ConnectStreamerTwitchClient();
+                await ConnectTwitchClients();
             }
         }
 
@@ -353,7 +354,6 @@ namespace TwitchSongRequest.ViewModel
             if (result)
             {
                 await ValidateBotLogin();
-                //await ConnectBotTwitchClient();
             }
         }
 
@@ -365,6 +365,36 @@ namespace TwitchSongRequest.ViewModel
             if (result)
             {
                 await ValidateSpotifyLogin();
+            }
+        }
+
+        private async Task ConnectTwitchClients()
+        {
+            var client = await _twitchApiService.GetTwitchStreamerClient();
+            client.OnMessageReceived += OnTwitchClientMessageReceived;
+            _ = await _twitchApiService.GetTwitchBotClient();
+        }
+
+        private void OnTwitchClientMessageReceived(object? sender, OnMessageReceivedArgs e)
+        {
+            if (!string.IsNullOrWhiteSpace(e.ChatMessage.CustomRewardId) && e.ChatMessage.CustomRewardId == AppSettings.ChannelRedeemRewardId)
+            {
+                string input = e.ChatMessage.Message;
+                string songName = AddSongToQueue(input);
+
+                if (!AppSettings.ReplyInChat)
+                {
+                    return;
+                }
+
+                if (!string.IsNullOrWhiteSpace(songName))
+                {
+                    _twitchApiService.ReplyToChatMessage(e.ChatMessage.Channel, e.ChatMessage.Id, $"Added {songName} to queue.");
+                }
+                else
+                {
+                    _twitchApiService.ReplyToChatMessage(e.ChatMessage.Channel, e.ChatMessage.Id, $"Failed to add {input} to queue.");
+                }
             }
         }
 
@@ -457,7 +487,7 @@ namespace TwitchSongRequest.ViewModel
             }
         }
 
-        internal void AddSongToQueue(string input)
+        internal string AddSongToQueue(string input)
         {
             input = input.Trim();
             if (input.Contains("youtube.com", StringComparison.OrdinalIgnoreCase) || input.Contains("youtu.be", StringComparison.OrdinalIgnoreCase))
@@ -476,6 +506,8 @@ namespace TwitchSongRequest.ViewModel
             {
                 //TODO: Search for song using selected platform
             }
+
+            return "";
         }
 
         private async void SetupYoutubeService(string playbackDevice, int volume)
@@ -489,6 +521,7 @@ namespace TwitchSongRequest.ViewModel
             if (AppSettings.StreamerAccessTokens.AccessToken != null)
             {
                 await ValidateStreamerLogin();
+                await ConnectTwitchClients();
             }
             if (AppSettings.BotAccessTokens.AccessToken != null)
             {

@@ -5,8 +5,9 @@ namespace TwitchSongRequest.Services.Api
 {
     internal interface ITwitchApiService
     {
-        TwitchClient SetupTwitchStreamerClient();
-        TwitchClient SetupTwitchBotClient();
+        Task<TwitchClient> GetTwitchStreamerClient();
+        Task<TwitchClient> GetTwitchBotClient();
+        Task ReplyToChatMessage(string channel, string replyId, string message);
         Task<string?> CreateReward(string name);
     }
 }
