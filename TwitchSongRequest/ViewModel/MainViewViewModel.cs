@@ -176,10 +176,6 @@ namespace TwitchSongRequest.ViewModel
             set => SetProperty(ref _confirmationDialogViewModel, value);
         }
 
-        public bool StreamerConnecting { get => Connections.StreamerStatus == ConnectionStatus.Connecting; }
-        public bool BotConnecting { get => Connections.BotStatus == ConnectionStatus.Connecting; }
-        public bool SpotifyConnecting { get => Connections.SpotifyStatus == ConnectionStatus.Connecting; }
-
         public ICommand PlayCommand => new RelayCommand(Play);
         public ICommand PauseCommand => new RelayCommand(Pause);
         public ICommand SkipCommand => new RelayCommand(Skip);

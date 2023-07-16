@@ -12,6 +12,8 @@
     <UserControl.Resources>
         <converters:StatusToColorConverter x:Key="StatusToColorConverter" />
         <converters:BrowserStartInfoMultiConverter x:Key="BrowserStartInfoMultiConverter" />
+        <converters:ConnStatusToStringConverter x:Key="ConnStatusToStringConverter" />
+        <converters:ConnStatusToBoolConverter x:Key="ConnStatusToBoolConverter" />
     </UserControl.Resources>
 
     <Grid>
@@ -98,7 +100,8 @@
                     Height="25"
                     Margin="32,0,8,0"
                     Command="{Binding ConnectStreamerCommand}"
-                    Content="Connect" />
+                    Content="{Binding Connections.StreamerStatus, Converter={StaticResource ConnStatusToStringConverter}}"
+                    IsEnabled="{Binding Connections.BotStatus, Converter={StaticResource ConnStatusToBoolConverter}}" />
 
                 <Grid
                     Grid.Row="3"
@@ -138,7 +141,8 @@
                     Height="25"
                     Margin="32,0,8,0"
                     Command="{Binding ConnectBotCommand}"
-                    Content="Connect" />
+                    Content="{Binding Connections.BotStatus, Converter={StaticResource ConnStatusToStringConverter}}"
+                    IsEnabled="{Binding Connections.StreamerStatus, Converter={StaticResource ConnStatusToBoolConverter}}" />
 
                 <Grid
                     Grid.Row="4"
@@ -233,7 +237,7 @@
                     Height="25"
                     Margin="32,0,8,0"
                     Command="{Binding ConnectSpotifyCommand}"
-                    Content="Connect" />
+                    Content="{Binding Connections.SpotifyStatus, Converter={StaticResource ConnStatusToStringConverter}}" />
 
                 <Grid
                     Grid.Row="8"
