@@ -57,8 +57,6 @@ namespace TwitchSongRequest.ViewModel
             SetupYoutubeService(_playbackDevice, _volume);
             ValidateLogins();
 
-            GenerateMockRequests();
-
             dispatcherTimer = new DispatcherTimer(new TimeSpan(0, 0, 1), DispatcherPriority.Normal, TimerCallback, Application.Current.Dispatcher);
             dispatcherTimer.Start();
         }
@@ -217,6 +215,7 @@ namespace TwitchSongRequest.ViewModel
             {
                 CurrentSong = SongRequestQueue.First();
                 SongRequestQueue.Remove(CurrentSong);
+                LoadNextSong();
             }
             else
             {
@@ -224,6 +223,11 @@ namespace TwitchSongRequest.ViewModel
             }
         }
         
+        private void LoadNextSong()
+        {
+            CurrentSong?.Service?.PlaySong(CurrentSong.Id!);
+        }
+
         private void ProcessStartUri(string? uri)
         {
             if (!string.IsNullOrWhiteSpace(uri))
@@ -371,26 +375,32 @@ namespace TwitchSongRequest.ViewModel
             _ = await _twitchApiService.GetTwitchBotClient();
         }
 
-        private void OnTwitchClientMessageReceived(object? sender, OnMessageReceivedArgs e)
+        private async void OnTwitchClientMessageReceived(object? sender, OnMessageReceivedArgs e)
         {
-            if (!string.IsNullOrWhiteSpace(e.ChatMessage.CustomRewardId) && e.ChatMessage.CustomRewardId == AppSettings.ChannelRedeemRewardId)
+            if (string.IsNullOrWhiteSpace(e.ChatMessage.CustomRewardId))
             {
-                string input = e.ChatMessage.Message;
-                string songName = AddSongToQueue(input);
+                return;
+            }
+            if (e.ChatMessage.CustomRewardId != AppSettings.ChannelRedeemRewardId)
+            {
+                return;
+            }
 
-                if (!AppSettings.ReplyInChat)
-                {
-                    return;
-                }
+            string input = e.ChatMessage.Message;
+            string? songName = await AddSongToQueue(input, e.ChatMessage.Username, "");
 
-                if (!string.IsNullOrWhiteSpace(songName))
-                {
-                    _twitchApiService.ReplyToChatMessage(e.ChatMessage.Channel, e.ChatMessage.Id, $"Added {songName} to queue.");
-                }
-                else
-                {
-                    _twitchApiService.ReplyToChatMessage(e.ChatMessage.Channel, e.ChatMessage.Id, $"Failed to add {input} to queue.");
-                }
+            if (!AppSettings.ReplyInChat)
+            {
+                return;
+            }
+
+            if (!string.IsNullOrWhiteSpace(songName))
+            {
+                await _twitchApiService.ReplyToChatMessage(e.ChatMessage.Channel, e.ChatMessage.Id, $"Added {songName} to queue.");
+            }
+            else
+            {
+                await _twitchApiService.ReplyToChatMessage(e.ChatMessage.Channel, e.ChatMessage.Id, $"Failed to add {input} to queue.");
             }
         }
 
@@ -483,27 +493,83 @@ namespace TwitchSongRequest.ViewModel
             }
         }
 
-        internal string AddSongToQueue(string input)
+        internal async Task<string?> AddSongToQueue(string input, string requester, string redeemRequestId)
         {
             input = input.Trim();
-            if (input.Contains("youtube.com", StringComparison.OrdinalIgnoreCase) || input.Contains("youtu.be", StringComparison.OrdinalIgnoreCase))
+
+            string? songName = string.Empty;
+            int? duration = 0;
+            string? url = string.Empty;
+            string? id = string.Empty;
+            SongRequestPlatform? platform = null;
+            ISongService? songService = null;
+
+            if (input.Contains("youtube", StringComparison.OrdinalIgnoreCase) || input.Contains("youtu.be", StringComparison.OrdinalIgnoreCase))
             {
+                //https://youtu.be/u54Kf3zxDso
+                //https://www.youtube.com/watch?v=u54Kf3zxDso
+
                 //TODO: Add youtube song
+                platform = SongRequestPlatform.Youtube;
+                songService = _youtubeSongService;
+
+                string[] urlSplit = input.Split(new string[] { "?", "&" }, StringSplitOptions.RemoveEmptyEntries);
+                string videoId = urlSplit[1].Replace("v=", "");
+
+                var info = await _youtubeSongService.GetSongInfo(videoId);
+                songName = info.SongName;
+                duration = info.Duration;
+                url = $"https://www.youtube.com/watch?v={videoId}";
+                id = videoId;
             } 
-            else if (input.Contains("spotify.com", StringComparison.OrdinalIgnoreCase))
+            else if (input.Contains("spotify", StringComparison.OrdinalIgnoreCase))
             {
+                //https://open.spotify.com/track/1hEh8Hc9lBAFWUghHBsCel?si=c4cdc1947a184ac0
+                //spotify:track:6RIbDs0p4XusU2PZSiDgeZ
+
                 //TODO: Add spotify song
+                platform = SongRequestPlatform.Spotify;
+                songService = _spotifySongService;
+
+                string[] urlSplit = input.Split(new string[] { "track/", "track:", "?"}, StringSplitOptions.RemoveEmptyEntries);
+                string trackId = urlSplit[1];
+
+                var info = await _spotifySongService.GetSongInfo(trackId);
+                songName = $"{info.SongName} - {info.Artist}";
+                duration = info.Duration;
+                url = $"https://open.spotify.com/track/{trackId}";
+                id = trackId;
             }
-            else if (input.Contains("soundcloud.com", StringComparison.OrdinalIgnoreCase))
+            /*else if (input.Contains("soundcloud.com", StringComparison.OrdinalIgnoreCase))
             {
                 //TODO: Add soundcloud song
+                platform = SongRequestPlatform.Soundcloud;
+                //songService = _soundcloudSongService;
             }
             else
             {
                 //TODO: Search for song using selected platform
-            }
+                platform = AppSettings.SongSearchPlatform;
+            }*/
 
-            return "";
+            SongRequest songRequest = new SongRequest
+            {
+                SongName = songName,
+                Duration = duration,
+                Requester = requester,
+                Platform = platform,
+                RedeemRequestId = redeemRequestId,
+                Url = url,
+                Id = id,
+                Service = songService,
+            };
+
+            App.Current.Dispatcher.Invoke(delegate
+            {
+                SongRequestQueue.Add(songRequest);
+            });
+
+            return songName;
         }
 
         private async void SetupYoutubeService(string playbackDevice, int volume)
