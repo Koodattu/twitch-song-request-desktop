@@ -10,10 +10,6 @@
     d:DesignWidth="800"
     mc:Ignorable="d">
 
-    <UserControl.Resources>
-        <converters:StatusToColorConverter x:Key="StatusToColorConverter" />
-    </UserControl.Resources>
-
     <Grid Margin="8,16">
         <Grid.RowDefinitions>
             <RowDefinition Height="*" />

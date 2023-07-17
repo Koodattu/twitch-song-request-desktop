@@ -9,13 +9,6 @@
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     mc:Ignorable="d">
 
-    <UserControl.Resources>
-        <converters:StatusToColorConverter x:Key="StatusToColorConverter" />
-        <converters:BrowserStartInfoMultiConverter x:Key="BrowserStartInfoMultiConverter" />
-        <converters:ConnStatusToStringConverter x:Key="ConnStatusToStringConverter" />
-        <converters:ConnStatusToBoolConverter x:Key="ConnStatusToBoolConverter" />
-    </UserControl.Resources>
-
     <Grid>
         <Rectangle Fill="Black" Opacity="0.5" />
         <Border

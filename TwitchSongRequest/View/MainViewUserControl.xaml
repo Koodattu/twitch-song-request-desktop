@@ -13,8 +13,6 @@
     mc:Ignorable="d">
 
     <UserControl.Resources>
-        <converters:MmSsFormatConverter x:Key="MmSsConverter" />
-
         <DataTemplate DataType="{x:Type viewModels:ConfirmationDialogViewModel}">
             <views:ConfirmationDialogUserControl />
         </DataTemplate>
