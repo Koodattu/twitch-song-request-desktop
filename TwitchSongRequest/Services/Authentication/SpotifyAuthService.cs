@@ -25,8 +25,8 @@ namespace TwitchSongRequest.Services.Authentication
 
         public async Task<ServiceOAuthToken> GenerateOAuthTokens(CancellationToken cancellationToken)
         {
-            ClientCredentials credentials = _appSettingsService.AppSettings.SpotifyClient;
-            ClientInfo info = _appSettingsService.AppSettings.SpotifyInfo;
+            ClientCredentials credentials = _appSettingsService.AppTokens.SpotifyClient;
+            ClientInfo info = _appSettingsService.AppTokens.SpotifyInfo;
 
             // Open the browser window for authorization
             string authorizationUrl = $"https://accounts.spotify.com/authorize?client_id={credentials.ClientId}&redirect_uri={Uri.EscapeDataString(RedirectUri)}&response_type=code&scope={Uri.EscapeDataString(info.Scope!)}";
@@ -42,8 +42,8 @@ namespace TwitchSongRequest.Services.Authentication
 
         public async Task<ServiceOAuthToken> RefreshOAuthTokens()
         {
-            ServiceOAuthToken tokens = _appSettingsService.AppSettings.SpotifyAccessTokens;
-            ClientCredentials credentials = _appSettingsService.AppSettings.SpotifyClient;
+            ServiceOAuthToken tokens = _appSettingsService.AppTokens.SpotifyAccessTokens;
+            ClientCredentials credentials = _appSettingsService.AppTokens.SpotifyClient;
 
             var restClient = new RestClient("https://accounts.spotify.com/api/token");
             var request = new RestRequest("/", Method.Post);
@@ -71,7 +71,7 @@ namespace TwitchSongRequest.Services.Authentication
 
         public async Task<string> ValidateOAuthTokens()
         {
-            ServiceOAuthToken tokens = _appSettingsService.AppSettings.SpotifyAccessTokens;
+            ServiceOAuthToken tokens = _appSettingsService.AppTokens.SpotifyAccessTokens;
 
             var restClient = new RestClient("https://api.spotify.com/v1/me");
             var request = new RestRequest("/", Method.Get);
@@ -140,7 +140,7 @@ namespace TwitchSongRequest.Services.Authentication
 
         private async Task<ServiceOAuthToken> ExchangeAuthorizationCodeForToken(string code)
         {
-            ClientCredentials credentials = _appSettingsService.AppSettings.SpotifyClient;
+            ClientCredentials credentials = _appSettingsService.AppTokens.SpotifyClient;
 
             var restClient = new RestClient("https://accounts.spotify.com/api/token");
             var request = new RestRequest("/", Method.Post);

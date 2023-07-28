@@ -6,44 +6,62 @@ namespace TwitchSongRequest.Services
 {
     internal class AppSettingsService : IAppSettingsService
     {
-        private readonly string filePath = "AppSettings.json";
+        private readonly string appSettingsPath = "AppSettings.json";
+        private readonly string appTokensPath = "AppTokens.json";
 
         public AppSettings AppSettings { get; private set; }
+        public AppTokens AppTokens { get; private set; }
 
         public AppSettingsService()
         {
-            if (!File.Exists(filePath))
+            AppSettings = new AppSettings();
+            AppTokens = new AppTokens();
+
+            if (File.Exists(appSettingsPath))
             {
-                AppSettings = new AppSettings();
-                return;
+                string settingsJson = File.ReadAllText(appSettingsPath);
+                AppSettings = JsonConvert.DeserializeObject<AppSettings>(settingsJson) ?? new AppSettings();
             }
-            string json = File.ReadAllText(filePath);
-            AppSettings? appSettings = JsonConvert.DeserializeObject<AppSettings>(json);
-            if (appSettings == null)
+
+            if (File.Exists(appTokensPath))
             {
-                AppSettings = new AppSettings();
-                return;
+                string tokensJson = File.ReadAllText(appTokensPath);
+                AppTokens = JsonConvert.DeserializeObject<AppTokens>(tokensJson) ?? new AppTokens();
+                //Secure secure = new Secure(Environment.MachineName);
+                //AppTokens.TwitchClientSecret = secure.DecodeAndDecrypt(AppTokens.TwitchClientSecret);
             }
-            //Secure secure = new Secure(Environment.MachineName);
-            //appSettings.TwitchClientSecret = secure.DecodeAndDecrypt(appSettings.TwitchClientSecret);
-            AppSettings = appSettings;
         }
 
         public void SaveAppSettings()
         {
-            //Secure secure = new Secure(Environment.MachineName);
-            //appSettings.TwitchClientSecret = secure.EncryptAndEncode(appSettings.TwitchClientSecret);
             string json = JsonConvert.SerializeObject(AppSettings, Formatting.Indented);
-            File.WriteAllText(filePath, json);
+            File.WriteAllText(appSettingsPath, json);
         }
 
         public void ResetAppSettings()
         {
-            if (!File.Exists(filePath))
+            if (!File.Exists(appSettingsPath))
             {
-                File.Delete(filePath);
+                File.Delete(appSettingsPath);
             }
             AppSettings = new AppSettings();
+        }
+
+        public void SaveAppTokens()
+        {
+            //Secure secure = new Secure(Environment.MachineName);
+            //AppTokens.TwitchClientSecret = secure.EncryptAndEncode(AppTokens.TwitchClientSecret);
+            string json = JsonConvert.SerializeObject(AppTokens, Formatting.Indented);
+            File.WriteAllText(appTokensPath, json);
+        }
+
+        public void ResetAppTokens()
+        {
+            if (!File.Exists(appTokensPath))
+            {
+                File.Delete(appTokensPath);
+            }
+            AppTokens = new AppTokens();
         }
     }
 }

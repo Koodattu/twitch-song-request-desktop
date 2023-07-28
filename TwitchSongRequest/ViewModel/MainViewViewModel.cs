@@ -99,6 +99,11 @@ namespace TwitchSongRequest.ViewModel
             get => _appSettingsService.AppSettings;
         }
 
+        public AppTokens AppTokens
+        {
+            get => _appSettingsService.AppTokens;
+        }
+
         private PlaybackStatus _playbackStatus;
         public PlaybackStatus PlaybackStatus
         {
@@ -336,8 +341,8 @@ namespace TwitchSongRequest.ViewModel
 
         private async void ConnectOrCancelStreamer()
         {
-            AppSettings.StreamerInfo.Scope = "chat:edit channel:read:redemptions channel:manage:redemptions";
-            var setTokensAction = new Action<ServiceOAuthToken>(tokens => AppSettings.StreamerAccessTokens = tokens);
+            AppTokens.StreamerInfo.Scope = "chat:edit channel:read:redemptions channel:manage:redemptions";
+            var setTokensAction = new Action<ServiceOAuthToken>(tokens => AppTokens.StreamerAccessTokens = tokens);
             bool result = await ConnectOrCancel(setTokensAction, _twitchAuthService.GenerateStreamerOAuthTokens, _twitchAuthService.ValidateStreamerOAuthTokens, status => Connections.StreamerStatus = status, "Twitch Streamer");
             if (result)
             {
@@ -348,8 +353,8 @@ namespace TwitchSongRequest.ViewModel
 
         private async void ConnectOrCancelBot()
         {
-            AppSettings.BotInfo.Scope = "chat:edit";
-            var setTokensAction = new Action<ServiceOAuthToken>(tokens => AppSettings.BotAccessTokens = tokens);
+            AppTokens.BotInfo.Scope = "chat:edit";
+            var setTokensAction = new Action<ServiceOAuthToken>(tokens => AppTokens.BotAccessTokens = tokens);
             bool result = await ConnectOrCancel(setTokensAction, _twitchAuthService.GenerateBotOAuthTokens, _twitchAuthService.ValidateBotOAuthTokens, status => Connections.BotStatus = status, "Twitch Bot");
             if (result)
             {
@@ -359,8 +364,8 @@ namespace TwitchSongRequest.ViewModel
 
         private async void ConnectOrCancelSpotify()
         {
-            AppSettings.SpotifyInfo.Scope = "user-modify-playback-state user-read-playback-state user-read-currently-playing";
-            var setTokensAction = new Action<ServiceOAuthToken>(tokens => AppSettings.SpotifyAccessTokens = tokens);
+            AppTokens.SpotifyInfo.Scope = "user-modify-playback-state user-read-playback-state user-read-currently-playing";
+            var setTokensAction = new Action<ServiceOAuthToken>(tokens => AppTokens.SpotifyAccessTokens = tokens);
             bool result = await ConnectOrCancel(setTokensAction, _spotifyAuthService.GenerateOAuthTokens, _spotifyAuthService.ValidateOAuthTokens, status => Connections.SpotifyStatus = status, "Spotify");
             if (result)
             {
@@ -381,7 +386,7 @@ namespace TwitchSongRequest.ViewModel
             {
                 return;
             }
-            if (e.ChatMessage.CustomRewardId != AppSettings.ChannelRedeemRewardId)
+            if (e.ChatMessage.CustomRewardId != AppTokens.ChannelRedeemRewardId)
             {
                 return;
             }
@@ -407,27 +412,27 @@ namespace TwitchSongRequest.ViewModel
 
         private async void CreateReward(string? rewardName)
         {
-            _appSettingsService.AppSettings.RewardCreationStatus = RewardCreationStatus.Creating;
-            OnPropertyChanged(nameof(AppSettings));
+            _appSettingsService.AppTokens.RewardCreationStatus = RewardCreationStatus.Creating;
+            OnPropertyChanged(nameof(AppTokens));
             try
             {
                 string? rewardId = await _twitchApiService.CreateReward(rewardName!);
                 if (!string.IsNullOrWhiteSpace(rewardId))
                 {
-                    _appSettingsService.AppSettings.ChannelRedeemRewardId = rewardId;
-                    _appSettingsService.AppSettings.RewardCreationStatus = RewardCreationStatus.Created;
+                    _appSettingsService.AppTokens.ChannelRedeemRewardId = rewardId;
+                    _appSettingsService.AppTokens.RewardCreationStatus = RewardCreationStatus.Created;
                 }
                 else
                 {
-                    _appSettingsService.AppSettings.RewardCreationStatus = RewardCreationStatus.AlreadyExists;
+                    _appSettingsService.AppTokens.RewardCreationStatus = RewardCreationStatus.AlreadyExists;
                 }
             }
             catch (Exception ex)
             {
-                _appSettingsService.AppSettings.RewardCreationStatus = RewardCreationStatus.Error;
+                _appSettingsService.AppTokens.RewardCreationStatus = RewardCreationStatus.Error;
                 _logger.Log(LogLevel.Error, ex, "Error creating reward");
             }
-            OnPropertyChanged(nameof(AppSettings));
+            OnPropertyChanged(nameof(AppTokens));
         }
 
         private void OpenSettings()
@@ -453,7 +458,7 @@ namespace TwitchSongRequest.ViewModel
         {
             if (save)
             {
-                SaveAppSettings();
+                SaveAppSetup();
             }
             IsSetupOpen = false;
         }
@@ -461,6 +466,25 @@ namespace TwitchSongRequest.ViewModel
         private async void ResetSetup()
         {
             bool result = await ConfirmationDialogViewModel.ShowDialog("Reset Setup", "Are you sure you want to reset everything?");
+            if (!result)
+            {
+                return;
+            }
+
+            try
+            {
+                _appSettingsService.ResetAppTokens();
+            }
+            catch (Exception ex)
+            {
+                _logger.Log(LogLevel.Error, ex, "Error resetting setup");
+            }
+            OnPropertyChanged(nameof(AppTokens));
+        }
+
+        private async void ResetSettings()
+        {
+            bool result = await ConfirmationDialogViewModel.ShowDialog("Reset Settings", "Are you sure you want to reset everything?");
             if (!result)
             {
                 return;
@@ -477,16 +501,23 @@ namespace TwitchSongRequest.ViewModel
             OnPropertyChanged(nameof(AppSettings));
         }
 
-        private void ResetSettings()
-        {
-            //TODO: Reset settings
-        }
-
         internal void SaveAppSettings()
         {
             try
             {
                 _appSettingsService.SaveAppSettings();
+            }
+            catch (Exception ex)
+            {
+                _logger.Log(LogLevel.Error, ex, "Error saving settings");
+            }
+        }
+
+        internal void SaveAppSetup()
+        {
+            try
+            {
+                _appSettingsService.SaveAppTokens();
             }
             catch (Exception ex)
             {
@@ -581,16 +612,16 @@ namespace TwitchSongRequest.ViewModel
 
         private async void ValidateLogins()
         {
-            if (AppSettings.StreamerAccessTokens.AccessToken != null)
+            if (AppTokens.StreamerAccessTokens.AccessToken != null)
             {
                 await ValidateStreamerLogin();
                 await ConnectTwitchClients();
             }
-            if (AppSettings.BotAccessTokens.AccessToken != null)
+            if (AppTokens.BotAccessTokens.AccessToken != null)
             {
                 await ValidateBotLogin();
             }
-            if (AppSettings.SpotifyAccessTokens.AccessToken != null)
+            if (AppTokens.SpotifyAccessTokens.AccessToken != null)
             {
                 await ValidateSpotifyLogin();
             }
@@ -601,8 +632,8 @@ namespace TwitchSongRequest.ViewModel
             try
             {
                 var statusAction = new Action<ConnectionStatus>(status => Connections.StreamerStatus = status);
-                var setTokensAction = new Action<ServiceOAuthToken>(tokens => AppSettings.StreamerAccessTokens = tokens);
-                var setNameAction = new Action<string>(name => AppSettings.StreamerInfo.AccountName = name);
+                var setTokensAction = new Action<ServiceOAuthToken>(tokens => AppTokens.StreamerAccessTokens = tokens);
+                var setNameAction = new Action<string>(name => AppTokens.StreamerInfo.AccountName = name);
                 await ValidateLogin(statusAction, _twitchAuthService.ValidateStreamerOAuthTokens, _twitchAuthService.RefreshStreamerOAuthTokens, setTokensAction, setNameAction);
             }
             catch (HttpRequestException ex)
@@ -621,8 +652,8 @@ namespace TwitchSongRequest.ViewModel
             try
             {
                 var statusAction = new Action<ConnectionStatus>(status => Connections.BotStatus = status);
-                var setTokensAction = new Action<ServiceOAuthToken>(tokens => AppSettings.BotAccessTokens = tokens);
-                var setNameAction = new Action<string>(name => AppSettings.BotInfo.AccountName = name);
+                var setTokensAction = new Action<ServiceOAuthToken>(tokens => AppTokens.BotAccessTokens = tokens);
+                var setNameAction = new Action<string>(name => AppTokens.BotInfo.AccountName = name);
                 await ValidateLogin(statusAction, _twitchAuthService.ValidateBotOAuthTokens, _twitchAuthService.RefreshBotOAuthTokens, setTokensAction, setNameAction);
             }
             catch (HttpRequestException ex)
@@ -641,8 +672,8 @@ namespace TwitchSongRequest.ViewModel
             try
             {
                 var statusAction = new Action<ConnectionStatus>(status => Connections.SpotifyStatus = status);
-                var setTokensAction = new Action<ServiceOAuthToken>(tokens => AppSettings.SpotifyAccessTokens = tokens);
-                var setNameAction = new Action<string>(name => AppSettings.SpotifyInfo.AccountName = name);
+                var setTokensAction = new Action<ServiceOAuthToken>(tokens => AppTokens.SpotifyAccessTokens = tokens);
+                var setNameAction = new Action<string>(name => AppTokens.SpotifyInfo.AccountName = name);
                 await ValidateLogin(statusAction, _spotifyAuthService.ValidateOAuthTokens, _spotifyAuthService.RefreshOAuthTokens, setTokensAction, setNameAction);
             }
             catch (HttpRequestException ex)

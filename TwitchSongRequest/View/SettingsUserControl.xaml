@@ -160,6 +160,15 @@
                     Content="Save"
                     Style="{DynamicResource {x:Static adonisUi:Styles.AccentButton}}" />
 
+                <Button
+                    Grid.Column="4"
+                    HorizontalAlignment="Right"
+                    VerticalAlignment="Top"
+                    Command="{Binding ProcessStartUriCommand}"
+                    CommandParameter="appsettings.json"
+                    Content="↗"
+                    Style="{DynamicResource {x:Static adonisUi:Styles.AccentButton}}"
+                    ToolTip="Open tokens file" />
             </Grid>
 
 

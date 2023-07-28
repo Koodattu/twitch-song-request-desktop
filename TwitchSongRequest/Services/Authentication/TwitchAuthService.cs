@@ -25,45 +25,45 @@ namespace TwitchSongRequest.Services.Authentication
 
         public Task<ServiceOAuthToken> GenerateStreamerOAuthTokens(CancellationToken cancellationToken)
         {
-            string clientId = _appSettingsService.AppSettings.TwitchClient.ClientId!;
-            string scope = _appSettingsService.AppSettings.StreamerInfo.Scope!;
-            WebBrowser webBrowser = _appSettingsService.AppSettings.StreamerInfo.Browser;
+            string clientId = _appSettingsService.AppTokens.TwitchClient.ClientId!;
+            string scope = _appSettingsService.AppTokens.StreamerInfo.Scope!;
+            WebBrowser webBrowser = _appSettingsService.AppTokens.StreamerInfo.Browser;
             return GenerateOAuthTokens(clientId, scope, webBrowser, cancellationToken);
         }
 
         public Task<ServiceOAuthToken> GenerateBotOAuthTokens(CancellationToken cancellationToken)
         {
-            string clientId = _appSettingsService.AppSettings.TwitchClient.ClientId!;
-            string scope = _appSettingsService.AppSettings.BotInfo.Scope!;
-            WebBrowser webBrowser = _appSettingsService.AppSettings.BotInfo.Browser;
+            string clientId = _appSettingsService.AppTokens.TwitchClient.ClientId!;
+            string scope = _appSettingsService.AppTokens.BotInfo.Scope!;
+            WebBrowser webBrowser = _appSettingsService.AppTokens.BotInfo.Browser;
             return GenerateOAuthTokens(clientId, scope, webBrowser, cancellationToken);
         }
 
         public Task<string> ValidateStreamerOAuthTokens()
         {
-            string accessToken = _appSettingsService.AppSettings.StreamerAccessTokens.AccessToken!;
+            string accessToken = _appSettingsService.AppTokens.StreamerAccessTokens.AccessToken!;
             return ValidateOAuthTokens(accessToken);
         }
 
         public Task<string> ValidateBotOAuthTokens()
         {
-            string accessToken = _appSettingsService.AppSettings.BotAccessTokens.AccessToken!;
+            string accessToken = _appSettingsService.AppTokens.BotAccessTokens.AccessToken!;
             return ValidateOAuthTokens(accessToken);
         }
 
         public Task<ServiceOAuthToken> RefreshStreamerOAuthTokens()
         {
-            string clientId = _appSettingsService.AppSettings.TwitchClient.ClientId!;
-            string clientSecret = _appSettingsService.AppSettings.TwitchClient.ClientSecret!;
-            string refreshToken = _appSettingsService.AppSettings.StreamerAccessTokens.RefreshToken!;
+            string clientId = _appSettingsService.AppTokens.TwitchClient.ClientId!;
+            string clientSecret = _appSettingsService.AppTokens.TwitchClient.ClientSecret!;
+            string refreshToken = _appSettingsService.AppTokens.StreamerAccessTokens.RefreshToken!;
             return RefreshOAuthTokens(clientId, clientSecret, refreshToken);
         }
 
         public Task<ServiceOAuthToken> RefreshBotOAuthTokens()
         {
-            string clientId = _appSettingsService.AppSettings.TwitchClient.ClientId!;
-            string clientSecret = _appSettingsService.AppSettings.TwitchClient.ClientSecret!;
-            string refreshToken = _appSettingsService.AppSettings.BotAccessTokens.RefreshToken!;
+            string clientId = _appSettingsService.AppTokens.TwitchClient.ClientId!;
+            string clientSecret = _appSettingsService.AppTokens.TwitchClient.ClientSecret!;
+            string refreshToken = _appSettingsService.AppTokens.BotAccessTokens.RefreshToken!;
             return RefreshOAuthTokens(clientId, clientSecret, refreshToken);
         }
 
@@ -174,7 +174,7 @@ namespace TwitchSongRequest.Services.Authentication
 
         private async Task<ServiceOAuthToken> ExchangeAuthorizationCodeForToken(string code)
         {
-            ClientCredentials credentials = _appSettingsService.AppSettings.TwitchClient;
+            ClientCredentials credentials = _appSettingsService.AppTokens.TwitchClient;
 
             var restClient = new RestClient("https://id.twitch.tv/oauth2/token");
             var request = new RestRequest("/", Method.Post);

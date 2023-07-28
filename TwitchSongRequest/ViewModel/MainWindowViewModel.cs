@@ -27,6 +27,7 @@ namespace TwitchSongRequest.ViewModel
         private void WindowClosing()
         {
             appSettingsService.SaveAppSettings();
+            appSettingsService.SaveAppTokens();
         }
     }
 }
