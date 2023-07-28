@@ -461,6 +461,7 @@ namespace TwitchSongRequest.ViewModel
                 SaveAppSetup();
             }
             IsSetupOpen = false;
+            ValidateLogins();
         }
 
         private async void ResetSetup()
