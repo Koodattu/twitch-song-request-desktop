@@ -401,6 +401,7 @@ namespace TwitchSongRequest.ViewModel
             else
             {
                 await _twitchApiService.ReplyToChatMessage(e.ChatMessage.Channel, e.ChatMessage.Id, $"Failed to add {input} to queue.");
+                await _twitchApiService.RefundRedeem(e.ChatMessage.Username, input);
             }
         }
 

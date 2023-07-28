@@ -9,5 +9,6 @@ namespace TwitchSongRequest.Services.Api
         Task<TwitchClient> GetTwitchBotClient();
         Task ReplyToChatMessage(string channel, string replyId, string message);
         Task<string?> CreateReward(string name);
+        Task<bool?> RefundRedeem(string redeemer, string input);
     }
 }

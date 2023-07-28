@@ -7,6 +7,8 @@ using System;
 using System.Threading.Tasks;
 using System.Collections.Generic;
 using System.Linq;
+using TwitchLib.Api.Helix.Models.ChannelPoints.UpdateCustomRewardRedemptionStatus;
+using TwitchLib.Api.Core.Enums;
 
 namespace TwitchSongRequest.Services.Api
 {
@@ -99,6 +101,33 @@ namespace TwitchSongRequest.Services.Api
             }
 
             return null;
+        }
+
+        public async Task<bool?> RefundRedeem(string redeemer, string input)
+        {
+            TwitchAPI twitchAPI = new TwitchAPI();
+            twitchAPI.Settings.AccessToken = _appSettingsService.AppSettings.StreamerAccessTokens.AccessToken!;
+            twitchAPI.Settings.ClientId = _appSettingsService.AppSettings.TwitchClient.ClientId!;
+            string username = _appSettingsService.AppSettings.StreamerInfo.AccountName!;
+
+            var users = await twitchAPI.Helix.Users.GetUsersAsync(logins: new List<string>() { username });
+            string broadcasterId = users.Users[0].Id;
+
+            string rewardId = _appSettingsService.AppSettings.ChannelRedeemRewardId!;
+
+            var redeems = await twitchAPI.Helix.ChannelPoints.GetCustomRewardRedemptionAsync(broadcasterId, rewardId);
+
+            var redeem = redeems.Data.FirstOrDefault(x => x.UserName == redeemer && x.UserInput == input);
+            if (redeem == null)
+            {
+                throw new Exception($"Redeem not found for user {redeemer} with input {input}");
+            }
+            var response = await twitchAPI.Helix.ChannelPoints.UpdateRedemptionStatusAsync(broadcasterId, rewardId, new List<string>() { redeem.Id }, new UpdateCustomRewardRedemptionStatusRequest
+            {
+                Status = CustomRewardRedemptionStatus.CANCELED
+            });
+
+            return response.Data[0].Status == CustomRewardRedemptionStatus.CANCELED;
         }
 
         public async Task ReplyToChatMessage(string channel, string replyId, string message)
