@@ -697,6 +697,7 @@ namespace TwitchSongRequest.ViewModel
             {
                 setAccountName(await validateTokens());
                 setStatus(ConnectionStatus.Connected);
+                return;
             }
             catch
             {
