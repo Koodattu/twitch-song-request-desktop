@@ -1,5 +1,7 @@
 ﻿using Newtonsoft.Json;
+using System;
 using System.IO;
+using TwitchSongRequest.Helpers;
 using TwitchSongRequest.Model;
 
 namespace TwitchSongRequest.Services
@@ -27,8 +29,17 @@ namespace TwitchSongRequest.Services
             {
                 string tokensJson = File.ReadAllText(appTokensPath);
                 AppTokens = JsonConvert.DeserializeObject<AppTokens>(tokensJson) ?? new AppTokens();
-                //Secure secure = new Secure(Environment.MachineName);
-                //AppTokens.TwitchClientSecret = secure.DecodeAndDecrypt(AppTokens.TwitchClientSecret);
+                AppTokens.TwitchClient.ClientSecret = Secure.DecryptString(AppTokens.TwitchClient.ClientSecret ?? "");
+                AppTokens.SpotifyClient.ClientSecret = Secure.DecryptString(AppTokens.SpotifyClient.ClientSecret ?? "");
+
+                AppTokens.StreamerAccessTokens.AccessToken = Secure.DecryptString(AppTokens.StreamerAccessTokens.AccessToken ?? "");
+                AppTokens.StreamerAccessTokens.RefreshToken = Secure.DecryptString(AppTokens.StreamerAccessTokens.RefreshToken ?? "");
+
+                AppTokens.BotAccessTokens.AccessToken = Secure.DecryptString(AppTokens.BotAccessTokens.AccessToken ?? "");
+                AppTokens.BotAccessTokens.RefreshToken = Secure.DecryptString(AppTokens.BotAccessTokens.RefreshToken ?? "");
+
+                AppTokens.SpotifyAccessTokens.AccessToken = Secure.DecryptString(AppTokens.SpotifyAccessTokens.AccessToken ?? "");
+                AppTokens.SpotifyAccessTokens.RefreshToken = Secure.DecryptString(AppTokens.SpotifyAccessTokens.RefreshToken ?? "");
             }
         }
 
@@ -49,8 +60,18 @@ namespace TwitchSongRequest.Services
 
         public void SaveAppTokens()
         {
-            //Secure secure = new Secure(Environment.MachineName);
-            //AppTokens.TwitchClientSecret = secure.EncryptAndEncode(AppTokens.TwitchClientSecret);
+            AppTokens.TwitchClient.ClientSecret = Secure.EncryptString(AppTokens.TwitchClient.ClientSecret ?? "");
+            AppTokens.SpotifyClient.ClientSecret = Secure.EncryptString(AppTokens.SpotifyClient.ClientSecret ?? "");
+
+            AppTokens.StreamerAccessTokens.AccessToken = Secure.EncryptString(AppTokens.StreamerAccessTokens.AccessToken ?? "");
+            AppTokens.StreamerAccessTokens.RefreshToken = Secure.EncryptString(AppTokens.StreamerAccessTokens.RefreshToken ?? "");
+
+            AppTokens.BotAccessTokens.AccessToken = Secure.EncryptString(AppTokens.BotAccessTokens.AccessToken ?? "");
+            AppTokens.BotAccessTokens.RefreshToken = Secure.EncryptString(AppTokens.BotAccessTokens.RefreshToken ?? "");
+
+            AppTokens.SpotifyAccessTokens.AccessToken = Secure.EncryptString(AppTokens.SpotifyAccessTokens.AccessToken ?? "");
+            AppTokens.SpotifyAccessTokens.RefreshToken = Secure.EncryptString(AppTokens.SpotifyAccessTokens.RefreshToken ?? "");
+
             string json = JsonConvert.SerializeObject(AppTokens, Formatting.Indented);
             File.WriteAllText(appTokensPath, json);
         }

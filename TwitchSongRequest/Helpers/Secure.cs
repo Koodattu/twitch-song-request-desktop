@@ -1,5 +1,4 @@
-﻿using System.Linq;
-using System;
+﻿using System;
 using System.IO;
 using System.Security.Cryptography;
 using System.Text;
@@ -8,87 +7,53 @@ namespace TwitchSongRequest.Helpers
 {
     internal class Secure
     {
-        private byte[] keyAndIvBytes;
+        private static readonly string password = Environment.MachineName;
 
-        internal Secure(string password)
+        public static string EncryptString(string plainText)
         {
-            keyAndIvBytes = Encoding.UTF8.GetBytes(password);
-        }
+            byte[] salt = Encoding.UTF8.GetBytes(password);
+            byte[] plainBytes = Encoding.UTF8.GetBytes(plainText);
 
-        internal string DecodeAndDecrypt(string cipherText)
-        {
-            string DecodeAndDecrypt = AesDecrypt(StringToByteArray(cipherText));
-            return DecodeAndDecrypt;
-        }
-
-        internal string EncryptAndEncode(string plaintext)
-        {
-            return ByteArrayToHexString(AesEncrypt(plaintext));
-        }
-
-        private static Aes GetCryptoAlgorithm()
-        {
-            var algorithm = Aes.Create();
-
-            algorithm.Padding = PaddingMode.PKCS7;
-            algorithm.Mode = CipherMode.CBC;
-            algorithm.KeySize = 128;
-            algorithm.BlockSize = 128;
-
-            return algorithm;
-        }
-
-        private string ByteArrayToHexString(byte[] ba)
-        {
-            return BitConverter.ToString(ba).Replace("-", "");
-        }
-
-        private byte[] StringToByteArray(string hex)
-        {
-            return Enumerable.Range(0, hex.Length)
-                             .Where(x => x % 2 == 0)
-                             .Select(x => Convert.ToByte(hex.Substring(x, 2), 16))
-                             .ToArray();
-        }
-
-        private byte[] AesEncrypt(string inputText)
-        {
-            byte[] inputBytes = Encoding.UTF8.GetBytes(inputText);
-            byte[]? result = null;
-
-            using (MemoryStream memoryStream = new MemoryStream())
+            using (Aes aes = Aes.Create())
             {
-                using (CryptoStream cryptoStream = new CryptoStream(memoryStream, GetCryptoAlgorithm().CreateEncryptor(keyAndIvBytes, keyAndIvBytes), CryptoStreamMode.Write))
+                var pbkdf2 = new Rfc2898DeriveBytes(password, salt);
+                aes.Key = pbkdf2.GetBytes(32); // Set a 256-bit key
+                aes.IV = pbkdf2.GetBytes(16); // Set a 128-bit IV
+
+                using (var ms = new MemoryStream())
                 {
-                    cryptoStream.Write(inputBytes, 0, inputBytes.Length);
-                    cryptoStream.FlushFinalBlock();
-
-                    result = memoryStream.ToArray();
-                }
-            }
-
-            return result;
-        }
-
-
-        private string AesDecrypt(byte[] inputBytes)
-        {
-            byte[] outputBytes = inputBytes;
-
-            string plaintext = string.Empty;
-
-            using (MemoryStream memoryStream = new MemoryStream(outputBytes))
-            {
-                using (CryptoStream cryptoStream = new CryptoStream(memoryStream, GetCryptoAlgorithm().CreateDecryptor(keyAndIvBytes, keyAndIvBytes), CryptoStreamMode.Read))
-                {
-                    using (StreamReader srDecrypt = new StreamReader(cryptoStream))
+                    using (var cs = new CryptoStream(ms, aes.CreateEncryptor(), CryptoStreamMode.Write))
                     {
-                        plaintext = srDecrypt.ReadToEnd();
+                        cs.Write(plainBytes, 0, plainBytes.Length);
                     }
+
+                    return Convert.ToBase64String(ms.ToArray());
                 }
             }
+        }
 
-            return plaintext;
+        public static string DecryptString(string cipherText)
+        {
+            byte[] salt = Encoding.UTF8.GetBytes(password);
+            byte[] cipherBytes = Convert.FromBase64String(cipherText);
+
+            using (Aes aes = Aes.Create())
+            {
+                var pbkdf2 = new Rfc2898DeriveBytes(password, salt);
+                aes.Key = pbkdf2.GetBytes(32); // Set a 256-bit key
+                aes.IV = pbkdf2.GetBytes(16); // Set a 128-bit IV
+
+                using (var ms = new MemoryStream())
+                {
+                    using (var cs = new CryptoStream(ms, aes.CreateDecryptor(), CryptoStreamMode.Write))
+                    {
+                        cs.Write(cipherBytes, 0, cipherBytes.Length);
+                    }
+
+                    byte[] decryptedBytes = ms.ToArray();
+                    return Encoding.UTF8.GetString(decryptedBytes);
+                }
+            }
         }
     }
 }
