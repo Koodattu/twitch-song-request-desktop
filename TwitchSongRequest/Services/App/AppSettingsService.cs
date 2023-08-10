@@ -1,10 +1,9 @@
 ﻿using Newtonsoft.Json;
-using System;
 using System.IO;
 using TwitchSongRequest.Helpers;
 using TwitchSongRequest.Model;
 
-namespace TwitchSongRequest.Services
+namespace TwitchSongRequest.Services.App
 {
     internal class AppSettingsService : IAppSettingsService
     {

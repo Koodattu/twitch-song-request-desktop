@@ -1,6 +1,6 @@
 ﻿using TwitchSongRequest.Model;
 
-namespace TwitchSongRequest.Services
+namespace TwitchSongRequest.Services.App
 {
     internal interface IAppSettingsService
     {

@@ -17,8 +17,8 @@ using System.Windows.Threading;
 using TwitchLib.Client.Events;
 using TwitchSongRequest.Helpers;
 using TwitchSongRequest.Model;
-using TwitchSongRequest.Services;
 using TwitchSongRequest.Services.Api;
+using TwitchSongRequest.Services.App;
 using TwitchSongRequest.Services.Authentication;
 
 namespace TwitchSongRequest.ViewModel
