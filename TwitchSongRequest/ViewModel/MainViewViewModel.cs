@@ -51,6 +51,8 @@ namespace TwitchSongRequest.ViewModel
             _spotifySongService = spotifySongService;
             _youtubeSongService = youtubeSongService;
 
+            StatusFeed = new ObservableCollection<string>(new List<string>() { "ASD1", "ASD2", "ASD3", "ASD4", "ASD5", "ASD5", "ASD5", "ASD5", "ASD5", "ASD5", "ASD5", "ASD5"});
+
             _playbackDevice = AppSettings.PlaybackDevice ?? GetDefaultPlaybackDevice();
             _volume = AppSettings.Volume ?? 100;
 
@@ -78,6 +80,27 @@ namespace TwitchSongRequest.ViewModel
         {
             get => _playbackDevices;
             set => SetProperty(ref _playbackDevices, value);
+        }
+
+        private string _statusText;
+        public string StatusText
+        {
+            get => StatusFeed.FirstOrDefault() ?? "";
+            set => SetProperty(ref _statusText, value);
+        }
+
+        private ObservableCollection<string> _statusFeed = new ObservableCollection<string>();
+        public ObservableCollection<string> StatusFeed
+        {
+            get => new ObservableCollection<string>(_statusFeed.Reverse());
+            set => SetProperty(ref _statusFeed, value);
+        }
+
+        private bool _isStatusFeedOpen;
+        public bool IsStatusFeedOpen
+        {
+            get => _isStatusFeedOpen;
+            set => SetProperty(ref _isStatusFeedOpen, value);
         }
 
         private bool _isSettingsOpen;
@@ -193,6 +216,7 @@ namespace TwitchSongRequest.ViewModel
         public ICommand ConnectBotCommand => new RelayCommand(ConnectOrCancelBot);
         public ICommand ConnectSpotifyCommand => new RelayCommand(ConnectOrCancelSpotify);
         public ICommand CreateRewardCommand => new RelayCommand<string?>((e) => CreateReward(e));
+        public ICommand OpenStatusFeedCommand => new RelayCommand(OpenStatusFeed);
         public ICommand OpenSetupCommand => new RelayCommand(OpenSetup);
         public ICommand SaveSetupCommand => new RelayCommand(() => CloseSetup(true));
         public ICommand CloseSetupCommand => new RelayCommand(() => CloseSetup(false));
@@ -433,6 +457,11 @@ namespace TwitchSongRequest.ViewModel
                 _logger.Log(LogLevel.Error, ex, "Error creating reward");
             }
             OnPropertyChanged(nameof(AppTokens));
+        }
+
+        private void OpenStatusFeed()
+        {
+            IsStatusFeedOpen = !IsStatusFeedOpen;
         }
 
         private void OpenSettings()

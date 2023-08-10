@@ -10,6 +10,7 @@
                 <ResourceDictionary Source="pack://application:,,,/AdonisUI.ClassicTheme;component/Resources.xaml" />
                 <ResourceDictionary Source="pack://application:,,,/Styles/Resources.xaml" />
                 <ResourceDictionary Source="pack://application:,,,/Styles/AccentSlider.xaml" />
+                <ResourceDictionary Source="pack://application:,,,/Styles/SpotlightStatusBar.xaml" />
             </ResourceDictionary.MergedDictionaries>
         </ResourceDictionary>
     </Application.Resources>

@@ -7,7 +7,6 @@
     xmlns:i="http://schemas.microsoft.com/xaml/behaviors"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:tb="http://www.hardcodet.net/taskbar"
-    xmlns:viewModels="clr-namespace:TwitchSongRequest.ViewModel"
     xmlns:views="clr-namespace:TwitchSongRequest.View"
     Title="{Binding Title}"
     Width="1000"
