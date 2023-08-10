@@ -7,6 +7,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using TwitchSongRequest.Helpers;
 using TwitchSongRequest.Model;
+using TwitchSongRequest.Services.App;
 
 namespace TwitchSongRequest.Services.Authentication
 {

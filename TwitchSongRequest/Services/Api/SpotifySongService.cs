@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Threading.Tasks;
 using TwitchSongRequest.Model;
+using TwitchSongRequest.Services.App;
 
 namespace TwitchSongRequest.Services.Api
 {

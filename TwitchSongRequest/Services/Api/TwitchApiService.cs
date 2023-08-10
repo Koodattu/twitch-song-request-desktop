@@ -9,6 +9,7 @@ using System.Collections.Generic;
 using System.Linq;
 using TwitchLib.Api.Helix.Models.ChannelPoints.UpdateCustomRewardRedemptionStatus;
 using TwitchLib.Api.Core.Enums;
+using TwitchSongRequest.Services.App;
 
 namespace TwitchSongRequest.Services.Api
 {
