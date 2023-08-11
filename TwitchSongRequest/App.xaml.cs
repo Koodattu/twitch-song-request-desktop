@@ -3,10 +3,10 @@ using CefSharp;
 using System;
 using System.Windows;
 using Microsoft.Extensions.DependencyInjection;
-using TwitchSongRequest.Services;
 using TwitchSongRequest.Services.Authentication;
 using TwitchSongRequest.Services.Api;
 using TwitchSongRequest.ViewModel;
+using TwitchSongRequest.Services.App;
 
 namespace TwitchSongRequest
 {
@@ -32,6 +32,7 @@ namespace TwitchSongRequest
             var services = new ServiceCollection();
 
             // Services
+            services.AddSingleton<ILoggerService, LoggerService>();
             services.AddSingleton<IAppSettingsService, AppSettingsService>();
 
             services.AddSingleton<ITwitchAuthService, TwitchAuthService>();

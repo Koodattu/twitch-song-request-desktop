@@ -1,18 +1,20 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Microsoft.Extensions.DependencyInjection;
 using NAudio.CoreAudioApi;
 using NLog;
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Input;
+using System.Windows.Shapes;
 using System.Windows.Threading;
 using TwitchLib.Client.Events;
 using TwitchSongRequest.Helpers;
@@ -25,8 +27,7 @@ namespace TwitchSongRequest.ViewModel
 {
     internal class MainViewViewModel : ObservableObject
     {
-        private static readonly Logger _logger = LogManager.GetCurrentClassLogger();
-
+        private readonly ILoggerService _loggerService;
         private readonly IAppSettingsService _appSettingsService;
 
         private readonly ITwitchAuthService _twitchAuthService;
@@ -39,8 +40,19 @@ namespace TwitchSongRequest.ViewModel
 
         private readonly DispatcherTimer dispatcherTimer;
 
-        public MainViewViewModel(IAppSettingsService appSettingsService, ITwitchAuthService twitchAuthService, ISpotifyAuthService spotifyAuthService, ITwitchApiService twitchApiService, ISpotifySongService spotifySongService, IYoutubeSongService youtubeSongService)
+        public MainViewViewModel(ILoggerService loggerService, IAppSettingsService appSettingsService, ITwitchAuthService twitchAuthService, ISpotifyAuthService spotifyAuthService, ITwitchApiService twitchApiService, ISpotifySongService spotifySongService, IYoutubeSongService youtubeSongService)
         {
+            _loggerService = loggerService;
+            _loggerService.LogInfo("Setting up MainViewViewModel");
+            _loggerService.StatusEvent += (statusEvent) => 
+            {
+                if (StatusText != null)
+                {
+                    StatusFeed.Insert(StatusFeed.Count, StatusText);
+                }
+                StatusText = statusEvent;
+            };
+
             _appSettingsService = appSettingsService;
 
             _twitchAuthService = twitchAuthService;
@@ -51,7 +63,7 @@ namespace TwitchSongRequest.ViewModel
             _spotifySongService = spotifySongService;
             _youtubeSongService = youtubeSongService;
 
-            StatusFeed = new ObservableCollection<string>(new List<string>() { "ASD1", "ASD2", "ASD3", "ASD4", "ASD5", "ASD5", "ASD5", "ASD5", "ASD5", "ASD5", "ASD5", "ASD5"});
+            PlaybackDevices = new ObservableCollection<string>(GetPlaybackDevices());
 
             _playbackDevice = AppSettings.PlaybackDevice ?? GetDefaultPlaybackDevice();
             _volume = AppSettings.Volume ?? 100;
@@ -75,24 +87,24 @@ namespace TwitchSongRequest.ViewModel
             }
         }
 
-        private ObservableCollection<string> _playbackDevices = new ObservableCollection<string>(GetPlaybackDevices());
+        private ObservableCollection<string> _playbackDevices = new ObservableCollection<string>();
         public ObservableCollection<string> PlaybackDevices
         {
             get => _playbackDevices;
             set => SetProperty(ref _playbackDevices, value);
         }
 
-        private string _statusText;
-        public string StatusText
+        private StatusEvent _statusText;
+        public StatusEvent StatusText
         {
-            get => StatusFeed.FirstOrDefault() ?? "";
+            get => _statusText;
             set => SetProperty(ref _statusText, value);
         }
 
-        private ObservableCollection<string> _statusFeed = new ObservableCollection<string>();
-        public ObservableCollection<string> StatusFeed
+        private ObservableCollection<StatusEvent> _statusFeed = new ObservableCollection<StatusEvent>();
+        public ObservableCollection<StatusEvent> StatusFeed
         {
-            get => new ObservableCollection<string>(_statusFeed.Reverse());
+            get => _statusFeed;
             set => SetProperty(ref _statusFeed, value);
         }
 
@@ -338,15 +350,9 @@ namespace TwitchSongRequest.ViewModel
                 setStatus(ConnectionStatus.Authenticated);
                 return true;
             }
-            catch (HttpRequestException ex)
-            {
-                string dataString = string.Join(",", ex.Data.Values.Cast<object>().Select(v => v.ToString()));
-                _logger.Log(LogLevel.Error, ex, $"Error connecting to {account}, Data: {dataString}");
-                setStatus(ConnectionStatus.Error);
-            }
             catch (Exception ex)
             {
-                _logger.Log(LogLevel.Error, ex, $"Error connecting to {account}");
+                _loggerService.LogError(ex, $"Unable to connect to {account}");
                 setStatus(ConnectionStatus.Error);
             }
             finally
@@ -454,7 +460,7 @@ namespace TwitchSongRequest.ViewModel
             catch (Exception ex)
             {
                 _appSettingsService.AppTokens.RewardCreationStatus = RewardCreationStatus.Error;
-                _logger.Log(LogLevel.Error, ex, "Error creating reward");
+                _loggerService.LogError(ex, "Unable to create reward");
             }
             OnPropertyChanged(nameof(AppTokens));
         }
@@ -507,7 +513,7 @@ namespace TwitchSongRequest.ViewModel
             }
             catch (Exception ex)
             {
-                _logger.Log(LogLevel.Error, ex, "Error resetting setup");
+                _loggerService.LogError(ex, "Unable to reset setup");
             }
             OnPropertyChanged(nameof(AppTokens));
         }
@@ -526,7 +532,7 @@ namespace TwitchSongRequest.ViewModel
             }
             catch (Exception ex)
             {
-                _logger.Log(LogLevel.Error, ex, "Error resetting settings");
+                _loggerService.LogError(ex, "Unable to reset settings");
             }
             OnPropertyChanged(nameof(AppSettings));
         }
@@ -536,10 +542,11 @@ namespace TwitchSongRequest.ViewModel
             try
             {
                 _appSettingsService.SaveAppSettings();
+                _loggerService.LogInfo("Saved app settings");
             }
             catch (Exception ex)
             {
-                _logger.Log(LogLevel.Error, ex, "Error saving settings");
+                _loggerService.LogError(ex, "Unable to save settings");
             }
         }
 
@@ -548,15 +555,17 @@ namespace TwitchSongRequest.ViewModel
             try
             {
                 _appSettingsService.SaveAppTokens();
+                _loggerService.LogInfo("Saved app setup");
             }
             catch (Exception ex)
             {
-                _logger.Log(LogLevel.Error, ex, "Error saving settings");
+                _loggerService.LogError(ex, "Unable to save setup");
             }
         }
 
         internal async Task<string?> AddSongToQueue(string input, string requester, string redeemRequestId)
         {
+            _loggerService.LogInfo($"Adding song to queue {input} {requester} {redeemRequestId}");
             input = input.Trim();
 
             string? songName = string.Empty;
@@ -636,12 +645,14 @@ namespace TwitchSongRequest.ViewModel
 
         private async void SetupYoutubeService(string playbackDevice, int volume)
         {
+            _loggerService.LogInfo("Setting up Youtube Service");
             await _youtubeSongService.SetPlaybackDevice(playbackDevice);
             await _youtubeSongService.SetVolume(volume);
         }
 
         private async void ValidateLogins()
         {
+            _loggerService.LogInfo("Validating logins");
             if (AppTokens.StreamerAccessTokens.AccessToken != null)
             {
                 await ValidateStreamerLogin();
@@ -659,6 +670,7 @@ namespace TwitchSongRequest.ViewModel
 
         private async Task ValidateStreamerLogin()
         {
+            _loggerService.LogInfo("Validating Twitch Streamer login");
             try
             {
                 var statusAction = new Action<ConnectionStatus>(status => Connections.StreamerStatus = status);
@@ -666,19 +678,15 @@ namespace TwitchSongRequest.ViewModel
                 var setNameAction = new Action<string>(name => AppTokens.StreamerInfo.AccountName = name);
                 await ValidateLogin(statusAction, _twitchAuthService.ValidateStreamerOAuthTokens, _twitchAuthService.RefreshStreamerOAuthTokens, setTokensAction, setNameAction);
             }
-            catch (HttpRequestException ex)
-            {
-                string dataString = string.Join(",", ex.Data.Values.Cast<object>().Select(v => v.ToString()));
-                _logger.Log(LogLevel.Error, ex, $"Error validating Twitch Streamer login, Data: {dataString}");
-            }
             catch (Exception ex)
             {
-                _logger.Log(LogLevel.Error, ex, "Error validating Twitch Streamer login");
+                _loggerService.LogError(ex, $"Unable to validate Twitch Streamer login");
             }
         }
 
         private async Task ValidateBotLogin()
         {
+            _loggerService.LogInfo("Validating Twitch Bot login");
             try
             {
                 var statusAction = new Action<ConnectionStatus>(status => Connections.BotStatus = status);
@@ -686,19 +694,15 @@ namespace TwitchSongRequest.ViewModel
                 var setNameAction = new Action<string>(name => AppTokens.BotInfo.AccountName = name);
                 await ValidateLogin(statusAction, _twitchAuthService.ValidateBotOAuthTokens, _twitchAuthService.RefreshBotOAuthTokens, setTokensAction, setNameAction);
             }
-            catch (HttpRequestException ex)
-            {
-                string dataString = string.Join(",", ex.Data.Values.Cast<object>().Select(v => v.ToString()));
-                _logger.Log(LogLevel.Error, ex, $"Error validating Twitch Bot login, Data: {dataString}");
-            }
             catch (Exception ex)
             {
-                _logger.Log(LogLevel.Error, ex, "Error validating Twitch Bot login");
+                _loggerService.LogError(ex, $"Unable to validate Twitch Bot login");
             }
         }
 
         private async Task ValidateSpotifyLogin()
         {
+            _loggerService.LogInfo("Validating Spotify login");
             try
             {
                 var statusAction = new Action<ConnectionStatus>(status => Connections.SpotifyStatus = status);
@@ -706,14 +710,9 @@ namespace TwitchSongRequest.ViewModel
                 var setNameAction = new Action<string>(name => AppTokens.SpotifyInfo.AccountName = name);
                 await ValidateLogin(statusAction, _spotifyAuthService.ValidateOAuthTokens, _spotifyAuthService.RefreshOAuthTokens, setTokensAction, setNameAction);
             }
-            catch (HttpRequestException ex)
-            {
-                string dataString = string.Join(",", ex.Data.Values.Cast<object>().Select(v => v.ToString()));
-                _logger.Log(LogLevel.Error, ex, $"Error validating Spotify login, Data: {dataString}");
-            }
             catch (Exception ex)
             {
-                _logger.Log(LogLevel.Error, ex, "Error validating Spotify login");
+                _loggerService.LogError(ex, $"Unable to validate Spotify login");
             }
         }
 
@@ -775,8 +774,10 @@ namespace TwitchSongRequest.ViewModel
             SetProperty(ref _position, curTime, nameof(Position));
         }
 
-        private static List<string> GetPlaybackDevices()
+        private List<string> GetPlaybackDevices()
         {
+            _loggerService.LogInfo("Getting playback devices");
+
             var playbackDevices = new List<string>();
 
             try
@@ -789,7 +790,7 @@ namespace TwitchSongRequest.ViewModel
             }
             catch (Exception ex)
             {
-                _logger.Log(LogLevel.Error, ex, "Error getting playback devices");
+                _loggerService.LogError(ex, "Unable to get playback devices");
             }
 
             return playbackDevices;
@@ -797,6 +798,8 @@ namespace TwitchSongRequest.ViewModel
 
         private string GetDefaultPlaybackDevice()
         {
+            _loggerService.LogInfo("Getting default playback device");
+
             try
             {
                 using (var devices = new MMDeviceEnumerator())
@@ -806,7 +809,7 @@ namespace TwitchSongRequest.ViewModel
             }
             catch (Exception ex)
             {
-                _logger.Log(LogLevel.Error, ex, "Error getting default playback device");
+                _loggerService.LogError(ex, "Unable to get default playback device");
             }
 
             return string.Empty;
