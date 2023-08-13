@@ -7,6 +7,9 @@ namespace TwitchSongRequest.Services.App
     {
         event Action<StatusEvent> StatusEvent;
         void LogInfo(string message);
+        void LogWarning(string message);
+        void LogError(string message);
+        void LogSuccess(string message);
         void LogError(Exception exception, string message);
     }
 }

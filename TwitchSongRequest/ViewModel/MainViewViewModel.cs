@@ -10,6 +10,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Net.Http;
+using System.Security.Policy;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
@@ -240,18 +241,21 @@ namespace TwitchSongRequest.ViewModel
 
         private async void Play()
         {
+            _loggerService.LogInfo("Setting state to playing");
             bool result = await _currentSong.Service!.Play();
             PlaybackStatus = result ? PlaybackStatus.Playing : PlaybackStatus.Error;
         }
 
         private async void Pause()
         {
+            _loggerService.LogInfo("Setting state to paused");
             bool result = await _currentSong.Service!.Pause();
             PlaybackStatus = result ? PlaybackStatus.Paused : PlaybackStatus.Error;
         }
 
         private async void Skip()
         {
+            _loggerService.LogInfo("Skipping current song");
             if (SongRequestQueue.Count > 0)
             {
                 CurrentSong = SongRequestQueue.First();
@@ -266,11 +270,13 @@ namespace TwitchSongRequest.ViewModel
         
         private void LoadNextSong()
         {
+            _loggerService.LogInfo("Loading next song");
             CurrentSong?.Service?.PlaySong(CurrentSong.Id!);
         }
 
         private void ProcessStartUri(string? uri)
         {
+            _loggerService.LogInfo($"Opening uri: {uri}");
             if (!string.IsNullOrWhiteSpace(uri))
             {
                 Process.Start(new ProcessStartInfo(uri) { UseShellExecute = true });
@@ -279,6 +285,7 @@ namespace TwitchSongRequest.ViewModel
 
         private void ProcessStartBrowserUrl(Tuple<WebBrowser, string>? browserStartInfo)
         {
+            _loggerService.LogInfo($"Opening browser: {browserStartInfo?.Item1} {browserStartInfo?.Item2}");
             WebBrowserLauncher.Launch(browserStartInfo!.Item1, browserStartInfo!.Item2);
         }
 
@@ -287,6 +294,7 @@ namespace TwitchSongRequest.ViewModel
             if (e != null)
             {
                 SongRequestQueue.Remove(e);
+                _loggerService.LogSuccess($"Removed song from queue: {e?.SongName}");
             }
         }
 
@@ -295,6 +303,7 @@ namespace TwitchSongRequest.ViewModel
             if (e != null)
             {
                 SongRequestHistory.Remove(e);
+                _loggerService.LogSuccess($"Removed song from history: {e?.SongName}");
             }
         }
 
@@ -304,6 +313,7 @@ namespace TwitchSongRequest.ViewModel
             {
                 SongRequestQueue.Add(e);
                 SongRequestHistory.Remove(e);
+                _loggerService.LogSuccess($"Added song back to queue from history: {e?.SongName}");
             }
         }
 
@@ -317,6 +327,7 @@ namespace TwitchSongRequest.ViewModel
                     //TODO refund all channel points
                 }
                 SongRequestQueue.Clear();
+                _loggerService.LogSuccess($"Cleared all songs from queue and refunded channel points: {refundAll}");
             }
 
         }
@@ -327,6 +338,7 @@ namespace TwitchSongRequest.ViewModel
             if (result)
             {
                 SongRequestHistory.Clear();
+                _loggerService.LogSuccess($"Cleared all songs from history");
             }
         }
 
@@ -338,9 +350,10 @@ namespace TwitchSongRequest.ViewModel
                 connectCts.Cancel();
                 connectCts = null;
                 setStatus(ConnectionStatus.Cancelled);
+                _loggerService.LogWarning($"Cancelling connection attempt to account: {account}");
                 return false;
             }
-
+            _loggerService.LogInfo($"Connecting to account: {account}");
             setStatus(ConnectionStatus.Connecting);
             connectCts = new CancellationTokenSource();
 
@@ -348,6 +361,7 @@ namespace TwitchSongRequest.ViewModel
             {
                 setTokens(await generateTokens(connectCts.Token));
                 setStatus(ConnectionStatus.Authenticated);
+                _loggerService.LogSuccess($"Connected to account: {account}");
                 return true;
             }
             catch (Exception ex)
@@ -677,6 +691,7 @@ namespace TwitchSongRequest.ViewModel
                 var setTokensAction = new Action<ServiceOAuthToken>(tokens => AppTokens.StreamerAccessTokens = tokens);
                 var setNameAction = new Action<string>(name => AppTokens.StreamerInfo.AccountName = name);
                 await ValidateLogin(statusAction, _twitchAuthService.ValidateStreamerOAuthTokens, _twitchAuthService.RefreshStreamerOAuthTokens, setTokensAction, setNameAction);
+                _loggerService.LogSuccess("Successfully validated Twitch Streamer login");
             }
             catch (Exception ex)
             {
@@ -693,6 +708,7 @@ namespace TwitchSongRequest.ViewModel
                 var setTokensAction = new Action<ServiceOAuthToken>(tokens => AppTokens.BotAccessTokens = tokens);
                 var setNameAction = new Action<string>(name => AppTokens.BotInfo.AccountName = name);
                 await ValidateLogin(statusAction, _twitchAuthService.ValidateBotOAuthTokens, _twitchAuthService.RefreshBotOAuthTokens, setTokensAction, setNameAction);
+                _loggerService.LogSuccess("Successfully validated Twitch Bot login");
             }
             catch (Exception ex)
             {
@@ -709,6 +725,7 @@ namespace TwitchSongRequest.ViewModel
                 var setTokensAction = new Action<ServiceOAuthToken>(tokens => AppTokens.SpotifyAccessTokens = tokens);
                 var setNameAction = new Action<string>(name => AppTokens.SpotifyInfo.AccountName = name);
                 await ValidateLogin(statusAction, _spotifyAuthService.ValidateOAuthTokens, _spotifyAuthService.RefreshOAuthTokens, setTokensAction, setNameAction);
+                _loggerService.LogSuccess("Successfully validated Spotify login");
             }
             catch (Exception ex)
             {
@@ -727,8 +744,9 @@ namespace TwitchSongRequest.ViewModel
                 setStatus(ConnectionStatus.Connected);
                 return;
             }
-            catch
+            catch (Exception ex)
             {
+                _loggerService.LogError(ex, $"Unable to validate login, tokens possibly expired");
                 setStatus(ConnectionStatus.Refreshing);
             }
 

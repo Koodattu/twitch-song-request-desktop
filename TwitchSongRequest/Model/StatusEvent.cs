@@ -17,7 +17,7 @@ namespace TwitchSongRequest.Model
 
         public override string ToString()
         {
-            return $"{Time}  |  {Type}  |  {Message}";
+            return $"{Time}\t{Type}\t\t{Message}";
         }
     }
 }

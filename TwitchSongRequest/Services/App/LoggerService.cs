@@ -33,5 +33,23 @@ namespace TwitchSongRequest.Services.App
             _logger?.Info(message);
             StatusEvent?.Invoke(new StatusEvent(DateTime.Now, "Info", message));
         }
+
+        public void LogWarning(string message)
+        {
+            _logger?.Info(message);
+            StatusEvent?.Invoke(new StatusEvent(DateTime.Now, "Warning", message));
+        }
+
+        public void LogError(string message)
+        {
+            _logger?.Error(message);
+            StatusEvent?.Invoke(new StatusEvent(DateTime.Now, "Error", message));
+        }
+
+        public void LogSuccess(string message)
+        {
+            _logger?.Info(message);
+            StatusEvent?.Invoke(new StatusEvent(DateTime.Now, "Success", message));
+        }
     }
 }
