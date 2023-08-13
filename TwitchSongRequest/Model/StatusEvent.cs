@@ -15,11 +15,6 @@ namespace TwitchSongRequest.Model
             Message = message;
         }
 
-        public StatusEvent()
-        {
-            
-        }
-
         public override string ToString()
         {
             return $"{Time}  |  {Type}  |  {Message}";
