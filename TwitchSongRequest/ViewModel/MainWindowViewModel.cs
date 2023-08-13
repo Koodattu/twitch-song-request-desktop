@@ -1,5 +1,6 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Microsoft.Extensions.DependencyInjection;
 using System.Windows.Input;
 using TwitchSongRequest.Services.App;
 
@@ -7,9 +8,9 @@ namespace TwitchSongRequest.ViewModel
 {
     internal class MainWindowViewModel : ObservableObject
     {
-        private readonly IAppSettingsService appSettingsService;
+        private readonly IAppFilesService appSettingsService;
 
-        public MainWindowViewModel(IAppSettingsService appSettingsService)
+        public MainWindowViewModel(IAppFilesService appSettingsService)
         {
             this.appSettingsService = appSettingsService;
             _title = "Twitch Music Song Request Bot";
@@ -28,6 +29,9 @@ namespace TwitchSongRequest.ViewModel
         {
             appSettingsService.SaveAppSettings();
             appSettingsService.SaveAppTokens();
+            MainViewViewModel? viewModel = App.Current.Services.GetService<MainViewViewModel>();
+            viewModel?.SaveSongQueue();
+            viewModel?.SaveSongHistory();
         }
     }
 }

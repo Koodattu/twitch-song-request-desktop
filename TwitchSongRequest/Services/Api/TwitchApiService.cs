@@ -15,12 +15,12 @@ namespace TwitchSongRequest.Services.Api
 {
     internal class TwitchApiService : ITwitchApiService
     {
-        private readonly IAppSettingsService _appSettingsService;
+        private readonly IAppFilesService _appSettingsService;
 
         private TwitchClient? streamerClient;
         private TwitchClient? botClient;
 
-        public TwitchApiService(IAppSettingsService appSettingsService)
+        public TwitchApiService(IAppFilesService appSettingsService)
         {
             _appSettingsService = appSettingsService;
         }

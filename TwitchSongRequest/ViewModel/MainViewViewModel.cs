@@ -1,21 +1,15 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using Microsoft.Extensions.DependencyInjection;
 using NAudio.CoreAudioApi;
-using NLog;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
-using System.IO;
 using System.Linq;
-using System.Net.Http;
-using System.Security.Policy;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Input;
-using System.Windows.Shapes;
 using System.Windows.Threading;
 using TwitchLib.Client.Events;
 using TwitchSongRequest.Helpers;
@@ -29,7 +23,7 @@ namespace TwitchSongRequest.ViewModel
     internal class MainViewViewModel : ObservableObject
     {
         private readonly ILoggerService _loggerService;
-        private readonly IAppSettingsService _appSettingsService;
+        private readonly IAppFilesService _appFilesService;
 
         private readonly ITwitchAuthService _twitchAuthService;
         private readonly ISpotifyAuthService _spotifyAuthService;
@@ -41,7 +35,7 @@ namespace TwitchSongRequest.ViewModel
 
         private readonly DispatcherTimer dispatcherTimer;
 
-        public MainViewViewModel(ILoggerService loggerService, IAppSettingsService appSettingsService, ITwitchAuthService twitchAuthService, ISpotifyAuthService spotifyAuthService, ITwitchApiService twitchApiService, ISpotifySongService spotifySongService, IYoutubeSongService youtubeSongService)
+        public MainViewViewModel(ILoggerService loggerService, IAppFilesService appSettingsService, ITwitchAuthService twitchAuthService, ISpotifyAuthService spotifyAuthService, ITwitchApiService twitchApiService, ISpotifySongService spotifySongService, IYoutubeSongService youtubeSongService)
         {
             _loggerService = loggerService;
             _loggerService.LogInfo("Setting up MainViewViewModel");
@@ -54,7 +48,7 @@ namespace TwitchSongRequest.ViewModel
                 StatusText = statusEvent;
             };
 
-            _appSettingsService = appSettingsService;
+            _appFilesService = appSettingsService;
 
             _twitchAuthService = twitchAuthService;
             _spotifyAuthService = spotifyAuthService;
@@ -132,12 +126,12 @@ namespace TwitchSongRequest.ViewModel
 
         public AppSettings AppSettings
         {
-            get => _appSettingsService.AppSettings;
+            get => _appFilesService.AppSettings;
         }
 
         public AppTokens AppTokens
         {
-            get => _appSettingsService.AppTokens;
+            get => _appFilesService.AppTokens;
         }
 
         private PlaybackStatus _playbackStatus;
@@ -456,24 +450,24 @@ namespace TwitchSongRequest.ViewModel
 
         private async void CreateReward(string? rewardName)
         {
-            _appSettingsService.AppTokens.RewardCreationStatus = RewardCreationStatus.Creating;
+            _appFilesService.AppTokens.RewardCreationStatus = RewardCreationStatus.Creating;
             OnPropertyChanged(nameof(AppTokens));
             try
             {
                 string? rewardId = await _twitchApiService.CreateReward(rewardName!);
                 if (!string.IsNullOrWhiteSpace(rewardId))
                 {
-                    _appSettingsService.AppTokens.ChannelRedeemRewardId = rewardId;
-                    _appSettingsService.AppTokens.RewardCreationStatus = RewardCreationStatus.Created;
+                    _appFilesService.AppTokens.ChannelRedeemRewardId = rewardId;
+                    _appFilesService.AppTokens.RewardCreationStatus = RewardCreationStatus.Created;
                 }
                 else
                 {
-                    _appSettingsService.AppTokens.RewardCreationStatus = RewardCreationStatus.AlreadyExists;
+                    _appFilesService.AppTokens.RewardCreationStatus = RewardCreationStatus.AlreadyExists;
                 }
             }
             catch (Exception ex)
             {
-                _appSettingsService.AppTokens.RewardCreationStatus = RewardCreationStatus.Error;
+                _appFilesService.AppTokens.RewardCreationStatus = RewardCreationStatus.Error;
                 _loggerService.LogError(ex, "Unable to create reward");
             }
             OnPropertyChanged(nameof(AppTokens));
@@ -523,7 +517,7 @@ namespace TwitchSongRequest.ViewModel
 
             try
             {
-                _appSettingsService.ResetAppTokens();
+                _appFilesService.ResetAppTokens();
             }
             catch (Exception ex)
             {
@@ -542,7 +536,7 @@ namespace TwitchSongRequest.ViewModel
 
             try
             {
-                _appSettingsService.ResetAppSettings();
+                _appFilesService.ResetAppSettings();
             }
             catch (Exception ex)
             {
@@ -555,7 +549,7 @@ namespace TwitchSongRequest.ViewModel
         {
             try
             {
-                _appSettingsService.SaveAppSettings();
+                _appFilesService.SaveAppSettings();
                 _loggerService.LogInfo("Saved app settings");
             }
             catch (Exception ex)
@@ -568,7 +562,7 @@ namespace TwitchSongRequest.ViewModel
         {
             try
             {
-                _appSettingsService.SaveAppTokens();
+                _appFilesService.SaveAppTokens();
                 _loggerService.LogInfo("Saved app setup");
             }
             catch (Exception ex)
@@ -880,6 +874,32 @@ namespace TwitchSongRequest.ViewModel
                 Url = url,
                 Service = _youtubeSongService,
             };
+        }
+
+        public void SaveSongQueue()
+        {
+            try
+            {
+                _appFilesService.SaveSongQueue(SongRequestQueue.ToList());
+                _loggerService.LogSuccess("Successfully saved song queue");
+            }
+            catch (Exception ex)
+            {
+                _loggerService.LogError(ex, "Unable to save song queue");
+            }
+        }
+
+        public void SaveSongHistory()
+        {
+            try
+            {
+                _appFilesService.SaveSongHistory(SongRequestHistory.ToList());
+                _loggerService.LogSuccess("Successfully saved song history");
+            }
+            catch (Exception ex)
+            {
+                _loggerService.LogError(ex, "Unable to save song history");
+            }
         }
     }
 }

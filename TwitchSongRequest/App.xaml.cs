@@ -33,7 +33,7 @@ namespace TwitchSongRequest
 
             // Services
             services.AddSingleton<ILoggerService, LoggerService>();
-            services.AddSingleton<IAppSettingsService, AppSettingsService>();
+            services.AddSingleton<IAppFilesService, AppFilesService>();
 
             services.AddSingleton<ITwitchAuthService, TwitchAuthService>();
             services.AddSingleton<ISpotifyAuthService, SpotifyAuthService>();

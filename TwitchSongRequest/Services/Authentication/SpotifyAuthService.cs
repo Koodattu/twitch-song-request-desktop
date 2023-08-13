@@ -15,10 +15,10 @@ namespace TwitchSongRequest.Services.Authentication
     {
         private const string RedirectUri = "http://localhost:8080";
 
-        private readonly IAppSettingsService _appSettingsService;
+        private readonly IAppFilesService _appSettingsService;
         private readonly HttpListener _httpListener;
 
-        public SpotifyAuthService(IAppSettingsService appSettingsService)
+        public SpotifyAuthService(IAppFilesService appSettingsService)
         {
             _appSettingsService = appSettingsService;
             _httpListener = new HttpListener() { Prefixes = { RedirectUri + "/" } };

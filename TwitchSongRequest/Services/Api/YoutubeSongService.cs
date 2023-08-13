@@ -14,9 +14,9 @@ namespace TwitchSongRequest.Services.Api
         private string? PlaybackDevice;
         private int Volume;
 
-        private readonly IAppSettingsService _appSettingsService;
+        private readonly IAppFilesService _appSettingsService;
 
-        public YoutubeSongService(IAppSettingsService appSettingsService)
+        public YoutubeSongService(IAppFilesService appSettingsService)
         {
             _appSettingsService = appSettingsService;
             ChromeBrowser = new ChromiumWebBrowser();

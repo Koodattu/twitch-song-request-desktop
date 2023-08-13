@@ -7,9 +7,9 @@ namespace TwitchSongRequest.Services.Api
 {
     internal class SpotifySongService : ISpotifySongService
     {
-        private readonly IAppSettingsService _appSettingsService;
+        private readonly IAppFilesService _appSettingsService;
 
-        public SpotifySongService(IAppSettingsService appSettingsService)
+        public SpotifySongService(IAppFilesService appSettingsService)
         {
             _appSettingsService = appSettingsService;
         }
