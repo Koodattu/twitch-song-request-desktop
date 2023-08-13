@@ -1,4 +1,5 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
+using System.Collections.Specialized;
 using System.Windows;
 using System.Windows.Controls;
 using TwitchSongRequest.ViewModel;
@@ -14,6 +15,16 @@ namespace TwitchSongRequest.View
         {
             InitializeComponent();
             this.DataContext = App.Current.Services.GetService<MainViewViewModel>();
+            Loaded += (s, e) =>
+            {
+                ((INotifyCollectionChanged)this.EventsListBox.ItemsSource).CollectionChanged += (s, e) =>
+                {
+                    if (e.Action == NotifyCollectionChangedAction.Add)
+                    {
+                        this.EventsListBox.ScrollIntoView(EventsListBox.Items[EventsListBox.Items.Count - 1]);
+                    }
+                };
+            };
         }
 
         private void SongRequestsListView_SizeChanged(object sender, SizeChangedEventArgs e)

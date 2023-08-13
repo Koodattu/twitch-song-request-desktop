@@ -22,6 +22,7 @@ namespace TwitchSongRequest.Services.App
             if (exception is HttpRequestException ex)
             {
                 string dataString = string.Join(",", ex.Data.Values.Cast<object>().Select(v => v.ToString()));
+                dataString = dataString.Replace("\n", " ");
                 message = $"{message}, Data: {dataString}";
             }
             _logger?.Error(exception, message);

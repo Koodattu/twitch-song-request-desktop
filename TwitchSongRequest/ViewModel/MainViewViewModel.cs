@@ -746,18 +746,20 @@ namespace TwitchSongRequest.ViewModel
             }
             catch (Exception ex)
             {
-                _loggerService.LogError(ex, $"Unable to validate login, tokens possibly expired");
+                _loggerService.LogError(ex, $"Unable to validate login");
                 setStatus(ConnectionStatus.Refreshing);
             }
 
             // 2. if not logged in, try to refresh token
             try
             {
+                _loggerService.LogInfo($"Refreshing tokens");
                 setTokens(await refreshTokens());
                 setStatus(ConnectionStatus.Connected);
             }
             catch
             {
+                _loggerService.LogError($"Unable to refresh tokens");
                 setStatus(ConnectionStatus.Error);
                 throw;
             }
@@ -765,6 +767,7 @@ namespace TwitchSongRequest.ViewModel
             // 3. revalidate token
             try
             {
+                _loggerService.LogInfo($"Revalidating login");
                 setAccountName(await validateTokens());
                 setStatus(ConnectionStatus.Connected);
             }

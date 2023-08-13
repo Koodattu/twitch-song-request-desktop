@@ -210,13 +210,13 @@
             </ListView>
         </DockPanel>
 
-        <StatusBar Grid.Row="4">
+        <StatusBar Grid.Row="4" BorderThickness="1">
             <i:Interaction.Triggers>
                 <i:EventTrigger EventName="MouseDown">
                     <i:InvokeCommandAction Command="{Binding OpenStatusFeedCommand}" PassEventArgsToCommand="True" />
                 </i:EventTrigger>
             </i:Interaction.Triggers>
-            <StatusBarItem>
+            <StatusBarItem Margin="-1,-1,-1,-1" Padding="0">
                 <DockPanel>
                     <Rectangle
                         Width="4"
@@ -241,7 +241,10 @@
                             </Style>
                         </Rectangle.Style>
                     </Rectangle>
-                    <TextBlock DockPanel.Dock="Right" Text="{Binding StatusText}" />
+                    <TextBlock
+                        Padding="0,4"
+                        DockPanel.Dock="Right"
+                        Text="{Binding StatusText}" />
                 </DockPanel>
             </StatusBarItem>
         </StatusBar>
@@ -250,54 +253,57 @@
         <views:SetupUserControl Grid.RowSpan="4" Visibility="{Binding IsSetupOpen, Converter={StaticResource BoolToVisConverter}, FallbackValue=Collapsed}" />
         <ContentControl Grid.RowSpan="4" Content="{Binding ConfirmationDialogViewModel, Mode=OneTime}" />
 
-        <DockPanel Grid.RowSpan="4" Visibility="{Binding IsStatusFeedOpen, Converter={StaticResource BoolToVisConverter}, FallbackValue=Collapsed}">
-            <ListBox Background="{DynamicResource {x:Static adonisUi:Brushes.Layer1BackgroundBrush}}" ItemsSource="{Binding StatusFeed}">
-                <ListBox.ItemContainerStyle>
-                    <Style BasedOn="{StaticResource {x:Type ListBoxItem}}" TargetType="{x:Type ListBoxItem}">
-                        <Setter Property="Padding" Value="4,0" />
-                        <Setter Property="Margin" Value="0" />
-                    </Style>
-                </ListBox.ItemContainerStyle>
-                <ListBox.ItemTemplate>
-                    <DataTemplate>
-                        <DockPanel>
-                            <Rectangle
-                                Width="4"
-                                Margin="0,0,4,0"
-                                DockPanel.Dock="Left">
-                                <Rectangle.Style>
-                                    <Style TargetType="{x:Type Rectangle}">
-                                        <Style.Triggers>
-                                            <DataTrigger Binding="{Binding Type}" Value="Error">
-                                                <Setter Property="Fill" Value="Red" />
-                                            </DataTrigger>
-                                            <DataTrigger Binding="{Binding Type}" Value="Warning">
-                                                <Setter Property="Fill" Value="Yellow" />
-                                            </DataTrigger>
-                                            <DataTrigger Binding="{Binding Type}" Value="Info">
-                                                <Setter Property="Fill" Value="Cyan" />
-                                            </DataTrigger>
-                                            <DataTrigger Binding="{Binding Type}" Value="Success">
-                                                <Setter Property="Fill" Value="Green" />
-                                            </DataTrigger>
-                                        </Style.Triggers>
-                                    </Style>
-                                </Rectangle.Style>
-                            </Rectangle>
-                            <TextBlock
-                                Padding="0,4"
-                                DockPanel.Dock="Right"
-                                Text="{Binding}" />
-                        </DockPanel>
-                    </DataTemplate>
-                </ListBox.ItemTemplate>
-                <ListBox.ItemsPanel>
-                    <ItemsPanelTemplate>
-                        <VirtualizingStackPanel VerticalAlignment="Bottom" />
-                    </ItemsPanelTemplate>
-                </ListBox.ItemsPanel>
-            </ListBox>
-        </DockPanel>
+        <ListBox
+            x:Name="EventsListBox"
+            Grid.RowSpan="4"
+            Background="{DynamicResource {x:Static adonisUi:Brushes.Layer1BackgroundBrush}}"
+            ItemsSource="{Binding StatusFeed}"
+            Visibility="{Binding IsStatusFeedOpen, Converter={StaticResource BoolToVisConverter}, FallbackValue=Collapsed}">
+            <ListBox.ItemContainerStyle>
+                <Style BasedOn="{StaticResource {x:Type ListBoxItem}}" TargetType="{x:Type ListBoxItem}">
+                    <Setter Property="Padding" Value="0" />
+                    <Setter Property="Margin" Value="0" />
+                </Style>
+            </ListBox.ItemContainerStyle>
+            <ListBox.ItemTemplate>
+                <DataTemplate>
+                    <DockPanel>
+                        <Rectangle
+                            Width="4"
+                            Margin="0,0,4,0"
+                            DockPanel.Dock="Left">
+                            <Rectangle.Style>
+                                <Style TargetType="{x:Type Rectangle}">
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding Type}" Value="Error">
+                                            <Setter Property="Fill" Value="Red" />
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding Type}" Value="Warning">
+                                            <Setter Property="Fill" Value="Yellow" />
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding Type}" Value="Info">
+                                            <Setter Property="Fill" Value="Cyan" />
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding Type}" Value="Success">
+                                            <Setter Property="Fill" Value="Green" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Rectangle.Style>
+                        </Rectangle>
+                        <TextBlock
+                            Padding="0,4"
+                            DockPanel.Dock="Right"
+                            Text="{Binding}" />
+                    </DockPanel>
+                </DataTemplate>
+            </ListBox.ItemTemplate>
+            <ListBox.ItemsPanel>
+                <ItemsPanelTemplate>
+                    <VirtualizingStackPanel VerticalAlignment="Bottom" />
+                </ItemsPanelTemplate>
+            </ListBox.ItemsPanel>
+        </ListBox>
 
     </Grid>
 </UserControl>
