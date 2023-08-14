@@ -17,6 +17,14 @@ namespace TwitchSongRequest.View
             this.DataContext = App.Current.Services.GetService<MainViewViewModel>();
             Loaded += (s, e) =>
             {
+                this.EventsListBox.IsVisibleChanged += (s, e) =>
+                {
+                    if (this.EventsListBox.IsVisible)
+                    {
+                        this.EventsListBox.ScrollIntoView(EventsListBox.Items[EventsListBox.Items.Count - 1]);
+                    }
+                };
+
                 ((INotifyCollectionChanged)this.EventsListBox.ItemsSource).CollectionChanged += (s, e) =>
                 {
                     if (e.Action == NotifyCollectionChangedAction.Add)

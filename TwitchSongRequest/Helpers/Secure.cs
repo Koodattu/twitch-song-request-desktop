@@ -9,8 +9,13 @@ namespace TwitchSongRequest.Helpers
     {
         private static readonly string password = Environment.MachineName;
 
-        public static string EncryptString(string plainText)
+        public static string? EncryptString(string? plainText)
         {
+            if (string.IsNullOrWhiteSpace(plainText))
+            {
+                return null;
+            }
+
             byte[] salt = Encoding.UTF8.GetBytes(password);
             byte[] plainBytes = Encoding.UTF8.GetBytes(plainText);
 
@@ -32,8 +37,13 @@ namespace TwitchSongRequest.Helpers
             }
         }
 
-        public static string DecryptString(string cipherText)
+        public static string? DecryptString(string? cipherText)
         {
+            if (string.IsNullOrWhiteSpace(cipherText))
+            {
+                return null;
+            }
+
             byte[] salt = Encoding.UTF8.GetBytes(password);
             byte[] cipherBytes = Convert.FromBase64String(cipherText);
 

@@ -58,7 +58,7 @@
                     Grid.ColumnSpan="3"
                     Height="25"
                     Margin="24,0"
-                    Text="{Binding AppTokens.TwitchClient.ClientId}" />
+                    Text="{Binding AppSetup.TwitchClient.ClientId}" />
 
                 <Label
                     Grid.Row="2"
@@ -71,7 +71,7 @@
                     Grid.ColumnSpan="3"
                     Height="25"
                     Margin="24,0"
-                    helpers:PasswordBoxHelper.Password="{Binding AppTokens.TwitchClient.ClientSecret, Mode=TwoWay}" />
+                    helpers:PasswordBoxHelper.Password="{Binding AppSetup.TwitchClient.ClientSecret, Mode=TwoWay}" />
 
                 <Label
                     Grid.Row="3"
@@ -85,7 +85,7 @@
                     Height="25"
                     Margin="24,0,-16,0"
                     ItemsSource="{Binding WebBrowsers}"
-                    SelectedItem="{Binding AppTokens.StreamerInfo.Browser}" />
+                    SelectedItem="{Binding AppSetup.StreamerInfo.Browser}" />
                 <Button
                     Grid.Row="3"
                     Grid.Column="2"
@@ -111,7 +111,7 @@
                     <Label
                         Grid.Row="2"
                         HorizontalAlignment="Center"
-                        Content="{Binding AppTokens.StreamerInfo.AccountName}" />
+                        Content="{Binding AppSetup.StreamerInfo.AccountName}" />
                 </Grid>
 
                 <Label
@@ -126,7 +126,7 @@
                     Height="25"
                     Margin="24,0,-16,0"
                     ItemsSource="{Binding WebBrowsers}"
-                    SelectedItem="{Binding AppTokens.BotInfo.Browser}" />
+                    SelectedItem="{Binding AppSetup.BotInfo.Browser}" />
                 <Button
                     Grid.Row="4"
                     Grid.Column="2"
@@ -152,7 +152,7 @@
                     <Label
                         Grid.Row="2"
                         HorizontalAlignment="Center"
-                        Content="{Binding AppTokens.BotInfo.AccountName}" />
+                        Content="{Binding AppSetup.BotInfo.AccountName}" />
                 </Grid>
 
                 <Label
@@ -166,7 +166,7 @@
                     Grid.Column="1"
                     Height="25"
                     Margin="24,0,-16,0"
-                    Text="{Binding AppTokens.ChannelRedeemRewardName}" />
+                    Text="{Binding AppSetup.ChannelRedeemRewardName}" />
                 <Button
                     Grid.Row="5"
                     Grid.Column="2"
@@ -181,8 +181,8 @@
                     Margin="8,0"
                     HorizontalAlignment="Center"
                     VerticalAlignment="Center"
-                    Content="{Binding AppTokens.RewardCreationStatus}"
-                    Foreground="{Binding AppTokens.RewardCreationStatus, Converter={StaticResource StatusToColorConverter}}" />
+                    Content="{Binding AppSetup.RewardCreationStatus}"
+                    Foreground="{Binding AppSetup.RewardCreationStatus, Converter={StaticResource StatusToColorConverter}}" />
 
                 <Label
                     Grid.Row="6"
@@ -195,7 +195,7 @@
                     Grid.ColumnSpan="3"
                     Height="25"
                     Margin="24,0"
-                    Text="{Binding AppTokens.SpotifyClient.ClientId}" />
+                    Text="{Binding AppSetup.SpotifyClient.ClientId}" />
 
                 <Label
                     Grid.Row="7"
@@ -208,7 +208,7 @@
                     Grid.ColumnSpan="3"
                     Height="25"
                     Margin="24,0"
-                    helpers:PasswordBoxHelper.Password="{Binding AppTokens.SpotifyClient.ClientSecret, Mode=TwoWay}" />
+                    helpers:PasswordBoxHelper.Password="{Binding AppSetup.SpotifyClient.ClientSecret, Mode=TwoWay}" />
 
                 <Label
                     Grid.Row="8"
@@ -222,7 +222,7 @@
                     Height="25"
                     Margin="24,0,-16,0"
                     ItemsSource="{Binding WebBrowsers}"
-                    SelectedItem="{Binding AppTokens.SpotifyInfo.Browser}" />
+                    SelectedItem="{Binding AppSetup.SpotifyInfo.Browser}" />
                 <Button
                     Grid.Row="8"
                     Grid.Column="2"
@@ -247,7 +247,7 @@
                     <Label
                         Grid.Row="2"
                         HorizontalAlignment="Center"
-                        Content="{Binding AppTokens.SpotifyInfo.AccountName}" />
+                        Content="{Binding AppSetup.SpotifyInfo.AccountName}" />
                 </Grid>
 
                 <Button
@@ -280,7 +280,7 @@
                     HorizontalAlignment="Left"
                     VerticalAlignment="Top"
                     Command="{Binding ProcessStartUriCommand}"
-                    CommandParameter="apptokens.json"
+                    CommandParameter="appsetup.json"
                     Content="↗"
                     Style="{DynamicResource {x:Static adonisUi:Styles.AccentButton}}"
                     ToolTip="Open tokens file" />

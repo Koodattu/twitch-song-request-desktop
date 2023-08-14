@@ -94,7 +94,7 @@ namespace TwitchSongRequest.Services.Authentication
             if (response.IsSuccessful && response.StatusCode == HttpStatusCode.OK && response.Content != null)
             {
                 var obj = JsonConvert.DeserializeObject<dynamic>(response.Content);
-                return obj.login;
+                return obj!.login;
             }
             else
             {

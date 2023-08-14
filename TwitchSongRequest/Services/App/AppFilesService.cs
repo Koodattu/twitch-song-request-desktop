@@ -48,22 +48,22 @@ namespace TwitchSongRequest.Services.App
                 {
                     string tokensJson = File.ReadAllText(appSetupPath);
                     AppSetup = JsonConvert.DeserializeObject<AppSetup>(tokensJson) ?? new AppSetup();
-                    AppSetup.TwitchClient.ClientSecret = Secure.DecryptString(AppSetup.TwitchClient.ClientSecret ?? "");
-                    AppSetup.SpotifyClient.ClientSecret = Secure.DecryptString(AppSetup.SpotifyClient.ClientSecret ?? "");
+                    AppSetup.TwitchClient.ClientSecret = Secure.DecryptString(AppSetup.TwitchClient.ClientSecret);
+                    AppSetup.SpotifyClient.ClientSecret = Secure.DecryptString(AppSetup.SpotifyClient.ClientSecret);
 
-                    AppSetup.StreamerAccessTokens.AccessToken = Secure.DecryptString(AppSetup.StreamerAccessTokens.AccessToken ?? "");
-                    AppSetup.StreamerAccessTokens.RefreshToken = Secure.DecryptString(AppSetup.StreamerAccessTokens.RefreshToken ?? "");
+                    AppSetup.StreamerAccessTokens.AccessToken = Secure.DecryptString(AppSetup.StreamerAccessTokens.AccessToken);
+                    AppSetup.StreamerAccessTokens.RefreshToken = Secure.DecryptString(AppSetup.StreamerAccessTokens.RefreshToken);
 
-                    AppSetup.BotAccessTokens.AccessToken = Secure.DecryptString(AppSetup.BotAccessTokens.AccessToken ?? "");
-                    AppSetup.BotAccessTokens.RefreshToken = Secure.DecryptString(AppSetup.BotAccessTokens.RefreshToken ?? "");
+                    AppSetup.BotAccessTokens.AccessToken = Secure.DecryptString(AppSetup.BotAccessTokens.AccessToken);
+                    AppSetup.BotAccessTokens.RefreshToken = Secure.DecryptString(AppSetup.BotAccessTokens.RefreshToken);
 
-                    AppSetup.SpotifyAccessTokens.AccessToken = Secure.DecryptString(AppSetup.SpotifyAccessTokens.AccessToken ?? "");
-                    AppSetup.SpotifyAccessTokens.RefreshToken = Secure.DecryptString(AppSetup.SpotifyAccessTokens.RefreshToken ?? "");
+                    AppSetup.SpotifyAccessTokens.AccessToken = Secure.DecryptString(AppSetup.SpotifyAccessTokens.AccessToken);
+                    AppSetup.SpotifyAccessTokens.RefreshToken = Secure.DecryptString(AppSetup.SpotifyAccessTokens.RefreshToken);
                 }
             }
             catch (Exception ex)
             {
-                _loggerService.LogError(ex, "AppFilesService: Error loading AppTokens.json");
+                _loggerService.LogError(ex, "AppFilesService: Error loading AppSetup.json");
             }
         }
 
@@ -95,19 +95,22 @@ namespace TwitchSongRequest.Services.App
 
         public void SaveAppSetup()
         {
-            AppSetup.TwitchClient.ClientSecret = Secure.EncryptString(AppSetup.TwitchClient.ClientSecret ?? "");
-            AppSetup.SpotifyClient.ClientSecret = Secure.EncryptString(AppSetup.SpotifyClient.ClientSecret ?? "");
+            // create a new copy instead of reference
+            AppSetup appSetup = JsonConvert.DeserializeObject<AppSetup>(JsonConvert.SerializeObject(AppSetup)) ?? new AppSetup();
 
-            AppSetup.StreamerAccessTokens.AccessToken = Secure.EncryptString(AppSetup.StreamerAccessTokens.AccessToken ?? "");
-            AppSetup.StreamerAccessTokens.RefreshToken = Secure.EncryptString(AppSetup.StreamerAccessTokens.RefreshToken ?? "");
+            appSetup.TwitchClient.ClientSecret = Secure.EncryptString(appSetup.TwitchClient.ClientSecret);
+            appSetup.SpotifyClient.ClientSecret = Secure.EncryptString(appSetup.SpotifyClient.ClientSecret);
 
-            AppSetup.BotAccessTokens.AccessToken = Secure.EncryptString(AppSetup.BotAccessTokens.AccessToken ?? "");
-            AppSetup.BotAccessTokens.RefreshToken = Secure.EncryptString(AppSetup.BotAccessTokens.RefreshToken ?? "");
+            appSetup.StreamerAccessTokens.AccessToken = Secure.EncryptString(appSetup.StreamerAccessTokens.AccessToken);
+            appSetup.StreamerAccessTokens.RefreshToken = Secure.EncryptString(appSetup.StreamerAccessTokens.RefreshToken);
 
-            AppSetup.SpotifyAccessTokens.AccessToken = Secure.EncryptString(AppSetup.SpotifyAccessTokens.AccessToken ?? "");
-            AppSetup.SpotifyAccessTokens.RefreshToken = Secure.EncryptString(AppSetup.SpotifyAccessTokens.RefreshToken ?? "");
+            appSetup.BotAccessTokens.AccessToken = Secure.EncryptString(appSetup.BotAccessTokens.AccessToken);
+            appSetup.BotAccessTokens.RefreshToken = Secure.EncryptString(appSetup.BotAccessTokens.RefreshToken);
 
-            string json = JsonConvert.SerializeObject(AppSetup, Formatting.Indented);
+            appSetup.SpotifyAccessTokens.AccessToken = Secure.EncryptString(appSetup.SpotifyAccessTokens.AccessToken);
+            appSetup.SpotifyAccessTokens.RefreshToken = Secure.EncryptString(appSetup.SpotifyAccessTokens.RefreshToken);
+            
+            string json = JsonConvert.SerializeObject(appSetup, Formatting.Indented);
             File.WriteAllText(appSetupPath, json);
         }
 

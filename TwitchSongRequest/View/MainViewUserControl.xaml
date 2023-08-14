@@ -254,6 +254,7 @@
         <ContentControl Grid.RowSpan="4" Content="{Binding ConfirmationDialogViewModel, Mode=OneTime}" />
 
         <ListBox
+            ScrollViewer.HorizontalScrollBarVisibility="Hidden"
             x:Name="EventsListBox"
             Grid.RowSpan="4"
             Background="{DynamicResource {x:Static adonisUi:Brushes.Layer1BackgroundBrush}}"
