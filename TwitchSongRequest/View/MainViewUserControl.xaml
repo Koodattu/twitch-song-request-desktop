@@ -287,6 +287,9 @@
                                         <DataTrigger Binding="{Binding Type}" Value="Success">
                                             <Setter Property="Fill" Value="Green" />
                                         </DataTrigger>
+                                        <DataTrigger Binding="{Binding History}" Value="True">
+                                            <Setter Property="Fill" Value="Gray" />
+                                        </DataTrigger>
                                     </Style.Triggers>
                                 </Style>
                             </Rectangle.Style>

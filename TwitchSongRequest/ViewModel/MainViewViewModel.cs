@@ -85,7 +85,7 @@ namespace TwitchSongRequest.ViewModel
                         var date = DateTime.Parse(split[0] + " " + split[1]);
                         var level = split[2];
                         var message = split[3];
-                        StatusFeed.Insert(StatusFeed.Count, new StatusEvent(date, level, message));
+                        StatusFeed.Insert(StatusFeed.Count, new StatusEvent(date, level, message, true));
                     }
                 }
             }
