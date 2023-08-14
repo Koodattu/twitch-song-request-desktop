@@ -8,6 +8,7 @@
         public int? MaxSongDurationSeconds { get; set; }
         public bool ReplyInChat { get; set; }
         public bool ReplyWithBot { get; set; }
+        public bool RefundAllPoints { get; set; }
         public SongRequestPlatform SongSearchPlatform { get; set; }
     }
 }

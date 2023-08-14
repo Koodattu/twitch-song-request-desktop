@@ -44,8 +44,8 @@ namespace TwitchSongRequest
             services.AddSingleton<IYoutubeSongService, YoutubeSongService>();
 
             // Viewmodels
-            services.AddTransient<MainWindowViewModel>();
-            services.AddTransient<MainViewViewModel>();
+            services.AddSingleton<MainWindowViewModel>();
+            services.AddSingleton<MainViewViewModel>();
 
             return services.BuildServiceProvider();
         }

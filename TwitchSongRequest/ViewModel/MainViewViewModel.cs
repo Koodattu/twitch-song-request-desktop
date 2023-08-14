@@ -11,7 +11,7 @@ using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Threading;
-using TwitchLib.Client.Events;
+using TwitchLib.Client.Models;
 using TwitchSongRequest.Helpers;
 using TwitchSongRequest.Model;
 using TwitchSongRequest.Services.Api;
@@ -43,7 +43,10 @@ namespace TwitchSongRequest.ViewModel
             {
                 if (StatusText != null)
                 {
-                    StatusFeed.Insert(StatusFeed.Count, StatusText);
+                    App.Current.Dispatcher.Invoke(delegate
+                    {
+                        StatusFeed.Insert(StatusFeed.Count, StatusText);
+                    });
                 }
                 StatusText = statusEvent;
             };
@@ -151,14 +154,14 @@ namespace TwitchSongRequest.ViewModel
             set => SetProperty(ref _currentSong, value);
         }
 
-        private ObservableCollection<SongRequest> _songRequestQueue = new ObservableCollection<SongRequest>();
+        private ObservableCollection<SongRequest> _songRequestQueue;
         public ObservableCollection<SongRequest> SongRequestQueue
         {
             get => _songRequestQueue;
             set => SetProperty(ref _songRequestQueue, value);
         }
 
-        private ObservableCollection<SongRequest> _songRequestHistory = new ObservableCollection<SongRequest>();
+        private ObservableCollection<SongRequest> _songRequestHistory;
         public ObservableCollection<SongRequest> SongRequestHistory
         {
             get => _songRequestHistory;
@@ -286,10 +289,22 @@ namespace TwitchSongRequest.ViewModel
             WebBrowserLauncher.Launch(browserStartInfo!.Item1, browserStartInfo!.Item2);
         }
 
-        private void RemoveSongQueue(SongRequest? e)
+        private async void RemoveSongQueue(SongRequest? e)
         {
             if (e != null)
             {
+                if (AppSettings.RefundAllPoints)
+                {
+                    try
+                    {
+                        await _twitchApiService.RefundRedeem(e.Requester!, e.RequestInput!);
+                        _loggerService.LogSuccess($"Refunded points for song: {e?.SongName}");
+                    }
+                    catch (Exception ex)
+                    {
+                        _loggerService.LogError(ex, $"Error refunding points.");
+                    }
+                }
                 SongRequestQueue.Remove(e);
                 _loggerService.LogSuccess($"Removed song from queue: {e?.SongName}");
             }
@@ -317,16 +332,25 @@ namespace TwitchSongRequest.ViewModel
         private async void ClearQueue(bool? refundAll)
         {
             bool result = await ConfirmationDialogViewModel.ShowDialog("Clear Queue", $"Are you sure you want to clear the song queue {(refundAll == true ? "and refund all" : string.Empty)}?");
-            if (result)
+            if (!result)
             {
-                if (refundAll == true)
-                {
-                    //TODO refund all channel points
-                }
-                SongRequestQueue.Clear();
-                _loggerService.LogSuccess($"Cleared all songs from queue and refunded channel points: {refundAll}");
+                return;
             }
 
+            if (refundAll == true)
+            {
+                try
+                {
+                    await _twitchApiService.RefundRedeems(SongRequestQueue.ToList());
+                    _loggerService.LogSuccess($"Refunded channel points.");
+                }
+                catch (Exception ex)
+                {
+                    _loggerService.LogError(ex, $"Failed to refund channel points.");
+                }
+            }
+            SongRequestQueue.Clear();
+            _loggerService.LogSuccess($"Cleared all songs from queue.");
         }
 
         private async void ClearHistory()
@@ -384,7 +408,7 @@ namespace TwitchSongRequest.ViewModel
         {
             try
             {
-                AppSetup.StreamerInfo.Scope = "chat:edit channel:read:redemptions channel:manage:redemptions";
+                AppSetup.StreamerInfo.Scope = "chat:read chat:edit channel:read:redemptions channel:manage:redemptions";
                 var setTokensAction = new Action<ServiceOAuthToken>(tokens => AppSetup.StreamerAccessTokens = tokens);
                 bool result = await ConnectOrCancel(setTokensAction, _twitchAuthService.GenerateStreamerOAuthTokens, status => Connections.StreamerStatus = status, "Twitch Streamer");
                 if (result)
@@ -403,7 +427,7 @@ namespace TwitchSongRequest.ViewModel
         {
             try
             {
-                AppSetup.BotInfo.Scope = "chat:edit";
+                AppSetup.BotInfo.Scope = "chat:read chat:edit";
                 var setTokensAction = new Action<ServiceOAuthToken>(tokens => AppSetup.BotAccessTokens = tokens);
                 bool result = await ConnectOrCancel(setTokensAction, _twitchAuthService.GenerateBotOAuthTokens, status => Connections.BotStatus = status, "Twitch Bot");
                 if (result)
@@ -441,7 +465,7 @@ namespace TwitchSongRequest.ViewModel
             {
                 _loggerService.LogInfo("Connecting to Twitch clients");
                 var streamerClient = await _twitchApiService.GetTwitchStreamerClient();
-                streamerClient.OnMessageReceived += OnTwitchClientMessageReceived;
+                _twitchApiService.MessageEvent += OnTwitchClientMessageReceived;
                 var botClient = await _twitchApiService.GetTwitchBotClient();
                 _loggerService.LogSuccess("Connected to Twitch clients");
             }
@@ -451,21 +475,21 @@ namespace TwitchSongRequest.ViewModel
             }
         }
 
-        private async void OnTwitchClientMessageReceived(object? sender, OnMessageReceivedArgs e)
+        private async void OnTwitchClientMessageReceived(ChatMessage chatMessage)
         {
-            if (string.IsNullOrWhiteSpace(e.ChatMessage.CustomRewardId))
+            if (string.IsNullOrWhiteSpace(chatMessage.CustomRewardId))
             {
                 return;
             }
-            if (e.ChatMessage.CustomRewardId != AppSetup.ChannelRedeemRewardId)
+            if (chatMessage.CustomRewardId != AppSetup.ChannelRedeemRewardId)
             {
                 return;
             }
 
-            _loggerService.LogInfo($"Received redeem request from {e.ChatMessage.Username} for {e.ChatMessage.Message}");
+            _loggerService.LogInfo($"Received redeem request from {chatMessage.Username} for {chatMessage.Message}");
 
-            string input = e.ChatMessage.Message;
-            string? songName = await AddSongToQueue(input, e.ChatMessage.Username, "");
+            string input = chatMessage.Message;
+            string? songName = await AddSongToQueue(input, chatMessage.Username);
 
             if (!AppSettings.ReplyInChat)
             {
@@ -474,13 +498,13 @@ namespace TwitchSongRequest.ViewModel
 
             if (!string.IsNullOrWhiteSpace(songName))
             {
-                await _twitchApiService.ReplyToChatMessage(e.ChatMessage.Channel, e.ChatMessage.Id, $"Added {songName} to queue.");
+                await _twitchApiService.ReplyToChatMessage(chatMessage.Channel, chatMessage.Id, $"Added {songName} to queue.");
                 _loggerService.LogSuccess($"Added {songName} to queue.");
             }
             else
             {
-                await _twitchApiService.ReplyToChatMessage(e.ChatMessage.Channel, e.ChatMessage.Id, $"Failed to add {input} to queue.");
-                await _twitchApiService.RefundRedeem(e.ChatMessage.Username, input);
+                await _twitchApiService.ReplyToChatMessage(chatMessage.Channel, chatMessage.Id, $"Failed to add {input} to queue.");
+                await _twitchApiService.RefundRedeem(chatMessage.Username, input);
                 _loggerService.LogWarning($"Failed to add {input} to queue.");
             }
         }
@@ -611,91 +635,102 @@ namespace TwitchSongRequest.ViewModel
             }
         }
 
-        internal async Task<string?> AddSongToQueue(string input, string requester, string redeemRequestId)
+        internal async Task<string?> AddSongToQueue(string input, string requester)
         {
-            _loggerService.LogInfo($"Adding song to queue {input} {requester} {redeemRequestId}");
-            input = input.Trim();
+            _loggerService.LogInfo($"Adding song to queue {input} {requester}");
 
-            string? songName = string.Empty;
-            int? duration = 0;
-            string? url = string.Empty;
-            string? id = string.Empty;
-            SongRequestPlatform? platform = null;
-            ISongService? songService = null;
-
-            if (input.Contains("youtube", StringComparison.OrdinalIgnoreCase) || input.Contains("youtu.be", StringComparison.OrdinalIgnoreCase))
+            try
             {
-                _loggerService.LogInfo($"Adding youtube song to queue {input} {requester} {redeemRequestId}");
-                //https://youtu.be/u54Kf3zxDso
-                //https://www.youtube.com/watch?v=u54Kf3zxDso
+                input = input.Trim();
 
-                //TODO: Add youtube song
-                platform = SongRequestPlatform.Youtube;
-                songService = _youtubeSongService;
+                string? songName = string.Empty;
+                int? duration = 0;
+                string? url = string.Empty;
+                string? id = string.Empty;
+                SongRequestPlatform? platform = null;
+                ISongService? songService = null;
 
-                string[] urlSplit = input.Split(new string[] { "?", "&" }, StringSplitOptions.RemoveEmptyEntries);
-                string videoId = urlSplit[1].Replace("v=", "");
+                if (input.Contains("youtube", StringComparison.OrdinalIgnoreCase) || input.Contains("youtu.be", StringComparison.OrdinalIgnoreCase))
+                {
+                    _loggerService.LogInfo($"Adding youtube song to queue {input} {requester}");
+                    //https://youtu.be/u54Kf3zxDso
+                    //https://www.youtube.com/watch?v=u54Kf3zxDso
 
-                var info = await _youtubeSongService.GetSongInfo(videoId);
-                songName = info.SongName;
-                duration = info.Duration;
-                url = $"https://www.youtube.com/watch?v={videoId}";
-                id = videoId;
-            } 
-            else if (input.Contains("spotify", StringComparison.OrdinalIgnoreCase))
-            {
-                _loggerService.LogInfo($"Adding spotify song to queue {input} {requester} {redeemRequestId}");
+                    //TODO: Add youtube song
+                    platform = SongRequestPlatform.Youtube;
+                    songService = _youtubeSongService;
 
-                //https://open.spotify.com/track/1hEh8Hc9lBAFWUghHBsCel?si=c4cdc1947a184ac0
-                //spotify:track:6RIbDs0p4XusU2PZSiDgeZ
+                    string[] urlSplit = input.Split(new string[] { "?", "&" }, StringSplitOptions.RemoveEmptyEntries);
+                    string videoId = urlSplit[1].Replace("v=", "");
 
-                //TODO: Add spotify song
-                platform = SongRequestPlatform.Spotify;
-                songService = _spotifySongService;
+                    var info = await _youtubeSongService.GetSongInfo(videoId);
+                    songName = info.SongName;
+                    duration = info.Duration;
+                    url = $"https://www.youtube.com/watch?v={videoId}";
+                    id = videoId;
+                }
+                else if (input.Contains("spotify", StringComparison.OrdinalIgnoreCase))
+                {
+                    _loggerService.LogInfo($"Adding spotify song to queue {input} {requester}");
 
-                string[] urlSplit = input.Split(new string[] { "track/", "track:", "?"}, StringSplitOptions.RemoveEmptyEntries);
-                string trackId = urlSplit[1];
+                    //https://open.spotify.com/track/1hEh8Hc9lBAFWUghHBsCel?si=c4cdc1947a184ac0
+                    //spotify:track:6RIbDs0p4XusU2PZSiDgeZ
 
-                var info = await _spotifySongService.GetSongInfo(trackId);
-                songName = $"{info.SongName} - {info.Artist}";
-                duration = info.Duration;
-                url = $"https://open.spotify.com/track/{trackId}";
-                id = trackId;
+                    //TODO: Add spotify song
+                    platform = SongRequestPlatform.Spotify;
+                    songService = _spotifySongService;
+
+                    string[] urlSplit = input.Split(new string[] { "track/", "track:", "?" }, StringSplitOptions.RemoveEmptyEntries);
+                    string trackId = urlSplit[1];
+
+                    var info = await _spotifySongService.GetSongInfo(trackId);
+                    songName = $"{info.SongName} - {info.Artist}";
+                    duration = info.Duration;
+                    url = $"https://open.spotify.com/track/{trackId}";
+                    id = trackId;
+                }
+                else if (input.Contains("soundcloud.com", StringComparison.OrdinalIgnoreCase))
+                {
+                    _loggerService.LogInfo($"Adding soundcloud song to queue {input} {requester}");
+
+                    //TODO: Add soundcloud song
+                    platform = SongRequestPlatform.Soundcloud;
+                    //songService = _soundcloudSongService;
+                }
+                else
+                {
+                    _loggerService.LogInfo($"Searching for song to add to queue {input} {requester}");
+
+                    //TODO: Search for song using selected platform
+                    platform = AppSettings.SongSearchPlatform;
+
+                    return string.Empty;
+                }
+
+                SongRequest songRequest = new SongRequest
+                {
+                    SongName = songName,
+                    Duration = duration,
+                    Requester = requester,
+                    Platform = platform,
+                    RequestInput = input,
+                    Url = url,
+                    Id = id,
+                    Service = songService,
+                };
+
+                App.Current.Dispatcher.Invoke(delegate
+                {
+                    SongRequestQueue.Add(songRequest);
+                });
+
+                return songName;
             }
-            else if (input.Contains("soundcloud.com", StringComparison.OrdinalIgnoreCase))
+            catch (Exception ex)
             {
-                _loggerService.LogInfo($"Adding soundcloud song to queue {input} {requester} {redeemRequestId}");
-
-                //TODO: Add soundcloud song
-                platform = SongRequestPlatform.Soundcloud;
-                //songService = _soundcloudSongService;
+                _loggerService.LogError(ex, $"Unable to add song to queue {input} {requester}");
             }
-            else
-            {
-                _loggerService.LogInfo($"Searching for song to add to queue {input} {requester} {redeemRequestId}");
-
-                //TODO: Search for song using selected platform
-                platform = AppSettings.SongSearchPlatform;
-            }
-
-            SongRequest songRequest = new SongRequest
-            {
-                SongName = songName,
-                Duration = duration,
-                Requester = requester,
-                Platform = platform,
-                RedeemRequestId = redeemRequestId,
-                Url = url,
-                Id = id,
-                Service = songService,
-            };
-
-            App.Current.Dispatcher.Invoke(delegate
-            {
-                SongRequestQueue.Add(songRequest);
-            });
-
-            return songName;
+            return null;
         }
 
         private async void SetupYoutubeService(string playbackDevice, int volume)
@@ -874,6 +909,22 @@ namespace TwitchSongRequest.ViewModel
             }
         }
 
+        private IEnumerable<SongRequest> GetSavedSongRequestQueue()
+        {
+            List<SongRequest> songRequests = new List<SongRequest>();
+            try
+            {
+                _loggerService.LogInfo("Getting saved song request queue");
+                songRequests = _appFilesService.GetSongQueue();
+            }
+            catch (Exception ex)
+            {
+                _loggerService.LogError(ex, "Unable to get saved song request queue");
+
+            }
+            return songRequests;
+        }
+
         private IEnumerable<SongRequest> GetSavedSongRequestHistory()
         {
             List<SongRequest> songRequests = new List<SongRequest>();
@@ -885,22 +936,6 @@ namespace TwitchSongRequest.ViewModel
             catch (Exception ex)
             {
                 _loggerService.LogError(ex, "Unable to get saved song request history");
-            }
-            return songRequests;
-        }
-
-        private IEnumerable<SongRequest> GetSavedSongRequestQueue()
-        {
-            List<SongRequest> songRequests = new List<SongRequest>();
-            try
-            {
-                _loggerService.LogInfo("Getting saved song request history");
-                songRequests = _appFilesService.GetSongHistory();
-            }
-            catch (Exception ex)
-            {
-                _loggerService.LogError(ex, "Unable to get saved song request history");
-
             }
             return songRequests;
         }

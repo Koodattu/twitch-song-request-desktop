@@ -26,7 +26,7 @@ namespace TwitchSongRequest.Services.App
                 message = $"{message}, Data: {dataString}";
             }
             _logger?.Error(exception, message);
-            StatusEvent?.Invoke(new StatusEvent(DateTime.Now, "Error", message + " " + exception.Message));
+            StatusEvent.Invoke(new StatusEvent(DateTime.Now, "Error", message + " " + exception.Message));
         }
 
         public void LogInfo(string message)

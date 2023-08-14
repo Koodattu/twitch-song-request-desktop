@@ -10,19 +10,24 @@ using System.Linq;
 using TwitchLib.Api.Helix.Models.ChannelPoints.UpdateCustomRewardRedemptionStatus;
 using TwitchLib.Api.Core.Enums;
 using TwitchSongRequest.Services.App;
+using TwitchSongRequest.Model;
 
 namespace TwitchSongRequest.Services.Api
 {
     internal class TwitchApiService : ITwitchApiService
     {
         private readonly IAppFilesService _appSettingsService;
+        private readonly ILoggerService _loggerService;
 
         private TwitchClient? streamerClient;
         private TwitchClient? botClient;
 
-        public TwitchApiService(IAppFilesService appSettingsService)
+        public event Action<ChatMessage> MessageEvent;
+
+        public TwitchApiService(IAppFilesService appSettingsService, ILoggerService loggerService)
         {
             _appSettingsService = appSettingsService;
+            _loggerService = loggerService;
         }
 
         public async Task<TwitchClient> GetTwitchStreamerClient()
@@ -31,7 +36,7 @@ namespace TwitchSongRequest.Services.Api
             {
                 string streamerName = _appSettingsService.AppSetup.StreamerInfo.AccountName!;
                 string accessToken = _appSettingsService.AppSetup.StreamerAccessTokens.AccessToken!;
-                streamerClient = await Task.Run(() => SetupTwitchClient(streamerName, accessToken, streamerName));
+                streamerClient = await Task.Run(() => SetupTwitchClient(streamerName, accessToken, streamerName, true));
             }
             
             return streamerClient;
@@ -50,7 +55,7 @@ namespace TwitchSongRequest.Services.Api
             return botClient;
         }
 
-        private TwitchClient SetupTwitchClient(string clientName, string accessToken, string channelName)
+        private TwitchClient SetupTwitchClient(string clientName, string accessToken, string channelName, bool receiveMessageEvents = false)
         {
             ConnectionCredentials credentials = new ConnectionCredentials(clientName, accessToken);
             var clientOptions = new ClientOptions
@@ -60,7 +65,12 @@ namespace TwitchSongRequest.Services.Api
             };
             WebSocketClient customClient = new WebSocketClient(clientOptions);
             TwitchClient twitchClient = new TwitchClient(customClient);
-            twitchClient.Initialize(credentials, channelName);
+            twitchClient.Initialize(credentials);
+            twitchClient.OnConnected += (s, e) => twitchClient.JoinChannel(channelName);
+            if (receiveMessageEvents)
+            {
+                twitchClient.OnMessageReceived += (s, e) => MessageEvent.Invoke(e.ChatMessage);
+            }
             twitchClient.Connect();
 
             return twitchClient;
@@ -116,9 +126,9 @@ namespace TwitchSongRequest.Services.Api
 
             string rewardId = _appSettingsService.AppSetup.ChannelRedeemRewardId!;
 
-            var redeems = await twitchAPI.Helix.ChannelPoints.GetCustomRewardRedemptionAsync(broadcasterId, rewardId);
+            var redeems = await twitchAPI.Helix.ChannelPoints.GetCustomRewardRedemptionAsync(broadcasterId, rewardId, status: "UNFULFILLED");
 
-            var redeem = redeems.Data.FirstOrDefault(x => x.UserName == redeemer && x.UserInput == input);
+            var redeem = redeems.Data.FirstOrDefault(x => string.Equals(x.UserName, redeemer, StringComparison.OrdinalIgnoreCase) && x.UserInput == input);
             if (redeem == null)
             {
                 throw new Exception($"Redeem not found for user {redeemer} with input {input}");
@@ -131,18 +141,59 @@ namespace TwitchSongRequest.Services.Api
             return response.Data[0].Status == CustomRewardRedemptionStatus.CANCELED;
         }
 
+        public async Task<bool?> RefundRedeems(List<SongRequest> requests)
+        {
+            TwitchAPI twitchAPI = new TwitchAPI();
+            twitchAPI.Settings.AccessToken = _appSettingsService.AppSetup.StreamerAccessTokens.AccessToken!;
+            twitchAPI.Settings.ClientId = _appSettingsService.AppSetup.TwitchClient.ClientId!;
+            string username = _appSettingsService.AppSetup.StreamerInfo.AccountName!;
+
+            var users = await twitchAPI.Helix.Users.GetUsersAsync(logins: new List<string>() { username });
+            string broadcasterId = users.Users[0].Id;
+
+            string rewardId = _appSettingsService.AppSetup.ChannelRedeemRewardId!;
+
+            var redeemIds = new List<string>();
+
+            var redeems = await twitchAPI.Helix.ChannelPoints.GetCustomRewardRedemptionAsync(broadcasterId, rewardId, status: "UNFULFILLED");
+
+            foreach (var request in requests)
+            {
+                var redeem = redeems.Data.FirstOrDefault(x => string.Equals(x.UserName, request.Requester, StringComparison.OrdinalIgnoreCase) && x.UserInput == request.RequestInput);
+                if (redeem == null)
+                {
+                    throw new Exception($"Redeem not found for user {request.Requester} with input {request.RequestInput}");
+                }
+                redeemIds.Add(redeem.Id);
+            }
+
+            var response = await twitchAPI.Helix.ChannelPoints.UpdateRedemptionStatusAsync(broadcasterId, rewardId, redeemIds, new UpdateCustomRewardRedemptionStatusRequest
+            {
+                Status = CustomRewardRedemptionStatus.CANCELED
+            });
+
+            return response.Data.All(x => x.Status == CustomRewardRedemptionStatus.CANCELED);
+        }
+
         public async Task ReplyToChatMessage(string channel, string replyId, string message)
         {
             TwitchClient twitchClient = _appSettingsService.AppSettings.ReplyWithBot ? botClient! : streamerClient!;
 
-            // check that we have joined the channel before sending a message
-            if (twitchClient.JoinedChannels.Any(x => x.Channel == channel))
+            try
             {
-                await Task.Run(() => twitchClient.SendReply(channel, replyId, message));
+                // check that we have joined the channel before sending a message
+                if (twitchClient.JoinedChannels.Any(x => x.Channel == channel))
+                {
+                    await Task.Run(() => twitchClient.SendReply(channel, replyId, message));
+                }
+                else
+                {
+                    throw new Exception($"Twitch client has not joined channel {channel}");
+                }
             }
-            else
+            catch (Exception ex)
             {
-                throw new Exception($"Twitch client has not joined channel {channel}");
+                _loggerService.LogError(ex, $"Error sending message to channel {channel}");
             }
         }
     }

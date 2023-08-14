@@ -53,7 +53,10 @@
                     Margin="8,0"
                     HorizontalAlignment="Right"
                     Orientation="Horizontal">
-                    <CheckBox x:Name="RefundAllCheckBox" Content="Refund all?" />
+                    <CheckBox
+                        x:Name="RefundAllCheckBox"
+                        Content="Refund channel points?"
+                        IsChecked="{Binding AppSettings.RefundAllPoints}" />
                     <Button
                         Width="85"
                         Height="25"
@@ -254,11 +257,11 @@
         <ContentControl Grid.RowSpan="4" Content="{Binding ConfirmationDialogViewModel, Mode=OneTime}" />
 
         <ListBox
-            ScrollViewer.HorizontalScrollBarVisibility="Hidden"
             x:Name="EventsListBox"
             Grid.RowSpan="4"
             Background="{DynamicResource {x:Static adonisUi:Brushes.Layer1BackgroundBrush}}"
             ItemsSource="{Binding StatusFeed}"
+            ScrollViewer.HorizontalScrollBarVisibility="Hidden"
             Visibility="{Binding IsStatusFeedOpen, Converter={StaticResource BoolToVisConverter}, FallbackValue=Collapsed}">
             <ListBox.ItemContainerStyle>
                 <Style BasedOn="{StaticResource {x:Type ListBoxItem}}" TargetType="{x:Type ListBoxItem}">
