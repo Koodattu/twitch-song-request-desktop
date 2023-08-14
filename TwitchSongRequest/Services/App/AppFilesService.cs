@@ -1,4 +1,5 @@
 ﻿using Newtonsoft.Json;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using TwitchSongRequest.Helpers;
@@ -8,42 +9,73 @@ namespace TwitchSongRequest.Services.App
 {
     internal class AppFilesService : IAppFilesService
     {
+        private ILoggerService _loggerService;
+
         private readonly string appSettingsPath = "AppSettings.json";
-        private readonly string appTokensPath = "AppTokens.json";
+        private readonly string appSetupPath = "AppSetup.json";
 
         private readonly string songQueuePath = "SongQueue.json";
         private readonly string songHistoryPath = "SongHistory.json";
 
         public AppSettings AppSettings { get; private set; }
-        public AppTokens AppTokens { get; private set; }
+        public AppSetup AppSetup { get; private set; }
 
-        public AppFilesService()
+        public AppFilesService(ILoggerService loggerService)
         {
+            _loggerService = loggerService;
+
+            _loggerService.LogInfo("AppFilesService: Initializing");
+
             AppSettings = new AppSettings();
-            AppTokens = new AppTokens();
+            AppSetup = new AppSetup();
 
-            if (File.Exists(appSettingsPath))
+            try
             {
-                string settingsJson = File.ReadAllText(appSettingsPath);
-                AppSettings = JsonConvert.DeserializeObject<AppSettings>(settingsJson) ?? new AppSettings();
+                if (File.Exists(appSettingsPath))
+                {
+                    string settingsJson = File.ReadAllText(appSettingsPath);
+                    AppSettings = JsonConvert.DeserializeObject<AppSettings>(settingsJson) ?? new AppSettings();
+                }
+            }
+            catch (Exception ex)
+            {
+                _loggerService.LogError(ex, "AppFilesService: Error loading AppSettings.json");
             }
 
-            if (File.Exists(appTokensPath))
+            try
             {
-                string tokensJson = File.ReadAllText(appTokensPath);
-                AppTokens = JsonConvert.DeserializeObject<AppTokens>(tokensJson) ?? new AppTokens();
-                AppTokens.TwitchClient.ClientSecret = Secure.DecryptString(AppTokens.TwitchClient.ClientSecret ?? "");
-                AppTokens.SpotifyClient.ClientSecret = Secure.DecryptString(AppTokens.SpotifyClient.ClientSecret ?? "");
+                if (File.Exists(appSetupPath))
+                {
+                    string tokensJson = File.ReadAllText(appSetupPath);
+                    AppSetup = JsonConvert.DeserializeObject<AppSetup>(tokensJson) ?? new AppSetup();
+                    AppSetup.TwitchClient.ClientSecret = Secure.DecryptString(AppSetup.TwitchClient.ClientSecret ?? "");
+                    AppSetup.SpotifyClient.ClientSecret = Secure.DecryptString(AppSetup.SpotifyClient.ClientSecret ?? "");
 
-                AppTokens.StreamerAccessTokens.AccessToken = Secure.DecryptString(AppTokens.StreamerAccessTokens.AccessToken ?? "");
-                AppTokens.StreamerAccessTokens.RefreshToken = Secure.DecryptString(AppTokens.StreamerAccessTokens.RefreshToken ?? "");
+                    AppSetup.StreamerAccessTokens.AccessToken = Secure.DecryptString(AppSetup.StreamerAccessTokens.AccessToken ?? "");
+                    AppSetup.StreamerAccessTokens.RefreshToken = Secure.DecryptString(AppSetup.StreamerAccessTokens.RefreshToken ?? "");
 
-                AppTokens.BotAccessTokens.AccessToken = Secure.DecryptString(AppTokens.BotAccessTokens.AccessToken ?? "");
-                AppTokens.BotAccessTokens.RefreshToken = Secure.DecryptString(AppTokens.BotAccessTokens.RefreshToken ?? "");
+                    AppSetup.BotAccessTokens.AccessToken = Secure.DecryptString(AppSetup.BotAccessTokens.AccessToken ?? "");
+                    AppSetup.BotAccessTokens.RefreshToken = Secure.DecryptString(AppSetup.BotAccessTokens.RefreshToken ?? "");
 
-                AppTokens.SpotifyAccessTokens.AccessToken = Secure.DecryptString(AppTokens.SpotifyAccessTokens.AccessToken ?? "");
-                AppTokens.SpotifyAccessTokens.RefreshToken = Secure.DecryptString(AppTokens.SpotifyAccessTokens.RefreshToken ?? "");
+                    AppSetup.SpotifyAccessTokens.AccessToken = Secure.DecryptString(AppSetup.SpotifyAccessTokens.AccessToken ?? "");
+                    AppSetup.SpotifyAccessTokens.RefreshToken = Secure.DecryptString(AppSetup.SpotifyAccessTokens.RefreshToken ?? "");
+                }
             }
+            catch (Exception ex)
+            {
+                _loggerService.LogError(ex, "AppFilesService: Error loading AppTokens.json");
+            }
+        }
+
+        public IEnumerable<string> GetAppLogs()
+        {
+            var fileContent = string.Empty;
+            using (var f = new FileStream("./Logs/log.txt", FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
+            using (var s = new StreamReader(f))
+            {
+                fileContent = s.ReadToEnd();
+            }
+            return fileContent.Split(new[] { Environment.NewLine }, StringSplitOptions.None);
         }
 
         public void SaveAppSettings()
@@ -61,31 +93,31 @@ namespace TwitchSongRequest.Services.App
             AppSettings = new AppSettings();
         }
 
-        public void SaveAppTokens()
+        public void SaveAppSetup()
         {
-            AppTokens.TwitchClient.ClientSecret = Secure.EncryptString(AppTokens.TwitchClient.ClientSecret ?? "");
-            AppTokens.SpotifyClient.ClientSecret = Secure.EncryptString(AppTokens.SpotifyClient.ClientSecret ?? "");
+            AppSetup.TwitchClient.ClientSecret = Secure.EncryptString(AppSetup.TwitchClient.ClientSecret ?? "");
+            AppSetup.SpotifyClient.ClientSecret = Secure.EncryptString(AppSetup.SpotifyClient.ClientSecret ?? "");
 
-            AppTokens.StreamerAccessTokens.AccessToken = Secure.EncryptString(AppTokens.StreamerAccessTokens.AccessToken ?? "");
-            AppTokens.StreamerAccessTokens.RefreshToken = Secure.EncryptString(AppTokens.StreamerAccessTokens.RefreshToken ?? "");
+            AppSetup.StreamerAccessTokens.AccessToken = Secure.EncryptString(AppSetup.StreamerAccessTokens.AccessToken ?? "");
+            AppSetup.StreamerAccessTokens.RefreshToken = Secure.EncryptString(AppSetup.StreamerAccessTokens.RefreshToken ?? "");
 
-            AppTokens.BotAccessTokens.AccessToken = Secure.EncryptString(AppTokens.BotAccessTokens.AccessToken ?? "");
-            AppTokens.BotAccessTokens.RefreshToken = Secure.EncryptString(AppTokens.BotAccessTokens.RefreshToken ?? "");
+            AppSetup.BotAccessTokens.AccessToken = Secure.EncryptString(AppSetup.BotAccessTokens.AccessToken ?? "");
+            AppSetup.BotAccessTokens.RefreshToken = Secure.EncryptString(AppSetup.BotAccessTokens.RefreshToken ?? "");
 
-            AppTokens.SpotifyAccessTokens.AccessToken = Secure.EncryptString(AppTokens.SpotifyAccessTokens.AccessToken ?? "");
-            AppTokens.SpotifyAccessTokens.RefreshToken = Secure.EncryptString(AppTokens.SpotifyAccessTokens.RefreshToken ?? "");
+            AppSetup.SpotifyAccessTokens.AccessToken = Secure.EncryptString(AppSetup.SpotifyAccessTokens.AccessToken ?? "");
+            AppSetup.SpotifyAccessTokens.RefreshToken = Secure.EncryptString(AppSetup.SpotifyAccessTokens.RefreshToken ?? "");
 
-            string json = JsonConvert.SerializeObject(AppTokens, Formatting.Indented);
-            File.WriteAllText(appTokensPath, json);
+            string json = JsonConvert.SerializeObject(AppSetup, Formatting.Indented);
+            File.WriteAllText(appSetupPath, json);
         }
 
-        public void ResetAppTokens()
+        public void ResetAppSetup()
         {
-            if (!File.Exists(appTokensPath))
+            if (!File.Exists(appSetupPath))
             {
-                File.Delete(appTokensPath);
+                File.Delete(appSetupPath);
             }
-            AppTokens = new AppTokens();
+            AppSetup = new AppSetup();
         }
 
         public List<SongRequest> GetSongQueue()

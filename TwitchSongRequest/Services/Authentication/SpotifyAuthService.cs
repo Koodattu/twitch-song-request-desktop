@@ -26,8 +26,8 @@ namespace TwitchSongRequest.Services.Authentication
 
         public async Task<ServiceOAuthToken> GenerateOAuthTokens(CancellationToken cancellationToken)
         {
-            ClientCredentials credentials = _appSettingsService.AppTokens.SpotifyClient;
-            ClientInfo info = _appSettingsService.AppTokens.SpotifyInfo;
+            ClientCredentials credentials = _appSettingsService.AppSetup.SpotifyClient;
+            ClientInfo info = _appSettingsService.AppSetup.SpotifyInfo;
 
             // Open the browser window for authorization
             string authorizationUrl = $"https://accounts.spotify.com/authorize?client_id={credentials.ClientId}&redirect_uri={Uri.EscapeDataString(RedirectUri)}&response_type=code&scope={Uri.EscapeDataString(info.Scope!)}";
@@ -43,8 +43,8 @@ namespace TwitchSongRequest.Services.Authentication
 
         public async Task<ServiceOAuthToken> RefreshOAuthTokens()
         {
-            ServiceOAuthToken tokens = _appSettingsService.AppTokens.SpotifyAccessTokens;
-            ClientCredentials credentials = _appSettingsService.AppTokens.SpotifyClient;
+            ServiceOAuthToken tokens = _appSettingsService.AppSetup.SpotifyAccessTokens;
+            ClientCredentials credentials = _appSettingsService.AppSetup.SpotifyClient;
 
             var restClient = new RestClient("https://accounts.spotify.com/api/token");
             var request = new RestRequest("/", Method.Post);
@@ -72,7 +72,7 @@ namespace TwitchSongRequest.Services.Authentication
 
         public async Task<string> ValidateOAuthTokens()
         {
-            ServiceOAuthToken tokens = _appSettingsService.AppTokens.SpotifyAccessTokens;
+            ServiceOAuthToken tokens = _appSettingsService.AppSetup.SpotifyAccessTokens;
 
             var restClient = new RestClient("https://api.spotify.com/v1/me");
             var request = new RestRequest("/", Method.Get);
@@ -141,7 +141,7 @@ namespace TwitchSongRequest.Services.Authentication
 
         private async Task<ServiceOAuthToken> ExchangeAuthorizationCodeForToken(string code)
         {
-            ClientCredentials credentials = _appSettingsService.AppTokens.SpotifyClient;
+            ClientCredentials credentials = _appSettingsService.AppSetup.SpotifyClient;
 
             var restClient = new RestClient("https://accounts.spotify.com/api/token");
             var request = new RestRequest("/", Method.Post);

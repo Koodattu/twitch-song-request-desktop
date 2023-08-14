@@ -232,7 +232,7 @@
                                         <Setter Property="Fill" Value="Yellow" />
                                     </DataTrigger>
                                     <DataTrigger Binding="{Binding StatusText.Type}" Value="Info">
-                                        <Setter Property="Fill" Value="Cyan" />
+                                        <Setter Property="Fill" Value="{DynamicResource {x:Static adonisUi:Brushes.AccentBrush}}" />
                                     </DataTrigger>
                                     <DataTrigger Binding="{Binding StatusText.Type}" Value="Success">
                                         <Setter Property="Fill" Value="Green" />
@@ -276,13 +276,13 @@
                                 <Style TargetType="{x:Type Rectangle}">
                                     <Style.Triggers>
                                         <DataTrigger Binding="{Binding Type}" Value="Error">
-                                            <Setter Property="Fill" Value="Red" />
+                                            <Setter Property="Fill" Value="Crimson" />
                                         </DataTrigger>
                                         <DataTrigger Binding="{Binding Type}" Value="Warning">
                                             <Setter Property="Fill" Value="Yellow" />
                                         </DataTrigger>
                                         <DataTrigger Binding="{Binding Type}" Value="Info">
-                                            <Setter Property="Fill" Value="Cyan" />
+                                            <Setter Property="Fill" Value="{DynamicResource {x:Static adonisUi:Brushes.AccentBrush}}" />
                                         </DataTrigger>
                                         <DataTrigger Binding="{Binding Type}" Value="Success">
                                             <Setter Property="Fill" Value="Green" />

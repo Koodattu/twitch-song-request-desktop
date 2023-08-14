@@ -1,6 +1,6 @@
 ﻿namespace TwitchSongRequest.Model
 {
-    internal class AppTokens
+    internal class AppSetup
     {
         public ServiceOAuthToken StreamerAccessTokens { get; set; }
         public ServiceOAuthToken BotAccessTokens { get; set; }
@@ -14,7 +14,7 @@
         public string? ChannelRedeemRewardId { get; set; }
         public RewardCreationStatus RewardCreationStatus { get; set; }
 
-        public AppTokens()
+        public AppSetup()
         {
             StreamerAccessTokens = new ServiceOAuthToken();
             BotAccessTokens = new ServiceOAuthToken();

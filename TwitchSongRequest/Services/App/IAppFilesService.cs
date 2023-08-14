@@ -5,12 +5,13 @@ namespace TwitchSongRequest.Services.App
 {
     internal interface IAppFilesService
     {
+        IEnumerable<string> GetAppLogs();
         AppSettings AppSettings { get; }
         void SaveAppSettings();
         void ResetAppSettings();
-        AppTokens AppTokens { get; }
-        void SaveAppTokens();
-        void ResetAppTokens();
+        AppSetup AppSetup { get; }
+        void SaveAppSetup();
+        void ResetAppSetup();
         List<SongRequest> GetSongQueue();
         void SaveSongQueue(List<SongRequest> songRequests);
         List<SongRequest> GetSongHistory();

@@ -29,8 +29,8 @@ namespace TwitchSongRequest.Services.Api
         {
             if (streamerClient == null)
             {
-                string streamerName = _appSettingsService.AppTokens.StreamerInfo.AccountName!;
-                string accessToken = _appSettingsService.AppTokens.StreamerAccessTokens.AccessToken!;
+                string streamerName = _appSettingsService.AppSetup.StreamerInfo.AccountName!;
+                string accessToken = _appSettingsService.AppSetup.StreamerAccessTokens.AccessToken!;
                 streamerClient = await Task.Run(() => SetupTwitchClient(streamerName, accessToken, streamerName));
             }
             
@@ -41,9 +41,9 @@ namespace TwitchSongRequest.Services.Api
         {
             if (botClient == null)
             {
-                string botName = _appSettingsService.AppTokens.BotInfo.AccountName!;
-                string accessToken = _appSettingsService.AppTokens.BotAccessTokens.AccessToken!;
-                string streamerName = _appSettingsService.AppTokens.StreamerInfo.AccountName!;
+                string botName = _appSettingsService.AppSetup.BotInfo.AccountName!;
+                string accessToken = _appSettingsService.AppSetup.BotAccessTokens.AccessToken!;
+                string streamerName = _appSettingsService.AppSetup.StreamerInfo.AccountName!;
                 botClient = await Task.Run(() => SetupTwitchClient(botName, accessToken, streamerName));
             }
 
@@ -69,10 +69,10 @@ namespace TwitchSongRequest.Services.Api
         public async Task<string?> CreateReward(string name)
         {
             TwitchAPI twitchAPI = new TwitchAPI(); 
-            twitchAPI.Settings.AccessToken = _appSettingsService.AppTokens.StreamerAccessTokens.AccessToken!;
-            twitchAPI.Settings.ClientId = _appSettingsService.AppTokens.TwitchClient.ClientId!;
+            twitchAPI.Settings.AccessToken = _appSettingsService.AppSetup.StreamerAccessTokens.AccessToken!;
+            twitchAPI.Settings.ClientId = _appSettingsService.AppSetup.TwitchClient.ClientId!;
 
-            string username = _appSettingsService.AppTokens.StreamerInfo.AccountName!;
+            string username = _appSettingsService.AppSetup.StreamerInfo.AccountName!;
             var users = await twitchAPI.Helix.Users.GetUsersAsync(logins: new List<string>() { username });
             string broadcasterId = users.Users[0].Id;
 
@@ -107,14 +107,14 @@ namespace TwitchSongRequest.Services.Api
         public async Task<bool?> RefundRedeem(string redeemer, string input)
         {
             TwitchAPI twitchAPI = new TwitchAPI();
-            twitchAPI.Settings.AccessToken = _appSettingsService.AppTokens.StreamerAccessTokens.AccessToken!;
-            twitchAPI.Settings.ClientId = _appSettingsService.AppTokens.TwitchClient.ClientId!;
-            string username = _appSettingsService.AppTokens.StreamerInfo.AccountName!;
+            twitchAPI.Settings.AccessToken = _appSettingsService.AppSetup.StreamerAccessTokens.AccessToken!;
+            twitchAPI.Settings.ClientId = _appSettingsService.AppSetup.TwitchClient.ClientId!;
+            string username = _appSettingsService.AppSetup.StreamerInfo.AccountName!;
 
             var users = await twitchAPI.Helix.Users.GetUsersAsync(logins: new List<string>() { username });
             string broadcasterId = users.Users[0].Id;
 
-            string rewardId = _appSettingsService.AppTokens.ChannelRedeemRewardId!;
+            string rewardId = _appSettingsService.AppSetup.ChannelRedeemRewardId!;
 
             var redeems = await twitchAPI.Helix.ChannelPoints.GetCustomRewardRedemptionAsync(broadcasterId, rewardId);
 

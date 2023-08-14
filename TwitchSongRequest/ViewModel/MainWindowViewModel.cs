@@ -28,7 +28,7 @@ namespace TwitchSongRequest.ViewModel
         private void WindowClosing()
         {
             appSettingsService.SaveAppSettings();
-            appSettingsService.SaveAppTokens();
+            appSettingsService.SaveAppSetup();
             MainViewViewModel? viewModel = App.Current.Services.GetService<MainViewViewModel>();
             viewModel?.SaveSongQueue();
             viewModel?.SaveSongHistory();

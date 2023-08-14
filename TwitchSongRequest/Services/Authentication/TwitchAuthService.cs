@@ -26,45 +26,45 @@ namespace TwitchSongRequest.Services.Authentication
 
         public Task<ServiceOAuthToken> GenerateStreamerOAuthTokens(CancellationToken cancellationToken)
         {
-            string clientId = _appSettingsService.AppTokens.TwitchClient.ClientId!;
-            string scope = _appSettingsService.AppTokens.StreamerInfo.Scope!;
-            WebBrowser webBrowser = _appSettingsService.AppTokens.StreamerInfo.Browser;
+            string clientId = _appSettingsService.AppSetup.TwitchClient.ClientId!;
+            string scope = _appSettingsService.AppSetup.StreamerInfo.Scope!;
+            WebBrowser webBrowser = _appSettingsService.AppSetup.StreamerInfo.Browser;
             return GenerateOAuthTokens(clientId, scope, webBrowser, cancellationToken);
         }
 
         public Task<ServiceOAuthToken> GenerateBotOAuthTokens(CancellationToken cancellationToken)
         {
-            string clientId = _appSettingsService.AppTokens.TwitchClient.ClientId!;
-            string scope = _appSettingsService.AppTokens.BotInfo.Scope!;
-            WebBrowser webBrowser = _appSettingsService.AppTokens.BotInfo.Browser;
+            string clientId = _appSettingsService.AppSetup.TwitchClient.ClientId!;
+            string scope = _appSettingsService.AppSetup.BotInfo.Scope!;
+            WebBrowser webBrowser = _appSettingsService.AppSetup.BotInfo.Browser;
             return GenerateOAuthTokens(clientId, scope, webBrowser, cancellationToken);
         }
 
         public Task<string> ValidateStreamerOAuthTokens()
         {
-            string accessToken = _appSettingsService.AppTokens.StreamerAccessTokens.AccessToken!;
+            string accessToken = _appSettingsService.AppSetup.StreamerAccessTokens.AccessToken!;
             return ValidateOAuthTokens(accessToken);
         }
 
         public Task<string> ValidateBotOAuthTokens()
         {
-            string accessToken = _appSettingsService.AppTokens.BotAccessTokens.AccessToken!;
+            string accessToken = _appSettingsService.AppSetup.BotAccessTokens.AccessToken!;
             return ValidateOAuthTokens(accessToken);
         }
 
         public Task<ServiceOAuthToken> RefreshStreamerOAuthTokens()
         {
-            string clientId = _appSettingsService.AppTokens.TwitchClient.ClientId!;
-            string clientSecret = _appSettingsService.AppTokens.TwitchClient.ClientSecret!;
-            string refreshToken = _appSettingsService.AppTokens.StreamerAccessTokens.RefreshToken!;
+            string clientId = _appSettingsService.AppSetup.TwitchClient.ClientId!;
+            string clientSecret = _appSettingsService.AppSetup.TwitchClient.ClientSecret!;
+            string refreshToken = _appSettingsService.AppSetup.StreamerAccessTokens.RefreshToken!;
             return RefreshOAuthTokens(clientId, clientSecret, refreshToken);
         }
 
         public Task<ServiceOAuthToken> RefreshBotOAuthTokens()
         {
-            string clientId = _appSettingsService.AppTokens.TwitchClient.ClientId!;
-            string clientSecret = _appSettingsService.AppTokens.TwitchClient.ClientSecret!;
-            string refreshToken = _appSettingsService.AppTokens.BotAccessTokens.RefreshToken!;
+            string clientId = _appSettingsService.AppSetup.TwitchClient.ClientId!;
+            string clientSecret = _appSettingsService.AppSetup.TwitchClient.ClientSecret!;
+            string refreshToken = _appSettingsService.AppSetup.BotAccessTokens.RefreshToken!;
             return RefreshOAuthTokens(clientId, clientSecret, refreshToken);
         }
 
@@ -175,7 +175,7 @@ namespace TwitchSongRequest.Services.Authentication
 
         private async Task<ServiceOAuthToken> ExchangeAuthorizationCodeForToken(string code)
         {
-            ClientCredentials credentials = _appSettingsService.AppTokens.TwitchClient;
+            ClientCredentials credentials = _appSettingsService.AppSetup.TwitchClient;
 
             var restClient = new RestClient("https://id.twitch.tv/oauth2/token");
             var request = new RestRequest("/", Method.Post);
