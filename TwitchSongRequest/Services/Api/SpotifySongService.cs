@@ -1,4 +1,7 @@
-﻿using System;
+﻿using Newtonsoft.Json;
+using RestSharp;
+using System;
+using System.Net;
 using System.Threading.Tasks;
 using TwitchSongRequest.Model;
 using TwitchSongRequest.Services.App;
@@ -7,11 +10,11 @@ namespace TwitchSongRequest.Services.Api
 {
     internal class SpotifySongService : ISpotifySongService
     {
-        private readonly IAppFilesService _appSettingsService;
+        private readonly IAppFilesService _appFilesService;
 
-        public SpotifySongService(IAppFilesService appSettingsService)
+        public SpotifySongService(IAppFilesService appFilesService)
         {
-            _appSettingsService = appSettingsService;
+            _appFilesService = appFilesService;
         }
 
         public Task<string> GetPlaybackDevice()
@@ -19,14 +22,52 @@ namespace TwitchSongRequest.Services.Api
             throw new NotImplementedException();
         }
 
-        public Task<int> GetPosition()
+        public async Task<int> GetPosition()
         {
-            throw new NotImplementedException();
+            var restClient = new RestClient($"https://api.spotify.com/v1/me/player");
+            var request = new RestRequest("/", Method.Get);
+
+            string accessToken = _appFilesService.AppSetup.SpotifyAccessTokens.AccessToken!;
+            request.AddHeader("Authorization", $"Bearer {accessToken}");
+
+            var response = await restClient.ExecuteAsync(request);
+
+            if (response.IsSuccessful && response.StatusCode == HttpStatusCode.OK && response.Content != null)
+            {
+                var obj = JsonConvert.DeserializeObject<dynamic>(response.Content);
+                var duration = int.Parse(obj!.progress_ms.ToString()) / 1000;
+                return duration;
+            }
+            else
+            {
+                response.ErrorException!.Data.Add("Response", response.Content);
+                throw response.ErrorException!;
+            }
         }
 
-        public Task<SongInfo> GetSongInfo(string id)
+        public async Task<SongInfo> GetSongInfo(string id)
         {
-            throw new NotImplementedException();
+            var restClient = new RestClient($"https://api.spotify.com/v1/tracks/{id}");
+            var request = new RestRequest("/", Method.Get);
+
+            string accessToken = _appFilesService.AppSetup.SpotifyAccessTokens.AccessToken!;
+            request.AddHeader("Authorization", $"Bearer {accessToken}");
+
+            var response = await restClient.ExecuteAsync(request);
+
+            if (response.IsSuccessful && response.StatusCode == HttpStatusCode.OK && response.Content != null)
+            {
+                var obj = JsonConvert.DeserializeObject<dynamic>(response.Content);
+                var name = obj!.name.ToString();
+                var artist = obj!.artists[0].name.ToString();
+                var duration = int.Parse(obj!.duration_ms.ToString()) / 1000;
+                return new SongInfo(name, artist, duration);
+            }
+            else
+            {
+                response.ErrorException!.Data.Add("Response", response.Content);
+                throw response.ErrorException!;
+            }
         }
 
         public Task<int> GetVolume()

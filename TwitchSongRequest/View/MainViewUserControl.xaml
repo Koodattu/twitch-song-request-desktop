@@ -271,7 +271,7 @@
             </ListBox.ItemContainerStyle>
             <ListBox.ItemTemplate>
                 <DataTemplate>
-                    <DockPanel>
+                    <DockPanel MaxWidth="{Binding ActualWidth, RelativeSource={RelativeSource AncestorType=ContentPresenter, AncestorLevel=1}}">
                         <Rectangle
                             Width="4"
                             Margin="0,0,4,0"
@@ -307,7 +307,7 @@
             </ListBox.ItemTemplate>
             <ListBox.ItemsPanel>
                 <ItemsPanelTemplate>
-                    <VirtualizingStackPanel VerticalAlignment="Bottom" />
+                    <VirtualizingStackPanel MaxWidth="{Binding ActualWidth, RelativeSource={RelativeSource AncestorType=ContentPresenter, AncestorLevel=1}}" VerticalAlignment="Bottom" />
                 </ItemsPanelTemplate>
             </ListBox.ItemsPanel>
         </ListBox>

@@ -128,7 +128,7 @@ namespace TwitchSongRequest.Services.Api
 
             var redeems = await twitchAPI.Helix.ChannelPoints.GetCustomRewardRedemptionAsync(broadcasterId, rewardId, status: "UNFULFILLED");
 
-            var redeem = redeems.Data.FirstOrDefault(x => string.Equals(x.UserName, redeemer, StringComparison.OrdinalIgnoreCase) && x.UserInput == input);
+            var redeem = redeems.Data.FirstOrDefault(x => string.Equals(x.UserName, redeemer, StringComparison.OrdinalIgnoreCase) && x.UserInput.Contains(input, StringComparison.OrdinalIgnoreCase));
             if (redeem == null)
             {
                 throw new Exception($"Redeem not found for user {redeemer} with input {input}");

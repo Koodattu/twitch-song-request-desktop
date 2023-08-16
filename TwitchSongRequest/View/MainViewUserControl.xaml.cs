@@ -2,6 +2,7 @@
 using System.Collections.Specialized;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Media;
 using TwitchSongRequest.ViewModel;
 
 namespace TwitchSongRequest.View
@@ -33,6 +34,20 @@ namespace TwitchSongRequest.View
                     }
                 };
             };
+        }
+
+        public static T GetChildOfType<T>(DependencyObject depObj) where T : DependencyObject
+        {
+            if (depObj == null) return null;
+
+            for (int i = 0; i < VisualTreeHelper.GetChildrenCount(depObj); i++)
+            {
+                var child = VisualTreeHelper.GetChild(depObj, i);
+
+                var result = (child as T) ?? GetChildOfType<T>(child);
+                if (result != null) return result;
+            }
+            return null;
         }
 
         private void SongRequestsListView_SizeChanged(object sender, SizeChangedEventArgs e)

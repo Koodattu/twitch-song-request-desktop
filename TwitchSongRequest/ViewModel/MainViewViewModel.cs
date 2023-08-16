@@ -277,9 +277,16 @@ namespace TwitchSongRequest.ViewModel
         private void ProcessStartUri(string? uri)
         {
             _loggerService.LogInfo($"Opening uri: {uri}");
-            if (!string.IsNullOrWhiteSpace(uri))
+            try
             {
-                Process.Start(new ProcessStartInfo(uri) { UseShellExecute = true });
+                if (!string.IsNullOrWhiteSpace(uri))
+                {
+                    Process.Start(new ProcessStartInfo(uri) { UseShellExecute = true });
+                }
+            }
+            catch (Exception ex)
+            {
+                _loggerService.LogError(ex, $"Error opening uri: {uri}");
             }
         }
 
@@ -498,14 +505,14 @@ namespace TwitchSongRequest.ViewModel
 
             if (!string.IsNullOrWhiteSpace(songName))
             {
-                await _twitchApiService.ReplyToChatMessage(chatMessage.Channel, chatMessage.Id, $"Added {songName} to queue.");
+                await _twitchApiService.ReplyToChatMessage(chatMessage.Channel, chatMessage.Id, $"Added \"{songName}\" to queue.");
                 _loggerService.LogSuccess($"Added {songName} to queue.");
             }
             else
             {
-                await _twitchApiService.ReplyToChatMessage(chatMessage.Channel, chatMessage.Id, $"Failed to add {input} to queue.");
+                await _twitchApiService.ReplyToChatMessage(chatMessage.Channel, chatMessage.Id, $"Failed to add \"{input}\" to queue.");
                 await _twitchApiService.RefundRedeem(chatMessage.Username, input);
-                _loggerService.LogWarning($"Failed to add {input} to queue.");
+                _loggerService.LogWarning($"Failed to add \"{input}\" to queue.");
             }
         }
 
@@ -644,7 +651,7 @@ namespace TwitchSongRequest.ViewModel
                 input = input.Trim();
 
                 string? songName = string.Empty;
-                int? duration = 0;
+                int duration = 0;
                 string? url = string.Empty;
                 string? id = string.Empty;
                 SongRequestPlatform? platform = null;
@@ -660,7 +667,7 @@ namespace TwitchSongRequest.ViewModel
                     platform = SongRequestPlatform.Youtube;
                     songService = _youtubeSongService;
 
-                    string[] urlSplit = input.Split(new string[] { "?", "&" }, StringSplitOptions.RemoveEmptyEntries);
+                    string[] urlSplit = input.Split(new string[] { "?", "&", "be/" }, StringSplitOptions.RemoveEmptyEntries);
                     string videoId = urlSplit[1].Replace("v=", "");
 
                     var info = await _youtubeSongService.GetSongInfo(videoId);
