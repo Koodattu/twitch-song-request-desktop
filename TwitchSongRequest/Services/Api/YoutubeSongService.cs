@@ -64,11 +64,6 @@ namespace TwitchSongRequest.Services.Api
             return false;
         }
 
-        public async Task<bool> Skip()
-        {
-            throw new NotImplementedException();
-        }
-
         public async Task<bool> SetVolume(int volume)
         {
             Volume = volume;

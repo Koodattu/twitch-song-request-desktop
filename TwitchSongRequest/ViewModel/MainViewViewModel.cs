@@ -186,7 +186,7 @@ namespace TwitchSongRequest.ViewModel
             get => _position;
             set
             {
-                CurrentSong.Service?.SetPosition(value);
+                //CurrentSong.Service?.SetPosition(value);
                 SetProperty(ref _position, value);
             }
         }
@@ -218,6 +218,7 @@ namespace TwitchSongRequest.ViewModel
         public ICommand PlayCommand => new RelayCommand(Play);
         public ICommand PauseCommand => new RelayCommand(Pause);
         public ICommand SkipCommand => new RelayCommand(Skip);
+        public ICommand PositionChangedCommand => new RelayCommand<int>((e) => PositionChanged(e));
         public ICommand ProcessStartUriCommand => new RelayCommand<string?>((e) => ProcessStartUri(e));
         public ICommand ProcessStartBrowserUrlCommand => new RelayCommand<Tuple<WebBrowser, string>>((e) => ProcessStartBrowserUrl(e));
         public ICommand RemoveSongQueueCommand => new RelayCommand<SongRequest>((e) => RemoveSongQueue(e));
@@ -241,37 +242,100 @@ namespace TwitchSongRequest.ViewModel
 
         private async void Play()
         {
-            _loggerService.LogInfo("Setting state to playing");
-            bool result = await _currentSong.Service!.Play();
+            _loggerService.LogInfo("Setting playback state to playing");
+
+            // nothing to play since queue is empty and no current song
+            if (SongRequestQueue.Count == 0 && CurrentSong.Service == null)
+            {
+                _loggerService.LogWarning("No songs in queue to play");
+                PlaybackStatus = PlaybackStatus.Error;
+                return;
+            }
+
+            bool result;
+
+            try
+            {
+                // songs in queue but no current song so add first song from queue to current song
+                if (SongRequestQueue.Count > 0 && CurrentSong.Service == null)
+                {
+                    _loggerService.LogInfo("Adding first song from queue to playback");
+                    CurrentSong = SongRequestQueue.First();
+                    SongRequestQueue.Remove(CurrentSong);
+                    result = await CurrentSong.Service!.PlaySong(CurrentSong.Id!);
+                }
+                else
+                {
+                    result = await _currentSong.Service!.Play();
+                }
+            }
+            catch (Exception ex)
+            {
+                result = false;
+                _loggerService.LogError(ex, "Error playing song");
+            }
             PlaybackStatus = result ? PlaybackStatus.Playing : PlaybackStatus.Error;
         }
 
         private async void Pause()
         {
-            _loggerService.LogInfo("Setting state to paused");
-            bool result = await _currentSong.Service!.Pause();
+            _loggerService.LogInfo("Setting playback state to paused");
+
+            // nothing to pause since queue is empty and no current song
+            if (CurrentSong.Service == null)
+            {
+                _loggerService.LogWarning("No song to queue to pause");
+                PlaybackStatus = PlaybackStatus.Error;
+                return;
+            }
+
+            bool result;
+            try
+            {
+                result = await _currentSong.Service!.Pause();
+            }
+            catch (Exception ex)
+            {
+                result = false;
+                _loggerService.LogError(ex, "Error pausing song");
+            }
             PlaybackStatus = result ? PlaybackStatus.Paused : PlaybackStatus.Error;
         }
 
         private async void Skip()
         {
             _loggerService.LogInfo("Skipping current song");
-            if (SongRequestQueue.Count > 0)
+
+            bool result;
+
+            try
             {
-                CurrentSong = SongRequestQueue.First();
-                SongRequestQueue.Remove(CurrentSong);
-                LoadNextSong();
+                if (SongRequestQueue.Count > 0)
+                {
+                    CurrentSong = SongRequestQueue.First();
+                    SongRequestQueue.Remove(CurrentSong);
+                    result = await CurrentSong.Service!.PlaySong(CurrentSong.Id!);
+                }
+                else
+                {
+                    CurrentSong = new SongRequest();
+                    PlaybackStatus = PlaybackStatus.Paused;
+                    result = true;
+                }
             }
-            else
+            catch (Exception ex)
             {
-                CurrentSong = new SongRequest();
+                _loggerService.LogError(ex, "Error skipping song");
+                result = false;
             }
+
+            PlaybackStatus = result ? PlaybackStatus : PlaybackStatus.Error;
         }
-        
-        private void LoadNextSong()
+
+        private void PositionChanged(int position)
         {
-            _loggerService.LogInfo("Loading next song");
-            CurrentSong?.Service?.PlaySong(CurrentSong.Id!);
+            _loggerService.LogInfo($"Changing playback position to: {position}");
+            Position = position;
         }
 
         private void ProcessStartUri(string? uri)
@@ -495,24 +559,32 @@ namespace TwitchSongRequest.ViewModel
 
             _loggerService.LogInfo($"Received redeem request from {chatMessage.Username} for {chatMessage.Message}");
 
-            string input = chatMessage.Message;
-            string? songName = await AddSongToQueue(input, chatMessage.Username);
+            try
+            {
+                string input = chatMessage.Message;
+                Tuple<bool, string> songAddResult = await AddSongToQueue(input, chatMessage.Username);
 
-            if (!AppSettings.ReplyInChat)
-            {
-                return;
-            }
+                if (!AppSettings.ReplyInChat)
+                {
+                    return;
+                }
 
-            if (!string.IsNullOrWhiteSpace(songName))
-            {
-                await _twitchApiService.ReplyToChatMessage(chatMessage.Channel, chatMessage.Id, $"Added \"{songName}\" to queue.");
-                _loggerService.LogSuccess($"Added {songName} to queue.");
+                // check if song was added successfully
+                if (songAddResult.Item1)
+                {
+                    await _twitchApiService.ReplyToChatMessage(chatMessage.Channel, chatMessage.Id, songAddResult.Item2);
+                    _loggerService.LogSuccess(songAddResult.Item2!);
+                }
+                else
+                {
+                    await _twitchApiService.ReplyToChatMessage(chatMessage.Channel, chatMessage.Id, songAddResult.Item2);
+                    await _twitchApiService.RefundRedeem(chatMessage.Username, input);
+                    _loggerService.LogWarning(songAddResult.Item2);
+                }
             }
-            else
+            catch (Exception ex)
             {
-                await _twitchApiService.ReplyToChatMessage(chatMessage.Channel, chatMessage.Id, $"Failed to add \"{input}\" to queue.");
-                await _twitchApiService.RefundRedeem(chatMessage.Username, input);
-                _loggerService.LogWarning($"Failed to add \"{input}\" to queue.");
+                _loggerService.LogError(ex, $"Error processing redeem request from {chatMessage.Username} for {chatMessage.Message}");
             }
         }
 
@@ -642,9 +714,12 @@ namespace TwitchSongRequest.ViewModel
             }
         }
 
-        internal async Task<string?> AddSongToQueue(string input, string requester)
+        internal async Task<Tuple<bool, string>> AddSongToQueue(string input, string requester)
         {
             _loggerService.LogInfo($"Adding song to queue {input} {requester}");
+
+            bool success = false;
+            string message = string.Empty;
 
             try
             {
@@ -657,7 +732,7 @@ namespace TwitchSongRequest.ViewModel
                 SongRequestPlatform? platform = null;
                 ISongService? songService = null;
 
-                if (input.Contains("youtube", StringComparison.OrdinalIgnoreCase) || input.Contains("youtu.be", StringComparison.OrdinalIgnoreCase))
+                if (input.Contains("youtube.com/", StringComparison.OrdinalIgnoreCase) || input.Contains("youtu.be", StringComparison.OrdinalIgnoreCase))
                 {
                     _loggerService.LogInfo($"Adding youtube song to queue {input} {requester}");
                     //https://youtu.be/u54Kf3zxDso
@@ -670,13 +745,13 @@ namespace TwitchSongRequest.ViewModel
                     string[] urlSplit = input.Split(new string[] { "?", "&", "be/" }, StringSplitOptions.RemoveEmptyEntries);
                     string videoId = urlSplit[1].Replace("v=", "");
 
-                    var info = await _youtubeSongService.GetSongInfo(videoId);
+                    SongInfo? info = await _youtubeSongService.GetSongInfo(videoId);
                     songName = info.SongName;
                     duration = info.Duration;
                     url = $"https://www.youtube.com/watch?v={videoId}";
                     id = videoId;
                 }
-                else if (input.Contains("spotify", StringComparison.OrdinalIgnoreCase))
+                else if (input.Contains("open.spotify.com", StringComparison.OrdinalIgnoreCase))
                 {
                     _loggerService.LogInfo($"Adding spotify song to queue {input} {requester}");
 
@@ -690,7 +765,7 @@ namespace TwitchSongRequest.ViewModel
                     string[] urlSplit = input.Split(new string[] { "track/", "track:", "?" }, StringSplitOptions.RemoveEmptyEntries);
                     string trackId = urlSplit[1];
 
-                    var info = await _spotifySongService.GetSongInfo(trackId);
+                    SongInfo? info = await _spotifySongService.GetSongInfo(trackId);
                     songName = $"{info.SongName} - {info.Artist}";
                     duration = info.Duration;
                     url = $"https://open.spotify.com/track/{trackId}";
@@ -707,37 +782,52 @@ namespace TwitchSongRequest.ViewModel
                 else
                 {
                     _loggerService.LogInfo($"Searching for song to add to queue {input} {requester}");
-
+                    songName = null;
                     //TODO: Search for song using selected platform
                     platform = AppSettings.SongSearchPlatform;
-
-                    return string.Empty;
                 }
 
-                SongRequest songRequest = new SongRequest
+                int maxSongDurationSeconds = AppSettings.MaxSongDurationMinutes * 60 + AppSettings.MaxSongDurationSeconds;
+                if (songName == null)
                 {
-                    SongName = songName,
-                    Duration = duration,
-                    Requester = requester,
-                    Platform = platform,
-                    RequestInput = input,
-                    Url = url,
-                    Id = id,
-                    Service = songService,
-                };
-
-                App.Current.Dispatcher.Invoke(delegate
+                    success = false;
+                    message = $"Unable to add song \"{input}\" to queue.";
+                }
+                else if (duration > maxSongDurationSeconds)
                 {
-                    SongRequestQueue.Add(songRequest);
-                });
+                    success = false;
+                    message = $"Unable to add song \"{input}\" to queue. Song duration is too long (max {AppSettings.MaxSongDurationMinutes}:{AppSettings.MaxSongDurationSeconds})";
+                }
+                else
+                {
+                    success = true;
+                    message = $"Added \"{songName}\" to queue.";
 
-                return songName;
+                    SongRequest songRequest = new SongRequest
+                    {
+                        SongName = songName,
+                        Duration = duration,
+                        Requester = requester,
+                        Platform = platform,
+                        RequestInput = input,
+                        Url = url,
+                        Id = id,
+                        Service = songService,
+                    };
+
+                    App.Current.Dispatcher.Invoke(delegate
+                    {
+                        SongRequestQueue.Add(songRequest);
+                    });
+                }
             }
             catch (Exception ex)
             {
                 _loggerService.LogError(ex, $"Unable to add song to queue {input} {requester}");
             }
-            return null;
+
+            Tuple<bool, string> result = new Tuple<bool, string>(success, message);
+            return result;
         }
 
         private async void SetupYoutubeService(string playbackDevice, int volume)
@@ -916,6 +1006,21 @@ namespace TwitchSongRequest.ViewModel
             }
         }
 
+        private ISongService? GetSongService(SongRequestPlatform? platform)
+        {
+            switch (platform)
+            {
+                case SongRequestPlatform.Youtube:
+                    return _youtubeSongService;
+                case SongRequestPlatform.Spotify:
+                    return _spotifySongService;
+                case SongRequestPlatform.Soundcloud:
+                    //return _soundcloudSongService;
+                default:
+                    return null;
+            }
+        }
+
         private IEnumerable<SongRequest> GetSavedSongRequestQueue()
         {
             List<SongRequest> songRequests = new List<SongRequest>();
@@ -923,6 +1028,7 @@ namespace TwitchSongRequest.ViewModel
             {
                 _loggerService.LogInfo("Getting saved song request queue");
                 songRequests = _appFilesService.GetSongQueue();
+                songRequests.ForEach(songRequests => songRequests.Service = GetSongService(songRequests.Platform));
             }
             catch (Exception ex)
             {
@@ -986,52 +1092,6 @@ namespace TwitchSongRequest.ViewModel
             }
 
             return string.Empty;
-        }
-
-        private void GenerateMockRequests()
-        {
-            for (int i = 0; i < 10; i++)
-            {
-                SongRequestQueue.Add(new SongRequest
-                {
-                    SongName = $"Song {i}",
-                    Duration = 100 * i,
-                    Requester = $"Requester {i}",
-                    Url = $"https://www.youtube.com/watch?v=41VlNOyPD9U?t=10s&autoplay={i}",
-                    Platform = i % 2 == 0 ? SongRequestPlatform.Youtube : SongRequestPlatform.Spotify,
-                    Service = i % 2 == 0 ? _youtubeSongService : _spotifySongService
-                });
-            }
-            for (int i = 0; i < 4; i++)
-            {
-                SongRequestHistory.Add(new SongRequest
-                {
-                    SongName = $"Song {i}",
-                    Duration = 100 * i,
-                    Requester = $"Requester {i}",
-                    Url = $"Url {i}",
-                    Platform = i % 2 == 0 ? SongRequestPlatform.Youtube : SongRequestPlatform.Spotify,
-                    Service = i % 2 == 0 ? _youtubeSongService : _spotifySongService
-                });
-            }
-        }
-
-        private async void TestAddYoutubeSong()
-        {
-            string url = "https://www.youtube.com/watch?v=41VlNOyPD9U?t=10s&autoplay=1";
-            string[] urlSplit = url.Split('?', '&');
-            string embedUrl = (urlSplit[0] + "?" + urlSplit[1]).Replace("watch?v=", "embed/") + "?autoplay=1";
-            string videoId = urlSplit[1].Replace("v=", "");
-            var info = await _youtubeSongService.GetSongInfo(videoId);
-            CurrentSong = new SongRequest()
-            {
-                SongName = info.SongName,
-                Requester = "Test",
-                Duration = info.Duration,
-                Platform = SongRequestPlatform.Youtube,
-                Url = url,
-                Service = _youtubeSongService,
-            };
         }
 
         public void SaveSongQueue()

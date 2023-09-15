@@ -17,11 +17,6 @@ namespace TwitchSongRequest.Services.Api
             _appFilesService = appFilesService;
         }
 
-        public Task<string> GetPlaybackDevice()
-        {
-            throw new NotImplementedException();
-        }
-
         public async Task<int> GetPosition()
         {
             var restClient = new RestClient($"https://api.spotify.com/v1/me/player");
@@ -70,44 +65,120 @@ namespace TwitchSongRequest.Services.Api
             }
         }
 
-        public Task<int> GetVolume()
+        public async Task<bool> PlaySong(string id)
         {
-            throw new NotImplementedException();
+            var restClient = new RestClient($"https://api.spotify.com/v1/me/player/play");
+            var request = new RestRequest("/", Method.Put);
+
+            string accessToken = _appFilesService.AppSetup.SpotifyAccessTokens.AccessToken!;
+            request.AddHeader("Authorization", $"Bearer {accessToken}");
+            request.AddJsonBody(new { uris = new[] { $"spotify:track:{id}" }});
+
+            var response = await restClient.ExecuteAsync(request);
+
+            if (!response.IsSuccessful)
+            {
+                response.ErrorException!.Data.Add("Response", response.Content);
+                throw response.ErrorException!;
+            }
+
+            return response.StatusCode == HttpStatusCode.OK;
         }
 
-        public Task<bool> Pause()
+        public async Task<bool> Play()
         {
-            throw new NotImplementedException();
+            var restClient = new RestClient($"https://api.spotify.com/v1/me/player/play");
+            var request = new RestRequest("/", Method.Put);
+
+            string accessToken = _appFilesService.AppSetup.SpotifyAccessTokens.AccessToken!;
+            request.AddHeader("Authorization", $"Bearer {accessToken}");
+
+            var response = await restClient.ExecuteAsync(request);
+
+            if (!response.IsSuccessful)
+            {
+                response.ErrorException!.Data.Add("Response", response.Content);
+                throw response.ErrorException!;
+            }
+
+            return response.StatusCode == HttpStatusCode.NoContent;
         }
 
-        public Task<bool> Play()
+        public async Task<bool> Pause()
         {
-            throw new NotImplementedException();
+            var restClient = new RestClient($"https://api.spotify.com/v1/me/player/pause");
+            var request = new RestRequest("/", Method.Put);
+
+            string accessToken = _appFilesService.AppSetup.SpotifyAccessTokens.AccessToken!;
+            request.AddHeader("Authorization", $"Bearer {accessToken}");
+
+            var response = await restClient.ExecuteAsync(request);
+
+            if (!response.IsSuccessful)
+            {
+                response.ErrorException!.Data.Add("Response", response.Content);
+                throw response.ErrorException!;
+            }
+
+            return response.StatusCode == HttpStatusCode.NoContent;
         }
 
-        public Task<bool> PlaySong(string id)
+        public async Task<bool> Skip()
         {
-            throw new NotImplementedException();
+            var restClient = new RestClient($"https://api.spotify.com/v1/me/player/next");
+            var request = new RestRequest("/", Method.Put);
+
+            string accessToken = _appFilesService.AppSetup.SpotifyAccessTokens.AccessToken!;
+            request.AddHeader("Authorization", $"Bearer {accessToken}");
+
+            var response = await restClient.ExecuteAsync(request);
+
+            if (!response.IsSuccessful)
+            {
+                response.ErrorException!.Data.Add("Response", response.Content);
+                throw response.ErrorException!;
+            }
+
+            return response.StatusCode == HttpStatusCode.OK;
         }
 
-        public Task<bool> SetPlaybackDevice(string device)
+        public async Task<bool> AddSongToQueue(string id)
         {
-            throw new NotImplementedException();
+            var restClient = new RestClient($"https://api.spotify.com/v1/me/player/queue?uri=spotify:track:{id}");
+            var request = new RestRequest("/", Method.Post);
+
+            string accessToken = _appFilesService.AppSetup.SpotifyAccessTokens.AccessToken!;
+            request.AddHeader("Authorization", $"Bearer {accessToken}");
+
+            var response = await restClient.ExecuteAsync(request);
+
+            if (!response.IsSuccessful)
+            {
+                response.ErrorException!.Data.Add("Response", response.Content);
+                throw response.ErrorException!;
+            }
+
+            return response.StatusCode == HttpStatusCode.OK;
         }
 
-        public Task<bool> SetPosition(int position)
+        public async Task<bool> SetPosition(int position)
         {
-            throw new NotImplementedException();
-        }
+            int positionMs = position * 1000;
+            var restClient = new RestClient($"https://api.spotify.com/v1/me/player/seek?position_ms={positionMs}");
+            var request = new RestRequest("/", Method.Put);
 
-        public Task<bool> SetVolume(int volume)
-        {
-            throw new NotImplementedException();
-        }
+            string accessToken = _appFilesService.AppSetup.SpotifyAccessTokens.AccessToken!;
+            request.AddHeader("Authorization", $"Bearer {accessToken}");
 
-        public Task<bool> Skip()
-        {
-            throw new NotImplementedException();
+            var response = await restClient.ExecuteAsync(request);
+
+            if (!response.IsSuccessful)
+            {
+                response.ErrorException!.Data.Add("Response", response.Content);
+                throw response.ErrorException!;
+            }
+
+            return response.StatusCode == HttpStatusCode.OK;
         }
     }
 }
