@@ -42,6 +42,7 @@ namespace TwitchSongRequest
             this.Visibility = Visibility.Visible;
             this.Show();
             this.Topmost = true;
+            this.Topmost = false;
         }
     
     }
