@@ -178,7 +178,7 @@ namespace TwitchSongRequest.Services.Api
                 throw response.ErrorException!;
             }
 
-            return response.StatusCode == HttpStatusCode.OK;
+            return response.StatusCode == HttpStatusCode.NoContent;
         }
     }
 }

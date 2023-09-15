@@ -9,6 +9,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
+using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Threading;
 using TwitchLib.Client.Models;
@@ -184,11 +185,7 @@ namespace TwitchSongRequest.ViewModel
         public int Position
         {
             get => _position;
-            set
-            {
-                //CurrentSong.Service?.SetPosition(value);
-                SetProperty(ref _position, value);
-            }
+            set => SetProperty(ref _position, value);
         }
 
         private ConnectionsStatus _connections = new ConnectionsStatus();
@@ -218,7 +215,7 @@ namespace TwitchSongRequest.ViewModel
         public ICommand PlayCommand => new RelayCommand(Play);
         public ICommand PauseCommand => new RelayCommand(Pause);
         public ICommand SkipCommand => new RelayCommand(Skip);
-        public ICommand PositionChangedCommand => new RelayCommand<int>((e) => PositionChanged(e));
+        public ICommand SeekPositionCommand => new RelayCommand(SeekPosition);
         public ICommand ProcessStartUriCommand => new RelayCommand<string?>((e) => ProcessStartUri(e));
         public ICommand ProcessStartBrowserUrlCommand => new RelayCommand<Tuple<WebBrowser, string>>((e) => ProcessStartBrowserUrl(e));
         public ICommand RemoveSongQueueCommand => new RelayCommand<SongRequest>((e) => RemoveSongQueue(e));
@@ -332,10 +329,27 @@ namespace TwitchSongRequest.ViewModel
             PlaybackStatus = result ? PlaybackStatus : PlaybackStatus.Error;
         }
 
-        private void PositionChanged(int position)
+        private async void SeekPosition()
         {
-            _loggerService.LogInfo($"Changing playback position to: {position}");
-            Position = position;
+            _loggerService.LogInfo($"Changing playback position to: {Position}");
+
+            if (CurrentSong?.Service == null)
+            {
+                _loggerService.LogWarning("No song to seek position");
+                return;
+            }
+
+            bool result = false;
+
+            try
+            {
+                result = await CurrentSong.Service.SetPosition(Position);
+            }
+            catch (Exception ex)
+            {
+                _loggerService.LogError(ex, $"Error changing playback position to: {Position}");
+            }
+            PlaybackStatus = result ? PlaybackStatus : PlaybackStatus.Error;
         }
 
         private void ProcessStartUri(string? uri)
@@ -961,22 +975,25 @@ namespace TwitchSongRequest.ViewModel
 
         private async void TimerCallback(object? sender, EventArgs e)
         {
+            // if not playing, do nothing
             if (PlaybackStatus != PlaybackStatus.Playing)
             {
                 return;
             }
 
-            int curTime = Position++;
+            int curTime = Position;
+            curTime++;
+
+            // check if current song is finished
+            if (curTime >= CurrentSong.Duration)
+            {
+                return;
+            }
 
             // every 15 seconds, check if the song is still playing
             if (curTime % 15 == 0)
             {
                 curTime = await CurrentSong.Service!.GetPosition();
-            }
-
-            if (curTime == -1)
-            {
-                return;
             }
 
             SetProperty(ref _position, curTime, nameof(Position));

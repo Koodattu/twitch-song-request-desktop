@@ -3,6 +3,7 @@
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:helpers="clr-namespace:TwitchSongRequest.Helpers"
     xmlns:i="http://schemas.microsoft.com/xaml/behaviors"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     d:DesignHeight="450"
@@ -75,16 +76,11 @@
                 x:Name="songPositionSlider"
                 Grid.Column="1"
                 Margin="8,0,8,0"
+                helpers:SliderExtension.DragCompletedCommand="{Binding SeekPositionCommand}"
                 Maximum="{Binding CurrentSong.Duration}"
                 Minimum="0"
                 Style="{StaticResource AccentSlider}"
-                Value="{Binding Position}">
-                <i:Interaction.Triggers>
-                    <i:EventTrigger EventName="Closing">
-                        <i:InvokeCommandAction Command="{Binding DragCompleted}" PassEventArgsToCommand="True" />
-                    </i:EventTrigger>
-                </i:Interaction.Triggers>
-            </Slider>
+                Value="{Binding Position}" />
             <TextBlock Grid.Column="2" Text="{Binding CurrentSong.Duration, Converter={StaticResource MmSsConverter}}" />
         </Grid>
     </Grid>
