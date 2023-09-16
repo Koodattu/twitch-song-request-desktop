@@ -1,8 +1,12 @@
 ﻿using CefSharp;
 using CefSharp.OffScreen;
+using Newtonsoft.Json.Linq;
+using RestSharp;
 using System;
 using System.Globalization;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using System.Windows.Forms;
 using TwitchSongRequest.Model;
 using TwitchSongRequest.Services.App;
 
@@ -173,15 +177,71 @@ namespace TwitchSongRequest.Services.Api
             return await tcs.Task;
         }
 
+        public async Task<SongInfo> GetSongInfoV2(string videoId)
+        {
+            RestClient client = new RestClient($"https://www.youtube.com/watch?v={videoId}");
+            RestRequest request = new RestRequest("/", Method.Get);
+            RestResponse response = client.Execute(request);
+
+            if (!response.IsSuccessful || response.Content == null)
+            {
+                throw new Exception($"Failed to get song info for video id {videoId}");
+            }
+
+            string? title = string.Empty;
+
+            // Find the title using regex
+            Match titleMatch = Regex.Match(response.Content, "<title>(.*?) - YouTube</title>");
+            if (titleMatch.Success)
+            {
+                title = titleMatch.Groups[1].Value;
+            }
+
+            int durationInSeconds = 0;
+
+            // Finding the duration is a bit trickier as it's usually embedded in the JavaScript
+            // This is just an example and may not work if YouTube changes its code
+            Match durationMatch = Regex.Match(response.Content, "\"lengthSeconds\":\"(\\d+)\"");
+            if (durationMatch.Success)
+            {
+                durationInSeconds = int.Parse(durationMatch.Groups[1].Value);
+            }
+
+            return new SongInfo(title, null, durationInSeconds, videoId);
+        }
+
         public async Task<bool> PlaySong(string id)
         {
             var resp = await ChromeBrowser.LoadUrlAsync($"https://www.youtube.com/embed/{id}?autoplay=1");
             return resp.Success;
         }
 
-        public Task<SongInfo> SearchSong(string query)
+        public async Task<SongInfo> SearchSong(string query)
         {
-            throw new NotImplementedException();
+            RestClient client = new RestClient($"https://www.youtube.com/results?search_query={query}&sp=EgIQAQ%3D%3D");
+            RestRequest request = new RestRequest("/", Method.Get);
+            RestResponse response = client.Execute(request);
+
+            if (!response.IsSuccessful || response.Content == null)
+            {
+                throw new Exception($"Failed to search for song {query}");
+            }
+
+            Match match = Regex.Match(response.Content, "/watch\\?v=([a-zA-Z0-9_-]+)");
+
+            string? videoId = string.Empty;
+            if (match.Success)
+            {
+                videoId = match.Groups[1].Value;
+            }
+
+            if (string.IsNullOrWhiteSpace(videoId))
+            {
+                throw new Exception($"Failed to find video id for song {query}");
+            }
+
+            SongInfo songInfo = await GetSongInfoV2(videoId);
+            return songInfo;
         }
     }
 }

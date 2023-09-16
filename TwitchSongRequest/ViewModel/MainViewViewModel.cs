@@ -804,6 +804,9 @@ namespace TwitchSongRequest.ViewModel
                             url = $"https://open.spotify.com/track/{songInfo.SongId}";
                             break;
                         case SongRequestPlatform.Youtube:
+                            songService = _youtubeSongService;
+                            songInfo = await songService.SearchSong(input);
+                            url = $"https://www.youtube.com/watch?v={songInfo.SongId}";
                             break;
                         case SongRequestPlatform.Soundcloud:
                             break;
