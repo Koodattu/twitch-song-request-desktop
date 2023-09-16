@@ -179,22 +179,19 @@ namespace TwitchSongRequest.Services.Api
         {
             TwitchClient twitchClient = _appSettingsService.AppSettings.ReplyWithBot ? botClient! : streamerClient!;
 
-            try
+            // check that client is connected
+            if (!twitchClient.IsConnected)
             {
-                // check that we have joined the channel before sending a message
-                if (twitchClient.JoinedChannels.Any(x => x.Channel == channel))
-                {
-                    await Task.Run(() => twitchClient.SendReply(channel, replyId, message));
-                }
-                else
-                {
-                    throw new Exception($"Twitch client has not joined channel {channel}");
-                }
+                throw new Exception("Twitch client is not connected");
             }
-            catch (Exception ex)
+
+            // check that we have joined the channel before sending a message
+            if (!twitchClient.JoinedChannels.Any(x => x.Channel == channel))
             {
-                _loggerService.LogError(ex, $"Error sending message to channel {channel}");
+                throw new Exception($"Twitch client has not joined channel {channel}");
             }
+
+            await Task.Run(() => twitchClient.SendReply(channel, replyId, message));
         }
     }
 }

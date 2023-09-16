@@ -162,7 +162,7 @@ namespace TwitchSongRequest.Services.Api
                     title = title.Replace(" - YouTube", "");
                     var durationResponse = await _youtubeBrowser.EvaluateScriptAsync($"document.querySelector('video').duration;");
                     int duration = Convert.ToInt32(durationResponse.Result);
-                    tcs.TrySetResult(new SongInfo(title, null, duration));
+                    tcs.TrySetResult(new SongInfo(title, null, duration, id));
                 }
             };
 
@@ -177,6 +177,11 @@ namespace TwitchSongRequest.Services.Api
         {
             var resp = await ChromeBrowser.LoadUrlAsync($"https://www.youtube.com/embed/{id}?autoplay=1");
             return resp.Success;
+        }
+
+        public Task<SongInfo> SearchSong(string query)
+        {
+            throw new NotImplementedException();
         }
     }
 }

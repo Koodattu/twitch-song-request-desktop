@@ -6,10 +6,10 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.Linq;
+using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
-using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Threading;
 using TwitchLib.Client.Models;
@@ -562,10 +562,13 @@ namespace TwitchSongRequest.ViewModel
 
         private async void OnTwitchClientMessageReceived(ChatMessage chatMessage)
         {
+            // check if message is a redeem
             if (string.IsNullOrWhiteSpace(chatMessage.CustomRewardId))
             {
                 return;
             }
+
+            // check if redeem is the correct one
             if (chatMessage.CustomRewardId != AppSetup.ChannelRedeemRewardId)
             {
                 return;
@@ -575,26 +578,28 @@ namespace TwitchSongRequest.ViewModel
 
             try
             {
+                // try to add song to queue
                 string input = chatMessage.Message;
                 Tuple<bool, string> songAddResult = await AddSongToQueue(input, chatMessage.Username);
 
-                if (!AppSettings.ReplyInChat)
+                // dont reply in chat if not enabled in settings
+                if (!AppSettings.ReplyInChat || !AppSettings.ReplyToRedeem)
                 {
                     return;
                 }
 
-                // check if song was added successfully
-                if (songAddResult.Item1)
-                {
-                    await _twitchApiService.ReplyToChatMessage(chatMessage.Channel, chatMessage.Id, songAddResult.Item2);
-                    _loggerService.LogSuccess(songAddResult.Item2!);
-                }
-                else
+                // failed to add song to queue
+                if (!songAddResult.Item1)
                 {
                     await _twitchApiService.ReplyToChatMessage(chatMessage.Channel, chatMessage.Id, songAddResult.Item2);
                     await _twitchApiService.RefundRedeem(chatMessage.Username, input);
                     _loggerService.LogWarning(songAddResult.Item2);
+                    return;
                 }
+
+                // song was added succesfully to queue
+                await _twitchApiService.ReplyToChatMessage(chatMessage.Channel, chatMessage.Id, songAddResult.Item2);
+                _loggerService.LogSuccess(songAddResult.Item2!);
             }
             catch (Exception ex)
             {
@@ -730,7 +735,7 @@ namespace TwitchSongRequest.ViewModel
 
         internal async Task<Tuple<bool, string>> AddSongToQueue(string input, string requester)
         {
-            _loggerService.LogInfo($"Adding song to queue {input} {requester}");
+            _loggerService.LogInfo($"Adding song to queue {input} from {requester}");
 
             bool success = false;
             string message = string.Empty;
@@ -739,16 +744,14 @@ namespace TwitchSongRequest.ViewModel
             {
                 input = input.Trim();
 
-                string? songName = string.Empty;
-                int duration = 0;
-                string? url = string.Empty;
-                string? id = string.Empty;
+                SongInfo songInfo = new SongInfo();
+                string url = string.Empty;
                 SongRequestPlatform? platform = null;
                 ISongService? songService = null;
 
                 if (input.Contains("youtube.com/", StringComparison.OrdinalIgnoreCase) || input.Contains("youtu.be", StringComparison.OrdinalIgnoreCase))
                 {
-                    _loggerService.LogInfo($"Adding youtube song to queue {input} {requester}");
+                    _loggerService.LogInfo($"Adding youtube song to queue {input} from {requester}");
                     //https://youtu.be/u54Kf3zxDso
                     //https://www.youtube.com/watch?v=u54Kf3zxDso
 
@@ -759,15 +762,12 @@ namespace TwitchSongRequest.ViewModel
                     string[] urlSplit = input.Split(new string[] { "?", "&", "be/" }, StringSplitOptions.RemoveEmptyEntries);
                     string videoId = urlSplit[1].Replace("v=", "");
 
-                    SongInfo? info = await _youtubeSongService.GetSongInfo(videoId);
-                    songName = info.SongName;
-                    duration = info.Duration;
+                    songInfo = await _youtubeSongService.GetSongInfo(videoId);
                     url = $"https://www.youtube.com/watch?v={videoId}";
-                    id = videoId;
                 }
                 else if (input.Contains("open.spotify.com", StringComparison.OrdinalIgnoreCase))
                 {
-                    _loggerService.LogInfo($"Adding spotify song to queue {input} {requester}");
+                    _loggerService.LogInfo($"Adding spotify song to queue {input} from {requester}");
 
                     //https://open.spotify.com/track/1hEh8Hc9lBAFWUghHBsCel?si=c4cdc1947a184ac0
                     //spotify:track:6RIbDs0p4XusU2PZSiDgeZ
@@ -779,15 +779,12 @@ namespace TwitchSongRequest.ViewModel
                     string[] urlSplit = input.Split(new string[] { "track/", "track:", "?" }, StringSplitOptions.RemoveEmptyEntries);
                     string trackId = urlSplit[1];
 
-                    SongInfo? info = await _spotifySongService.GetSongInfo(trackId);
-                    songName = $"{info.SongName} - {info.Artist}";
-                    duration = info.Duration;
+                    songInfo = await _spotifySongService.GetSongInfo(trackId);
                     url = $"https://open.spotify.com/track/{trackId}";
-                    id = trackId;
                 }
                 else if (input.Contains("soundcloud.com", StringComparison.OrdinalIgnoreCase))
                 {
-                    _loggerService.LogInfo($"Adding soundcloud song to queue {input} {requester}");
+                    _loggerService.LogInfo($"Adding soundcloud song to queue {input} from {requester}");
 
                     //TODO: Add soundcloud song
                     platform = SongRequestPlatform.Soundcloud;
@@ -795,22 +792,38 @@ namespace TwitchSongRequest.ViewModel
                 }
                 else
                 {
-                    _loggerService.LogInfo($"Searching for song to add to queue {input} {requester}");
-                    songName = null;
+                    _loggerService.LogInfo($"Searching for song to add to queue {input} from {requester}");
                     //TODO: Search for song using selected platform
+
                     platform = AppSettings.SongSearchPlatform;
+                    switch (platform)
+                    {
+                        case SongRequestPlatform.Spotify:
+                            songService = _spotifySongService;
+                            songInfo = await songService.SearchSong(input);
+                            url = $"https://open.spotify.com/track/{songInfo.SongId}";
+                            break;
+                        case SongRequestPlatform.Youtube:
+                            break;
+                        case SongRequestPlatform.Soundcloud:
+                            break;
+                        default:
+                            break;
+                    }
                 }
+
+                string songName = songInfo.SongName + (songInfo.Artist != null ? " - " + songInfo.Artist : "");
 
                 int maxSongDurationSeconds = AppSettings.MaxSongDurationMinutes * 60 + AppSettings.MaxSongDurationSeconds;
                 if (songName == null)
                 {
                     success = false;
-                    message = $"Unable to add song \"{input}\" to queue.";
+                    message = $"Unable to add \"{input}\" to queue.";
                 }
-                else if (duration > maxSongDurationSeconds)
+                else if (songInfo.Duration > maxSongDurationSeconds)
                 {
                     success = false;
-                    message = $"Unable to add song \"{input}\" to queue. Song duration is too long (max {AppSettings.MaxSongDurationMinutes}:{AppSettings.MaxSongDurationSeconds})";
+                    message = $"Unable to add \"{input}\" to queue. Duration is too long (max {AppSettings.MaxSongDurationMinutes} minutes)";
                 }
                 else
                 {
@@ -820,12 +833,12 @@ namespace TwitchSongRequest.ViewModel
                     SongRequest songRequest = new SongRequest
                     {
                         SongName = songName,
-                        Duration = duration,
+                        Duration = songInfo.Duration,
                         Requester = requester,
                         Platform = platform,
                         RequestInput = input,
                         Url = url,
-                        Id = id,
+                        Id = songInfo.SongId,
                         Service = songService,
                     };
 
@@ -837,7 +850,23 @@ namespace TwitchSongRequest.ViewModel
             }
             catch (Exception ex)
             {
-                _loggerService.LogError(ex, $"Unable to add song to queue {input} {requester}");
+                message = $"Unable to add \"{input}\" to queue.";
+                _loggerService.LogError(ex, $"Unable to add song to queue {input} from {requester}");
+
+                // refresh tokens if access token expired
+                if (ex is HttpRequestException && ex.Data.Values.Cast<object>().Select(v => v.ToString()).Any(x => x!.Contains("access token expired")))
+                {
+                    _loggerService.LogInfo("Trying to refresh tokens");
+                    try
+                    {
+                        await ValidateSpotifyLogin();
+                        return await AddSongToQueue(input, requester);
+                    }
+                    catch (Exception e)
+                    {
+                        _loggerService.LogError(e, "Unable to refresh tokens");
+                    }
+                }
             }
 
             Tuple<bool, string> result = new Tuple<bool, string>(success, message);

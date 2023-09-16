@@ -11,5 +11,6 @@ namespace TwitchSongRequest.Services.Api
         Task<int> GetPosition();
         Task<SongInfo> GetSongInfo(string id);
         Task<bool> PlaySong(string id);
+        Task<SongInfo> SearchSong(string query);
     }
 }
