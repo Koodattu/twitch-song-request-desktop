@@ -2,6 +2,7 @@
     x:Class="TwitchSongRequest.View.MainViewUserControl"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:adonisExtensions="clr-namespace:AdonisUI.Extensions;assembly=AdonisUI"
     xmlns:adonisUi="clr-namespace:AdonisUI;assembly=AdonisUI"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:i="http://schemas.microsoft.com/xaml/behaviors"
@@ -73,6 +74,11 @@
                 ItemsSource="{Binding SongRequestQueue}"
                 ScrollViewer.HorizontalScrollBarVisibility="Disabled"
                 SizeChanged="SongRequestsListView_SizeChanged">
+                <ListView.ItemContainerStyle>
+                    <Style BasedOn="{StaticResource {x:Type ListViewItem}}" TargetType="{x:Type ListViewItem}">
+                        <Setter Property="VerticalContentAlignment" Value="Center" />
+                    </Style>
+                </ListView.ItemContainerStyle>
                 <ListView.View>
                     <GridView AllowsColumnReorder="False">
                         <GridView.ColumnHeaderContainerStyle>
@@ -114,6 +120,7 @@
                             <GridViewColumn.CellTemplate>
                                 <DataTemplate>
                                     <Button
+                                        adonisExtensions:CursorSpotlightExtension.BackgroundBrush="Tomato"
                                         Background="Red"
                                         Command="{Binding DataContext.RemoveSongQueueCommand, RelativeSource={RelativeSource AncestorType=ListView, Mode=FindAncestor}}"
                                         CommandParameter="{Binding}"
@@ -200,6 +207,7 @@
                                             Style="{DynamicResource {x:Static adonisUi:Styles.AccentButton}}" />
                                         <Button
                                             Margin="4,0,0,0"
+                                            adonisExtensions:CursorSpotlightExtension.BackgroundBrush="Red"
                                             Background="Red"
                                             Command="{Binding DataContext.RemoveSongHistoryCommand, RelativeSource={RelativeSource AncestorType=ListView, Mode=FindAncestor}}"
                                             CommandParameter="{Binding}"

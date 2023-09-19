@@ -394,7 +394,7 @@ namespace TwitchSongRequest.ViewModel
                         _loggerService.LogError(ex, $"Error refunding points.");
                     }
                 }
-                SongRequestQueue.Remove(e);
+                SongRequestQueue.Remove(e!);
                 _loggerService.LogSuccess($"Removed song from queue: {e?.SongName}");
             }
         }

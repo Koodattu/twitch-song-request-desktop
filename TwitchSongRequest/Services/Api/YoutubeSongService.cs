@@ -1,14 +1,11 @@
 ﻿using CefSharp;
 using CefSharp.OffScreen;
-using Newtonsoft.Json.Linq;
 using RestSharp;
 using System;
 using System.Globalization;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
-using System.Windows.Forms;
 using TwitchSongRequest.Model;
-using TwitchSongRequest.Services.App;
 
 namespace TwitchSongRequest.Services.Api
 {
@@ -18,11 +15,8 @@ namespace TwitchSongRequest.Services.Api
         private string? PlaybackDevice;
         private int Volume;
 
-        private readonly IAppFilesService _appSettingsService;
-
-        public YoutubeSongService(IAppFilesService appSettingsService)
+        public YoutubeSongService()
         {
-            _appSettingsService = appSettingsService;
             ChromeBrowser = new ChromiumWebBrowser();
             ChromeBrowser.LoadingStateChanged += ChromeBrowser_LoadingStateChanged;
         }
@@ -43,7 +37,7 @@ namespace TwitchSongRequest.Services.Api
                     }
                 }
 
-                await SetPlaybackDevice(PlaybackDevice);
+                await SetPlaybackDevice(PlaybackDevice!);
                 await SetVolume(Volume);
             }
         }
