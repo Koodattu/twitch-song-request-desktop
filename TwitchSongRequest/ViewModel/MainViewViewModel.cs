@@ -6,13 +6,17 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.Linq;
+using System.Net;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Threading;
+using TwitchLib.Client;
+using TwitchLib.Client.Events;
 using TwitchLib.Client.Models;
+using TwitchLib.PubSub.Models.Responses.Messages.AutomodCaughtMessage;
 using TwitchSongRequest.Helpers;
 using TwitchSongRequest.Model;
 using TwitchSongRequest.Services.Api;
@@ -549,14 +553,35 @@ namespace TwitchSongRequest.ViewModel
             try
             {
                 _loggerService.LogInfo("Connecting to Twitch clients");
-                var streamerClient = await _twitchApiService.GetTwitchStreamerClient();
+                _twitchApiService.LogEvent += OnTwitchClientLogEvent;
                 _twitchApiService.MessageEvent += OnTwitchClientMessageReceived;
+                var streamerClient = await _twitchApiService.GetTwitchStreamerClient();
                 var botClient = await _twitchApiService.GetTwitchBotClient();
                 _loggerService.LogSuccess("Connected to Twitch clients");
             }
             catch (Exception ex)
             {
                 _loggerService.LogError(ex, "Unable to connect to Twitch clients");
+            }
+        }
+
+        private async void OnTwitchClientLogEvent(object? sender, OnLogArgs e)
+        {
+            if (e.Data.Contains("authentication failed"))
+            {
+                if (sender is TwitchClient client)
+                {
+                    if (client.TwitchUsername == AppSetup.BotInfo.AccountName!)
+                    {
+                        await ValidateBotLogin();
+                        _twitchApiService.RefreshBotClientCredentials();
+                    }
+                    if (client.TwitchUsername == AppSetup.StreamerInfo.AccountName!)
+                    {
+                        await ValidateStreamerLogin();
+                        _twitchApiService.RefreshStreamerClientCredentials();
+                    }
+                }
             }
         }
 
@@ -765,7 +790,7 @@ namespace TwitchSongRequest.ViewModel
                     songInfo = await _youtubeSongService.GetSongInfo(videoId);
                     url = $"https://www.youtube.com/watch?v={videoId}";
                 }
-                else if (input.Contains("open.spotify.com", StringComparison.OrdinalIgnoreCase))
+                else if (input.Contains("open.spotify.com", StringComparison.OrdinalIgnoreCase) || input.Contains("spotify.link", StringComparison.OrdinalIgnoreCase))
                 {
                     _loggerService.LogInfo($"Adding spotify song to queue {input} from {requester}");
 
@@ -775,6 +800,19 @@ namespace TwitchSongRequest.ViewModel
                     //TODO: Add spotify song
                     platform = SongRequestPlatform.Spotify;
                     songService = _spotifySongService;
+
+                    if (input.Contains("spotify.link", StringComparison.OrdinalIgnoreCase))
+                    {
+                        using (var handler = new HttpClientHandler())
+                        {
+                            handler.AllowAutoRedirect = false;
+                            using (var client = new HttpClient(handler))
+                            {
+                                HttpResponseMessage response = await client.GetAsync(input);
+                                input = response.Headers!.Location!.ToString();
+                            }
+                        }
+                    }
 
                     string[] urlSplit = input.Split(new string[] { "track/", "track:", "?" }, StringSplitOptions.RemoveEmptyEntries);
                     string trackId = urlSplit[1];
@@ -795,7 +833,23 @@ namespace TwitchSongRequest.ViewModel
                     _loggerService.LogInfo($"Searching for song to add to queue {input} from {requester}");
                     //TODO: Search for song using selected platform
 
-                    platform = AppSettings.SongSearchPlatform;
+                    if (input.StartsWith("spotify:", StringComparison.OrdinalIgnoreCase))
+                    {
+                        platform = SongRequestPlatform.Spotify;
+                    }
+                    else if (input.StartsWith("youtube:", StringComparison.OrdinalIgnoreCase))
+                    {
+                        platform = SongRequestPlatform.Youtube;
+                    }
+                    else if (input.StartsWith("soundcloud:", StringComparison.OrdinalIgnoreCase))
+                    {
+                        platform = SongRequestPlatform.Soundcloud;
+                    }
+                    else
+                    {
+                        platform = AppSettings.SongSearchPlatform;
+                    }
+
                     switch (platform)
                     {
                         case SongRequestPlatform.Spotify:

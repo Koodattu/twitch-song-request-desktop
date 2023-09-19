@@ -135,72 +135,31 @@ namespace TwitchSongRequest.Services.Api
             throw new NotImplementedException();
         }
 
-        private ChromiumWebBrowser _youtubeBrowser = new();
-        public async Task<SongInfo> GetSongInfo(string id)
-        {
-            _youtubeBrowser.GetBrowserHost().SetAudioMuted(true);
-            var tcs = new TaskCompletionSource<SongInfo>(TaskCreationOptions.RunContinuationsAsynchronously);
-
-            EventHandler<LoadingStateChangedEventArgs> handler = null;
-            handler = async (sender, args) =>
-            {
-                //Wait for while page to finish loading not just the first frame
-                if ((sender as ChromiumWebBrowser).CanExecuteJavascriptInMainFrame && !args.IsLoading)
-                {
-                    _youtubeBrowser.LoadingStateChanged -= handler;
-
-                    //TODO Wait for video to start playing
-                    bool paused = true;
-                    while (paused)
-                    {
-                        await Task.Delay(100);
-                        var result = await _youtubeBrowser.EvaluateScriptAsync($"document.querySelector('video').paused;");
-                        if (result.Success)
-                        {
-                            paused = (bool)result.Result;
-                        }
-                    }
-
-                    var titleResponse = await _youtubeBrowser.EvaluateScriptAsync($"document.title;");
-                    string title = titleResponse.Result.ToString();
-                    title = title.Replace(" - YouTube", "");
-                    var durationResponse = await _youtubeBrowser.EvaluateScriptAsync($"document.querySelector('video').duration;");
-                    int duration = Convert.ToInt32(durationResponse.Result);
-                    tcs.TrySetResult(new SongInfo(title, null, duration, id));
-                }
-            };
-
-            _youtubeBrowser.LoadingStateChanged += handler;
-
-            await _youtubeBrowser.LoadUrlAsync($"https://www.youtube.com/embed/{id}?autoplay=1");
-
-            return await tcs.Task;
-        }
-
-        public async Task<SongInfo> GetSongInfoV2(string videoId)
+        public async Task<SongInfo> GetSongInfo(string videoId)
         {
             RestClient client = new RestClient($"https://www.youtube.com/watch?v={videoId}");
             RestRequest request = new RestRequest("/", Method.Get);
-            RestResponse response = client.Execute(request);
+            RestResponse response = await client.ExecuteAsync(request);
 
             if (!response.IsSuccessful || response.Content == null)
             {
                 throw new Exception($"Failed to get song info for video id {videoId}");
             }
 
-            string? title = string.Empty;
 
             // Find the title using regex
+            // This is just an example and may not work if YouTube changes its code
+            string? title = string.Empty;
             Match titleMatch = Regex.Match(response.Content, "<title>(.*?) - YouTube</title>");
             if (titleMatch.Success)
             {
                 title = titleMatch.Groups[1].Value;
             }
 
-            int durationInSeconds = 0;
 
             // Finding the duration is a bit trickier as it's usually embedded in the JavaScript
             // This is just an example and may not work if YouTube changes its code
+            int durationInSeconds = 0;
             Match durationMatch = Regex.Match(response.Content, "\"lengthSeconds\":\"(\\d+)\"");
             if (durationMatch.Success)
             {
@@ -220,19 +179,20 @@ namespace TwitchSongRequest.Services.Api
         {
             RestClient client = new RestClient($"https://www.youtube.com/results?search_query={query}&sp=EgIQAQ%3D%3D");
             RestRequest request = new RestRequest("/", Method.Get);
-            RestResponse response = client.Execute(request);
+            request.AddHeader("Accept-Language", "en-US,en;q=0.9");
+            RestResponse response = await client.ExecuteAsync(request);
 
             if (!response.IsSuccessful || response.Content == null)
             {
                 throw new Exception($"Failed to search for song {query}");
             }
 
-            Match match = Regex.Match(response.Content, "/watch\\?v=([a-zA-Z0-9_-]+)");
+            Match idMatch = Regex.Match(response.Content, "/watch\\?v=([a-zA-Z0-9_-]+)");
 
             string? videoId = string.Empty;
-            if (match.Success)
+            if (idMatch.Success)
             {
-                videoId = match.Groups[1].Value;
+                videoId = idMatch.Groups[1].Value;
             }
 
             if (string.IsNullOrWhiteSpace(videoId))
@@ -240,8 +200,43 @@ namespace TwitchSongRequest.Services.Api
                 throw new Exception($"Failed to find video id for song {query}");
             }
 
-            SongInfo songInfo = await GetSongInfoV2(videoId);
-            return songInfo;
+            // Regex to find video title
+            // This is highly dependent on YouTube's current HTML structure.
+            string? title = string.Empty;
+            Match titleMatch = Regex.Match(response.Content, "\"title\":{\"runs\":\\[{\"text\":\"(.*?)\"}\\]");
+            if (titleMatch.Success)
+            {
+                title = titleMatch.Groups[1].Value;
+            }
+
+            // Regex to find video duration
+            // This is also highly dependent on YouTube's current HTML structure.
+            int durationInSeconds = 0;
+            Match durationMatch = Regex.Match(response.Content, "\"lengthText\":{\"accessibility\":{\"accessibilityData\":{\"label\":\"(.*?)\"}}");
+            if (durationMatch.Success)
+            {
+                Regex regex = new Regex("(\\d+)\\s*(second|minute|hour)s?", RegexOptions.IgnoreCase);
+                foreach (Match match in regex.Matches(durationMatch.Groups[1].Value))
+                {
+                    int value = int.Parse(match.Groups[1].Value);
+                    string unit = match.Groups[2].Value.ToLower();
+
+                    switch (unit)
+                    {
+                        case "second":
+                            durationInSeconds += value;
+                            break;
+                        case "minute":
+                            durationInSeconds += value * 60;
+                            break;
+                        case "hour": // Optional, in case the video is really long
+                            durationInSeconds += value * 3600;
+                            break;
+                    }
+                }
+            }
+
+            return new SongInfo(title, null, durationInSeconds, videoId);
         }
     }
 }

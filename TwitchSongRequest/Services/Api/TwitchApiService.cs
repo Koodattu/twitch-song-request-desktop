@@ -11,6 +11,8 @@ using TwitchLib.Api.Helix.Models.ChannelPoints.UpdateCustomRewardRedemptionStatu
 using TwitchLib.Api.Core.Enums;
 using TwitchSongRequest.Services.App;
 using TwitchSongRequest.Model;
+using TwitchLib.Client.Events;
+using TwitchSongRequest.Services.Authentication;
 
 namespace TwitchSongRequest.Services.Api
 {
@@ -18,16 +20,19 @@ namespace TwitchSongRequest.Services.Api
     {
         private readonly IAppFilesService _appSettingsService;
         private readonly ILoggerService _loggerService;
+        private readonly ITwitchAuthService _twitchAuthService;
 
         private TwitchClient? streamerClient;
         private TwitchClient? botClient;
 
         public event Action<ChatMessage> MessageEvent;
+        public event Action<object?, OnLogArgs> LogEvent;
 
-        public TwitchApiService(IAppFilesService appSettingsService, ILoggerService loggerService)
+        public TwitchApiService(IAppFilesService appSettingsService, ILoggerService loggerService, ITwitchAuthService twitchAuthService)
         {
             _appSettingsService = appSettingsService;
             _loggerService = loggerService;
+            _twitchAuthService = twitchAuthService;
         }
 
         public async Task<TwitchClient> GetTwitchStreamerClient()
@@ -57,7 +62,6 @@ namespace TwitchSongRequest.Services.Api
 
         private TwitchClient SetupTwitchClient(string clientName, string accessToken, string channelName, bool receiveMessageEvents = false)
         {
-            ConnectionCredentials credentials = new ConnectionCredentials(clientName, accessToken);
             var clientOptions = new ClientOptions
             {
                 MessagesAllowedInPeriod = 750,
@@ -65,7 +69,9 @@ namespace TwitchSongRequest.Services.Api
             };
             WebSocketClient customClient = new WebSocketClient(clientOptions);
             TwitchClient twitchClient = new TwitchClient(customClient);
+            ConnectionCredentials credentials = new ConnectionCredentials(clientName, accessToken);
             twitchClient.Initialize(credentials);
+            twitchClient.OnLog += (s, e) => LogEvent.Invoke(s, e);
             twitchClient.OnConnected += (s, e) => twitchClient.JoinChannel(channelName);
             if (receiveMessageEvents)
             {
@@ -74,6 +80,26 @@ namespace TwitchSongRequest.Services.Api
             twitchClient.Connect();
 
             return twitchClient;
+        }
+
+        public void RefreshStreamerClientCredentials()
+        {
+            streamerClient?.Disconnect();
+            string streamerName = _appSettingsService.AppSetup.StreamerInfo.AccountName!;
+            string accessToken = _appSettingsService.AppSetup.StreamerAccessTokens.AccessToken!;
+            ConnectionCredentials credentials = new ConnectionCredentials(streamerName, accessToken);
+            streamerClient?.SetConnectionCredentials(credentials);
+            streamerClient?.Connect();
+        }
+
+        public void RefreshBotClientCredentials()
+        {
+            botClient?.Disconnect();
+            string botName = _appSettingsService.AppSetup.BotInfo.AccountName!;
+            string accessToken = _appSettingsService.AppSetup.BotAccessTokens.AccessToken!;
+            ConnectionCredentials credentials = new ConnectionCredentials(botName, accessToken);
+            botClient?.SetConnectionCredentials(credentials);
+            botClient?.Connect();
         }
 
         public async Task<string?> CreateReward(string name)
