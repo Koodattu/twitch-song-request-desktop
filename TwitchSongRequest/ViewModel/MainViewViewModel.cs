@@ -71,7 +71,7 @@ namespace TwitchSongRequest.ViewModel
             SongRequestQueue = new ObservableCollection<SongRequest>(GetSavedSongRequestQueue());
             SongRequestHistory = new ObservableCollection<SongRequest>(GetSavedSongRequestHistory());
 
-            _playbackDevice = AppSettings.PlaybackDevice ?? GetDefaultPlaybackDevice();
+            _playbackDevice = _appFilesService.AppSettings.PlaybackDevice ?? GetDefaultPlaybackDevice();
             _volume = AppSettings.Volume ?? 100;
 
             SetupYoutubeService(_playbackDevice, _volume);
@@ -833,15 +833,15 @@ namespace TwitchSongRequest.ViewModel
                     _loggerService.LogInfo($"Searching for song to add to queue {input} from {requester}");
                     //TODO: Search for song using selected platform
 
-                    if (input.StartsWith("spotify:", StringComparison.OrdinalIgnoreCase))
+                    if (input.StartsWith("spotify:", StringComparison.OrdinalIgnoreCase) || input.StartsWith("spo:", StringComparison.OrdinalIgnoreCase))
                     {
                         platform = SongRequestPlatform.Spotify;
                     }
-                    else if (input.StartsWith("youtube:", StringComparison.OrdinalIgnoreCase))
+                    else if (input.StartsWith("youtube:", StringComparison.OrdinalIgnoreCase) || input.StartsWith("yt:", StringComparison.OrdinalIgnoreCase))
                     {
                         platform = SongRequestPlatform.Youtube;
                     }
-                    else if (input.StartsWith("soundcloud:", StringComparison.OrdinalIgnoreCase))
+                    else if (input.StartsWith("soundcloud:", StringComparison.OrdinalIgnoreCase) || input.StartsWith("sc:", StringComparison.OrdinalIgnoreCase))
                     {
                         platform = SongRequestPlatform.Soundcloud;
                     }
@@ -935,8 +935,7 @@ namespace TwitchSongRequest.ViewModel
             _loggerService.LogInfo("Setting up Youtube Service");
             try
             {
-                await _youtubeSongService.SetPlaybackDevice(playbackDevice);
-                await _youtubeSongService.SetVolume(volume);
+                await _youtubeSongService.SetupService(playbackDevice, volume);
                 _loggerService.LogSuccess("Set up Youtube Service");
             }
             catch (Exception ex)

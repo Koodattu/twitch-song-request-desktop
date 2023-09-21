@@ -7,6 +7,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using TwitchSongRequest.Model;
+using TwitchSongRequest.Services.App;
 
 namespace TwitchSongRequest.Services.Api
 {
@@ -22,11 +23,18 @@ namespace TwitchSongRequest.Services.Api
 
     internal class YoutubeSongServiceV2 : IYoutubeSongService
     {
+        private IAppFilesService _appFilesService;
+
         private ChromiumWebBrowser _chromeBrowser;
         private string? _playbackDevice;
         private int _volume;
 
-        public YoutubeSongServiceV2()
+        public YoutubeSongServiceV2(IAppFilesService appFilesService)
+        {
+            _appFilesService = appFilesService;
+        }
+
+        public async Task SetupService(string playbackDevice, int volume)
         {
             const string html = @"
                 <!DOCTYPE html>
@@ -85,7 +93,8 @@ namespace TwitchSongRequest.Services.Api
             ";
             var base64EncodedHtml = Convert.ToBase64String(Encoding.UTF8.GetBytes(html));
 
-            _chromeBrowser = new ChromiumWebBrowser(address: "data:text/html;base64," + base64EncodedHtml, automaticallyCreateBrowser: false);
+            //_chromeBrowser = new ChromiumWebBrowser(address: "about:blank" + base64EncodedHtml, automaticallyCreateBrowser: false);
+            _chromeBrowser = new ChromiumWebBrowser(address: "about:blank", automaticallyCreateBrowser: false);
 
             // Register the C# object with CefSharp
             BoundObject boundObject = new BoundObject();
@@ -93,67 +102,20 @@ namespace TwitchSongRequest.Services.Api
             _chromeBrowser.JavascriptObjectRepository.Settings.LegacyBindingEnabled = true;
             _chromeBrowser.JavascriptObjectRepository.Register("boundObject", boundObject, options: BindingOptions.DefaultBinder);
 
-            _chromeBrowser.CreateBrowser();/*
-            _chromeBrowser.LoadHtml(@"
-                <!DOCTYPE html>
-                <html>
-                    <body>
-                        <!-- 1. The <iframe> (and video player) will replace this <div> tag. -->
-                        <div id='player'></div>
+            _chromeBrowser.CreateBrowser();
 
-                        <script>
-                        // 2. This code loads the IFrame Player API code asynchronously.
-                        var tag = document.createElement('script');
-                        tag.src = 'https://www.youtube.com/iframe_api';
-                        var firstScriptTag = document.getElementsByTagName('script')[0];
-                        firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+            await _chromeBrowser.WaitForInitialLoadAsync();
 
-                        boundObject.OnEvent(); // Call the C# function
+            _chromeBrowser.LoadHtml(html, "https://www.youtube.com");
+            await _chromeBrowser.WaitForNavigationAsync();
 
-                        // 3. This function creates an <iframe> (and YouTube player)
-                        //    after the API code downloads.
-                        var player;
-                        function onYouTubeIframeAPIReady() {
-                            player = new YT.Player('player', {
-                            height: '360',
-                            width: '640',
-                            videoId: '',
-                            events: {
-                                'onReady': onPlayerReady,
-                                'onStateChange': onPlayerStateChange
-                            }
-                            });
-                        }
-
-                        // 4. The API will call this function when the video player is ready.
-                        function onPlayerReady(event) {
-                            //event.target.playVideo();
-                            boundObject.OnEvent(); // Call the C# function
-                        }
-
-                        var done = false;
-                        function onPlayerStateChange(event) {
-                            if (event.data == YT.PlayerState.PLAYING && !done) {
-                                done = true;
-                            }
-                            boundObject.OnEvent(); // Call the C# function
-                        }
-                        function stopVideo() {
-                            player.stopVideo();
-                        }
-                        
-                        function loadVideoById(id) {
-                            player.loadVideoById(id);
-                        }
-                        </script>
-                    </body>
-                </html>
-            ");*/
+            await SetPlaybackDevice(playbackDevice);
+            await SetVolume(volume);
         }
 
         private void BoundObject_Event()
         {
-            Console.WriteLine();
+            throw new NotImplementedException();
         }
 
         public async Task<SongInfo> GetSongInfo(string id)
@@ -274,7 +236,13 @@ namespace TwitchSongRequest.Services.Api
         {
             string script = @"
             async function getCurrentAudioOutput() {
-                const videoElement = document.querySelector('video');
+                // This will try to target the video inside the iframe
+                const iframe = document.querySelector('iframe');
+                if(!iframe) return 'iframe not found';
+
+                const videoElement = iframe.contentWindow.document.querySelector('video');
+                if(!videoElement) return 'video not found inside iframe';
+
                 const currentDeviceId = videoElement.sinkId;
                 const audioDevices = await navigator.mediaDevices.enumerateDevices();
                 const currentDevice = audioDevices.find(device => device.kind === 'audiooutput' && device.deviceId === currentDeviceId);
@@ -300,9 +268,16 @@ namespace TwitchSongRequest.Services.Api
             {
                 string script = $@"
                 async function setAudioOutput() {{
-                    const videoElement = document.querySelector('video');
+                    // This will try to target the video inside the iframe
+                    const iframe = document.querySelector('iframe');
+                    if(!iframe) return 'iframe not found';
+
+                    const videoElement = iframe.contentWindow.document.querySelector('video');
+                    if(!videoElement) return 'video not found inside iframe';
+
                     const audioDevices = await navigator.mediaDevices.enumerateDevices();
-                    const desiredDevice = audioDevices.find(device => device.kind === 'audiooutput' && device.label.includes('{device}'));
+                    const desiredDevice = audioDevices.find(d => d.kind === 'audiooutput' && d.label.includes('{device}'));
+            
                     if (desiredDevice) {{
                         await videoElement.setSinkId(desiredDevice.deviceId);
                         return true;
@@ -316,21 +291,6 @@ namespace TwitchSongRequest.Services.Api
             }
 
             return false;
-            /*
-            if (_chromeBrowser.Address != null && _chromeBrowser.Address.Contains("youtube", StringComparison.InvariantCultureIgnoreCase) && _chromeBrowser.CanExecuteJavascriptInMainFrame)
-            {
-                var result = await _chromeBrowser.EvaluateScriptAsPromiseAsync($@"
-                    const videoElement = document.getElementsByTagName('video')[0];
-                    const audioDevices = await navigator.mediaDevices.enumerateDevices();
-                    const desiredDevice = audioDevices.find(device => device.kind === 'audiooutput' && device.label.includes('{device}'));
-                    if (desiredDevice) {{
-                        videoElement.setSinkId(desiredDevice.deviceId);
-                    }}
-                    ");
-                return result.Success;
-            }
-            return false;
-            */
         }
 
         public async Task<int> GetPosition()

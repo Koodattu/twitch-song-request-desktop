@@ -8,5 +8,6 @@ namespace TwitchSongRequest.Services.Api
         Task<int> GetVolume();
         Task<string> GetPlaybackDevice();
         Task<bool> SetPlaybackDevice(string device);
+        Task SetupService(string playbackDevice, int volume);
     }
 }

@@ -232,5 +232,10 @@ namespace TwitchSongRequest.Services.Api
 
             return new SongInfo(title, null, durationInSeconds, videoId);
         }
+
+        public Task SetupService(string playbackDevice, int volume)
+        {
+            throw new NotImplementedException();
+        }
     }
 }
