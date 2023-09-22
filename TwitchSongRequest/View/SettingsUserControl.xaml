@@ -13,7 +13,7 @@
         <Rectangle Fill="Black" Opacity="0.5" />
         <Border
             Width="500"
-            Height="350"
+            Height="400"
             Padding="8,16"
             Background="{DynamicResource {x:Static adonisUi:Brushes.Layer0BackgroundBrush}}"
             BorderBrush="{StaticResource TitleGradientBrush}"
@@ -27,6 +27,8 @@
                     <ColumnDefinition Width="1*" />
                 </Grid.ColumnDefinitions>
                 <Grid.RowDefinitions>
+                    <RowDefinition Height="1*" />
+                    <RowDefinition Height="1*" />
                     <RowDefinition Height="1*" />
                     <RowDefinition Height="1*" />
                     <RowDefinition Height="1*" />
@@ -64,7 +66,6 @@
                     HorizontalAlignment="Right"
                     VerticalAlignment="Center"
                     Content="Max Song Length" />
-
                 <StackPanel
                     Grid.Row="2"
                     Grid.Column="1"
@@ -113,9 +114,39 @@
                     Grid.Row="4"
                     HorizontalAlignment="Right"
                     VerticalAlignment="Center"
+                    Content="asdasdasdasd" />
+                <CheckBox
+                    Grid.Row="4"
+                    Grid.Column="1"
+                    Grid.ColumnSpan="3"
+                    Margin="24,0"
+                    Content="asdasdasd" />
+
+                <Label
+                    Grid.Row="5"
+                    HorizontalAlignment="Right"
+                    VerticalAlignment="Center"
+                    Content="Spotify behaviour" />
+                <StackPanel
+                    Grid.Row="5"
+                    Grid.Column="1"
+                    Grid.ColumnSpan="3"
+                    Margin="24,0"
+                    Orientation="Horizontal">
+                    <RadioButton Content="Add to queue" GroupName="spotify_behaviour" />
+                    <RadioButton
+                        Margin="12,0"
+                        Content="Only play song"
+                        GroupName="spotify_behaviour" />
+                </StackPanel>
+
+                <Label
+                    Grid.Row="6"
+                    HorizontalAlignment="Right"
+                    VerticalAlignment="Center"
                     Content="Reply in chat" />
                 <StackPanel
-                    Grid.Row="4"
+                    Grid.Row="6"
                     Grid.Column="1"
                     Grid.ColumnSpan="3"
                     Margin="24,0"
@@ -127,24 +158,24 @@
                         Text="with" />
                     <RadioButton
                         Content="Streamer"
-                        GroupName="account"
+                        GroupName="twitch_account"
                         IsChecked="{Binding AppSettings.ReplyWithBot, Converter={StaticResource InvertBoolConverter}}" />
                     <RadioButton
                         Margin="12,0"
                         Content="Bot"
-                        GroupName="account"
+                        GroupName="twitch_account"
                         IsChecked="{Binding AppSettings.ReplyWithBot}" />
                 </StackPanel>
 
                 <CheckBox
-                    Grid.Row="5"
+                    Grid.Row="7"
                     Grid.Column="1"
                     Grid.ColumnSpan="3"
                     Margin="24,0"
                     Content="Reply to song request redeem"
                     IsChecked="{Binding AppSettings.ReplyToRedeem}" />
                 <CheckBox
-                    Grid.Row="6"
+                    Grid.Row="8"
                     Grid.Column="1"
                     Grid.ColumnSpan="3"
                     Margin="24,0"
@@ -152,14 +183,14 @@
                     IsChecked="{Binding AppSettings.MessageOnNextSong}" />
 
                 <Button
-                    Grid.Row="7"
+                    Grid.Row="9"
                     Height="25"
                     Margin="16,0"
                     VerticalAlignment="Bottom"
                     Command="{Binding ResetSettingsCommand}"
                     Content="Reset" />
                 <Button
-                    Grid.Row="7"
+                    Grid.Row="9"
                     Grid.Column="3"
                     Height="25"
                     Margin="16,0"
@@ -167,7 +198,7 @@
                     Command="{Binding CloseSettingsCommand}"
                     Content="Close" />
                 <Button
-                    Grid.Row="7"
+                    Grid.Row="9"
                     Grid.Column="2"
                     Height="25"
                     Margin="16,0,0,0"
@@ -187,11 +218,8 @@
                     ToolTip="Open tokens file" />
             </Grid>
 
-
         </Border>
 
-
     </Grid>
-
 
 </UserControl>

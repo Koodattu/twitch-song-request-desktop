@@ -16,9 +16,9 @@ namespace TwitchSongRequest.Services.Api
         Task<TwitchClient> GetTwitchBotClient();
         void RefreshStreamerClientCredentials();
         void RefreshBotClientCredentials();
-        Task ReplyToChatMessage(string channel, string replyId, string message);
+        Task SendChatMessage(string channel, string message, string? replyId = null);
         Task<string?> CreateReward(string name);
-        Task<bool?> RefundRedeem(string redeemer, string input);
+        Task<bool?> CompleteRedeem(string redeemer, string input, bool refund);
         Task<bool?> RefundRedeems(List<SongRequest> requests);
     }
 }

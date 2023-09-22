@@ -1,7 +1,9 @@
 ﻿using Newtonsoft.Json;
 using RestSharp;
+using System;
 using System.Net;
 using System.Threading.Tasks;
+using System.Web;
 using TwitchSongRequest.Model;
 using TwitchSongRequest.Services.App;
 using TwitchSongRequest.Services.Authentication;
@@ -115,7 +117,7 @@ namespace TwitchSongRequest.Services.Api
 
         public async Task<SongInfo> SearchSong(string query)
         {
-            var response = await SendRestRequest($"/search?q={query}&type=track&limit=1", Method.Get);
+            var response = await SendRestRequest($"/search?q={HttpUtility.UrlEncode(query)}&type=track&market=FI&limit=1", Method.Get);
 
             if (response.Content == null)
             {

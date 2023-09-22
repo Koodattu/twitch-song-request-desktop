@@ -245,29 +245,18 @@ namespace TwitchSongRequest.ViewModel
         {
             _loggerService.LogInfo("Setting playback state to playing");
 
-            // nothing to play since queue is empty and no current song
-            if (SongRequestQueue.Count == 0 && CurrentSong.Service == null)
-            {
-                _loggerService.LogWarning("No songs in queue to play");
-                PlaybackStatus = PlaybackStatus.Error;
-                return;
-            }
-
-            bool result;
+            bool result = false;
 
             try
             {
                 // songs in queue but no current song so add first song from queue to current song
-                if (SongRequestQueue.Count > 0 && CurrentSong.Service == null)
+                if (CurrentSong.Service != null)
                 {
-                    _loggerService.LogInfo("Adding first song from queue to playback");
-                    CurrentSong = SongRequestQueue.First();
-                    SongRequestQueue.Remove(CurrentSong);
-                    result = await CurrentSong.Service!.PlaySong(CurrentSong.Id!);
+                    result = await _currentSong.Service!.Play();
                 }
                 else
                 {
-                    result = await _currentSong.Service!.Play();
+                    await PlayNextSong();
                 }
             }
             catch (Exception ex)
@@ -275,6 +264,7 @@ namespace TwitchSongRequest.ViewModel
                 result = false;
                 _loggerService.LogError(ex, "Error playing song");
             }
+
             PlaybackStatus = result ? PlaybackStatus.Playing : PlaybackStatus.Error;
         }
 
@@ -306,31 +296,7 @@ namespace TwitchSongRequest.ViewModel
         private async void Skip()
         {
             _loggerService.LogInfo("Skipping current song");
-
-            bool result;
-
-            try
-            {
-                if (SongRequestQueue.Count > 0)
-                {
-                    CurrentSong = SongRequestQueue.First();
-                    SongRequestQueue.Remove(CurrentSong);
-                    result = await CurrentSong.Service!.PlaySong(CurrentSong.Id!);
-                }
-                else
-                {
-                    CurrentSong = new SongRequest();
-                    PlaybackStatus = PlaybackStatus.Paused;
-                    result = true;
-                }
-            }
-            catch (Exception ex)
-            {
-                _loggerService.LogError(ex, "Error skipping song");
-                result = false;
-            }
-
-            PlaybackStatus = result ? PlaybackStatus : PlaybackStatus.Error;
+            await PlayNextSong();
         }
 
         private async void SeekPosition()
@@ -386,7 +352,7 @@ namespace TwitchSongRequest.ViewModel
                 {
                     try
                     {
-                        await _twitchApiService.RefundRedeem(e.Requester!, e.RequestInput!);
+                        await _twitchApiService.CompleteRedeem(e.Requester!, e.RequestInput!, true);
                         _loggerService.LogSuccess($"Refunded points for song: {e?.SongName}");
                     }
                     catch (Exception ex)
@@ -599,13 +565,13 @@ namespace TwitchSongRequest.ViewModel
                 return;
             }
 
-            _loggerService.LogInfo($"Received redeem request from {chatMessage.Username} for {chatMessage.Message}");
+            _loggerService.LogInfo($"Received redeem request from {chatMessage.DisplayName} for {chatMessage.Message}");
 
             try
             {
                 // try to add song to queue
                 string input = chatMessage.Message;
-                Tuple<bool, string> songAddResult = await AddSongToQueue(input, chatMessage.Username);
+                Tuple<bool, string> songAddResult = await AddSongToQueue(input, chatMessage.DisplayName);
 
                 // dont reply in chat if not enabled in settings
                 if (!AppSettings.ReplyInChat || !AppSettings.ReplyToRedeem)
@@ -616,19 +582,19 @@ namespace TwitchSongRequest.ViewModel
                 // failed to add song to queue
                 if (!songAddResult.Item1)
                 {
-                    await _twitchApiService.ReplyToChatMessage(chatMessage.Channel, chatMessage.Id, songAddResult.Item2);
-                    await _twitchApiService.RefundRedeem(chatMessage.Username, input);
+                    await _twitchApiService.SendChatMessage(chatMessage.Channel, songAddResult.Item2, chatMessage.Id);
+                    await _twitchApiService.CompleteRedeem(chatMessage.DisplayName, input, true);
                     _loggerService.LogWarning(songAddResult.Item2);
                     return;
                 }
 
                 // song was added succesfully to queue
-                await _twitchApiService.ReplyToChatMessage(chatMessage.Channel, chatMessage.Id, songAddResult.Item2);
+                await _twitchApiService.SendChatMessage(chatMessage.Channel, songAddResult.Item2, chatMessage.Id);
                 _loggerService.LogSuccess(songAddResult.Item2!);
             }
             catch (Exception ex)
             {
-                _loggerService.LogError(ex, $"Error processing redeem request from {chatMessage.Username} for {chatMessage.Message}");
+                _loggerService.LogError(ex, $"Error processing redeem request from {chatMessage.DisplayName} for {chatMessage.Message}");
             }
         }
 
@@ -730,6 +696,63 @@ namespace TwitchSongRequest.ViewModel
                 _loggerService.LogError(ex, "Unable to reset settings");
             }
             OnPropertyChanged(nameof(AppSettings));
+        }
+
+        private async Task PlayNextSong()
+        {
+            try
+            {
+                // nothing to play since queue is empty and no current song
+                if (SongRequestQueue.Count == 0 && CurrentSong.Service == null)
+                {
+                    _loggerService.LogWarning("No songs in queue to play");
+                    PlaybackStatus = PlaybackStatus.Error;
+                    return;
+                }
+
+                // add current song to history if it exists
+                if (CurrentSong.Service != null)
+                {
+                    SongRequestHistory.Insert(0, CurrentSong);
+                    await _twitchApiService.CompleteRedeem(CurrentSong.Requester!, CurrentSong.RequestInput!, false);
+                }
+
+                // change current song to next and remove from queue if queue is not empty
+                if (SongRequestQueue.Count > 0)
+                {
+                    CurrentSong = SongRequestQueue.First();
+                    SongRequestQueue.Remove(CurrentSong);
+                }
+                else
+                {
+                    CurrentSong = new SongRequest();
+                    PlaybackStatus = PlaybackStatus.Paused;
+                }
+
+                // make sure other song services are not playing
+                await _youtubeSongService.Pause();
+                await _spotifySongService.Pause();
+
+                // play current song
+                if (CurrentSong.Service != null)
+                {
+                    bool result = await CurrentSong.Service.PlaySong(CurrentSong.Id!);
+                    PlaybackStatus = result ? PlaybackStatus.Playing : PlaybackStatus.Error;
+                    // reply in chat
+                    if (AppSettings.ReplyInChat && AppSettings.MessageOnNextSong)
+                    {
+                        await _twitchApiService.SendChatMessage(AppSetup.StreamerInfo.AccountName!, $"Now playing: \"{CurrentSong.SongName}\" requested by @{CurrentSong.Requester}");
+                    }
+                }
+                else
+                {
+                    PlaybackStatus = PlaybackStatus.Paused;
+                }
+            }
+            catch (Exception ex)
+            {
+                _loggerService.LogError(ex, "Error playing next song");
+            }
         }
 
         internal void SaveAppSettings()
@@ -885,7 +908,7 @@ namespace TwitchSongRequest.ViewModel
                 else
                 {
                     success = true;
-                    message = $"Added \"{songName}\" to queue.";
+                    message = $"Added \"{songName}\" to queue at position #{SongRequestQueue.Count + 1}.";
 
                     SongRequest songRequest = new SongRequest
                     {
@@ -1147,6 +1170,7 @@ namespace TwitchSongRequest.ViewModel
             {
                 _loggerService.LogInfo("Getting saved song request history");
                 songRequests = _appFilesService.GetSongHistory();
+                songRequests.ForEach(songRequests => songRequests.Service = GetSongService(songRequests.Platform));
             }
             catch (Exception ex)
             {

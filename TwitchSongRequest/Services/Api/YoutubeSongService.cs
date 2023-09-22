@@ -1,8 +1,10 @@
 ﻿using CefSharp;
 using CefSharp.OffScreen;
+using NAudio.Utils;
 using RestSharp;
 using System;
 using System.Globalization;
+using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using TwitchSongRequest.Model;
@@ -11,135 +13,80 @@ namespace TwitchSongRequest.Services.Api
 {
     internal class YoutubeSongService : IYoutubeSongService
     {
-        private ChromiumWebBrowser ChromeBrowser;
-        private string? PlaybackDevice;
-        private int Volume;
+        private ChromiumWebBrowser? _chromeBrowser;
 
         public YoutubeSongService()
         {
-            ChromeBrowser = new ChromiumWebBrowser();
-            ChromeBrowser.LoadingStateChanged += ChromeBrowser_LoadingStateChanged;
+
         }
 
-        private async void ChromeBrowser_LoadingStateChanged(object? sender, LoadingStateChangedEventArgs e)
+        public async Task SetupService(string playbackDevice, int volume)
         {
-            if (ChromeBrowser.CanExecuteJavascriptInMainFrame)
-            {
-                //TODO Wait for video to start playing
-                bool paused = true;
-                while (paused)
-                {
-                    await Task.Delay(100);
-                    var result = await ChromeBrowser.EvaluateScriptAsync($"document.querySelector('video').paused;");
-                    if (result.Success)
-                    {
-                        paused = (bool)result.Result;
-                    }
-                }
+            const string html = @"
+                <!DOCTYPE html>
+                <html>
+                    <body>
+                        <div id='player'></div>
+                        <script>
+                        var tag = document.createElement('script');
+                        tag.src = 'https://www.youtube.com/iframe_api';
+                        var firstScriptTag = document.getElementsByTagName('script')[0];
+                        firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
 
-                await SetPlaybackDevice(PlaybackDevice!);
-                await SetVolume(Volume);
-            }
+                        var player;
+                        function onYouTubeIframeAPIReady() {
+                            player = new YT.Player('player', {
+                            height: '360',
+                            width: '640',
+                            videoId: '',
+                            events: {
+                                'onReady': onPlayerReady,
+                                'onStateChange': onPlayerStateChange
+                            }
+                            });
+                        }
+
+                        function onPlayerReady(event) {
+                            CefSharp.PostMessage(event);
+                        }
+                        
+                        function onPlayerStateChange(event) {
+                            CefSharp.PostMessage(event);
+                            CefSharp.PostMessage(player);
+                        }
+                        </script>
+                    </body>
+                </html>
+            ";
+            var base64EncodedHtml = Convert.ToBase64String(Encoding.UTF8.GetBytes(html));
+
+            _chromeBrowser = new ChromiumWebBrowser(address: "about:blank", automaticallyCreateBrowser: false);
+            _chromeBrowser.JavascriptMessageReceived += OnBrowserJavascriptMessageReceived;
+            _chromeBrowser.CreateBrowser();
+            await _chromeBrowser.WaitForInitialLoadAsync();
+
+            _chromeBrowser.LoadHtml(html, "https://www.youtube.com");
+            await _chromeBrowser.WaitForNavigationAsync();
+
+            await SetPlaybackDevice(playbackDevice);
+            await SetVolume(volume);
         }
 
-        public async Task<bool> Play()
+        private void OnBrowserJavascriptMessageReceived(object? sender, JavascriptMessageReceivedEventArgs e)
         {
-            if (ChromeBrowser.CanExecuteJavascriptInMainFrame)
-            {
-                var result = await ChromeBrowser.EvaluateScriptAsPromiseAsync("document.querySelector('video').play();");
-                return result.Success;
-            }
-            return false;
+
         }
 
-        public async Task<bool> Pause()
+        public async Task<SongInfo> GetSongInfo(string id)
         {
-            if (ChromeBrowser.CanExecuteJavascriptInMainFrame)
-            {
-                var result = await ChromeBrowser.EvaluateScriptAsPromiseAsync("document.querySelector('video').pause();");
-                return result.Success;
-            }
-            return false;
-        }
-
-        public async Task<bool> SetVolume(int volume)
-        {
-            Volume = volume;
-            if (ChromeBrowser.CanExecuteJavascriptInMainFrame)
-            {
-                var result = await ChromeBrowser.EvaluateScriptAsync($"document.querySelector('video').volume = {(volume / 100.0).ToString(CultureInfo.InvariantCulture)};");
-                return result.Success;
-            }
-            return false;
-        }
-
-        public async Task<bool> SetPosition(int position)
-        {
-            if (ChromeBrowser.CanExecuteJavascriptInMainFrame)
-            {
-                var result = await ChromeBrowser.EvaluateScriptAsync($"document.querySelector('video').currentTime = {position};");
-                return result.Success;
-            }
-            return false;
-        }
-
-        public async Task<bool> SetPlaybackDevice(string device)
-        {
-            PlaybackDevice = device;
-            if (ChromeBrowser.Address != null && ChromeBrowser.Address.Contains("youtube", StringComparison.InvariantCultureIgnoreCase) && ChromeBrowser.CanExecuteJavascriptInMainFrame)
-            {
-                var result = await ChromeBrowser.EvaluateScriptAsPromiseAsync($@"
-                    const videoElement = document.getElementsByTagName('video')[0];
-                    const audioDevices = await navigator.mediaDevices.enumerateDevices();
-                    const desiredDevice = audioDevices.find(device => device.kind === 'audiooutput' && device.label.includes('{device}'));
-                    if (desiredDevice) {{
-                        videoElement.setSinkId(desiredDevice.deviceId);
-                    }}
-                    ");
-                return result.Success;
-            }
-            return false;
-        }
-
-        public Task<int> GetVolume()
-        {
-            throw new NotImplementedException();
-        }
-
-        public async Task<int> GetPosition()
-        {
-            if (!ChromeBrowser.CanExecuteJavascriptInMainFrame)
-            {
-                return -1;
-            }
-
-            var curTimeResponse = await ChromeBrowser.EvaluateScriptAsync($"document.querySelector('video').currentTime;");
-
-            if (!curTimeResponse.Success)
-            {
-                return -1;
-            }
-
-            int currentTime = Convert.ToInt32(curTimeResponse.Result);
-            return currentTime;
-        }
-
-        public Task<string> GetPlaybackDevice()
-        {
-            throw new NotImplementedException();
-        }
-
-        public async Task<SongInfo> GetSongInfo(string videoId)
-        {
-            RestClient client = new RestClient($"https://www.youtube.com/watch?v={videoId}");
+            RestClient client = new RestClient($"https://www.youtube.com/watch?v={id}");
             RestRequest request = new RestRequest("/", Method.Get);
             RestResponse response = await client.ExecuteAsync(request);
 
             if (!response.IsSuccessful || response.Content == null)
             {
-                throw new Exception($"Failed to get song info for video id {videoId}");
+                throw new Exception($"Failed to get song info for video id {id}");
             }
-
 
             // Find the title using regex
             // This is just an example and may not work if YouTube changes its code
@@ -150,7 +97,6 @@ namespace TwitchSongRequest.Services.Api
                 title = titleMatch.Groups[1].Value;
             }
 
-
             // Finding the duration is a bit trickier as it's usually embedded in the JavaScript
             // This is just an example and may not work if YouTube changes its code
             int durationInSeconds = 0;
@@ -160,13 +106,7 @@ namespace TwitchSongRequest.Services.Api
                 durationInSeconds = int.Parse(durationMatch.Groups[1].Value);
             }
 
-            return new SongInfo(title, null, durationInSeconds, videoId);
-        }
-
-        public async Task<bool> PlaySong(string id)
-        {
-            var resp = await ChromeBrowser.LoadUrlAsync($"https://www.youtube.com/embed/{id}?autoplay=1");
-            return resp.Success;
+            return new SongInfo(title, null, durationInSeconds, id);
         }
 
         public async Task<SongInfo> SearchSong(string query)
@@ -201,6 +141,7 @@ namespace TwitchSongRequest.Services.Api
             if (titleMatch.Success)
             {
                 title = titleMatch.Groups[1].Value;
+                title = Regex.Unescape(title);
             }
 
             // Regex to find video duration
@@ -233,9 +174,114 @@ namespace TwitchSongRequest.Services.Api
             return new SongInfo(title, null, durationInSeconds, videoId);
         }
 
-        public Task SetupService(string playbackDevice, int volume)
+        public async Task<bool> PlaySong(string id)
         {
-            throw new NotImplementedException();
+            JavascriptResponse? result = await _chromeBrowser.EvaluateScriptAsync($"player.loadVideoById('{id}');");
+            return result.Success;
+        }
+
+        public async Task<bool> Play()
+        {
+            JavascriptResponse? result = await _chromeBrowser.EvaluateScriptAsync("player.playVideo();");
+            return result.Success;
+        }
+
+        public async Task<bool> Pause()
+        {
+            JavascriptResponse? result = await _chromeBrowser.EvaluateScriptAsync("player.pauseVideo();");
+            return result.Success;
+        }
+
+        public async Task<string> GetPlaybackDevice()
+        {
+            string script = @"
+            async function getCurrentAudioOutput() {
+                // This will try to target the video inside the iframe
+                const iframe = document.querySelector('iframe');
+                if(!iframe) return 'iframe not found';
+
+                const videoElement = iframe.contentWindow.document.querySelector('video');
+                if(!videoElement) return 'video not found inside iframe';
+
+                const currentDeviceId = videoElement.sinkId;
+                const audioDevices = await navigator.mediaDevices.enumerateDevices();
+                const currentDevice = audioDevices.find(device => device.kind === 'audiooutput' && device.deviceId === currentDeviceId);
+                return currentDevice ? currentDevice.label : 'Default';
+            }
+            getCurrentAudioOutput();
+            ";
+
+            JavascriptResponse result = await _chromeBrowser.EvaluateScriptAsync(script);
+            if (result.Success && result.Result != null)
+            {
+                return result.Result.ToString()!;
+            }
+
+            return string.Empty;
+        }
+
+        public async Task<bool> SetPlaybackDevice(string device)
+        {
+            if (_chromeBrowser!.IsBrowserInitialized && _chromeBrowser.CanExecuteJavascriptInMainFrame)
+            {
+                string script = $@"
+                async function setAudioOutput() {{
+                    // This will try to target the video inside the iframe
+                    const iframe = document.querySelector('iframe');
+                    if(!iframe) return 'iframe not found';
+
+                    const videoElement = iframe.contentWindow.document.querySelector('video');
+                    if(!videoElement) return 'video not found inside iframe';
+
+                    const audioDevices = await navigator.mediaDevices.enumerateDevices();
+                    const desiredDevice = audioDevices.find(d => d.kind === 'audiooutput' && d.label.includes('{device}'));
+            
+                    if (desiredDevice) {{
+                        await videoElement.setSinkId(desiredDevice.deviceId);
+                        return true;
+                    }}
+                    return false;
+                }}
+                setAudioOutput();
+                ";
+
+                var result = await _chromeBrowser.EvaluateScriptAsync(script);
+                return result.Success && result.Result != null && Convert.ToBoolean(result.Result);
+            }
+
+            return false;
+        }
+
+        public async Task<int> GetPosition()
+        {
+            JavascriptResponse? response = await _chromeBrowser.EvaluateScriptAsync("player.getCurrentTime();");
+            if (response.Success && response.Result != null)
+            {
+                return Convert.ToInt32(response.Result);
+            }
+            return -1;
+        }
+
+        public async Task<bool> SetPosition(int position)
+        {
+            JavascriptResponse? result = await _chromeBrowser.EvaluateScriptAsync($"player.seekTo({position}, true);");
+            return result.Success;
+        }
+
+        public async Task<int> GetVolume()
+        {
+            JavascriptResponse? response = await _chromeBrowser.EvaluateScriptAsync("player.getVolume();");
+            if (response.Success && response.Result != null)
+            {
+                return Convert.ToInt32(response.Result);
+            }
+            return -1;
+        }
+
+        public async Task<bool> SetVolume(int volume)
+        {
+            JavascriptResponse? result = await _chromeBrowser.EvaluateScriptAsync($"player.setVolume({volume.ToString(CultureInfo.InvariantCulture)});");
+            return result.Success;
         }
     }
 }
