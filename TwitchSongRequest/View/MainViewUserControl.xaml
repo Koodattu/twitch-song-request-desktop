@@ -320,5 +320,10 @@
             </ListBox.ItemsPanel>
         </ListBox>
 
+        <views:WebView2UserControl
+            Margin="270 0"
+            Grid.Column="1"
+            DataContext="{Binding WebView2ViewModel}" />
+
     </Grid>
 </UserControl>

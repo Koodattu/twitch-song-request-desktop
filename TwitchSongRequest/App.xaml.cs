@@ -1,6 +1,4 @@
-﻿using CefSharp.OffScreen;
-using CefSharp;
-using System;
+﻿using System;
 using System.Windows;
 using Microsoft.Extensions.DependencyInjection;
 using TwitchSongRequest.Services.Authentication;
@@ -20,10 +18,6 @@ namespace TwitchSongRequest
 
         public App()
         {
-            var settings = new CefSettings();
-            settings.CefCommandLineArgs["autoplay-policy"] = "no-user-gesture-required";
-            settings.CefCommandLineArgs.Remove("mute-audio");
-            Cef.Initialize(settings, true, browserProcessHandler: null);
             Services = ConfigureServices();
         }
 

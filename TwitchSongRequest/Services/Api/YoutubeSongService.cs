@@ -1,9 +1,8 @@
-﻿using CefSharp;
-using CefSharp.OffScreen;
+﻿using Microsoft.Web.WebView2.Core;
+using Microsoft.Web.WebView2.Wpf;
 using RestSharp;
 using System;
 using System.Globalization;
-using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using TwitchSongRequest.Model;
@@ -12,14 +11,14 @@ namespace TwitchSongRequest.Services.Api
 {
     internal class YoutubeSongService : IYoutubeSongService
     {
-        private ChromiumWebBrowser? _chromeBrowser;
+        private WebView2? _webView2Browser;
 
         public YoutubeSongService()
         {
 
         }
 
-        public async Task SetupService(string playbackDevice, int volume)
+        public async Task SetupService(WebView2 browser, string playbackDevice, int volume)
         {
             const string html = @"
                 <!DOCTYPE html>
@@ -57,21 +56,18 @@ namespace TwitchSongRequest.Services.Api
                     </body>
                 </html>
             ";
-            var base64EncodedHtml = Convert.ToBase64String(Encoding.UTF8.GetBytes(html));
+            _webView2Browser = browser;
 
-            _chromeBrowser = new ChromiumWebBrowser(address: "about:blank", automaticallyCreateBrowser: false);
-            _chromeBrowser.JavascriptMessageReceived += OnBrowserJavascriptMessageReceived;
-            _chromeBrowser.CreateBrowser();
-            await _chromeBrowser.WaitForInitialLoadAsync();
-
-            _chromeBrowser.LoadHtml(html, "https://www.youtube.com");
-            await _chromeBrowser.WaitForNavigationAsync();
+            _webView2Browser.WebMessageReceived += _webView2Browser_WebMessageReceived;
+            await _webView2Browser.EnsureCoreWebView2Async(null);
+            _webView2Browser.NavigateToString(html);
+            await _webView2Browser.EnsureCoreWebView2Async(null);
 
             await SetPlaybackDevice(playbackDevice);
             await SetVolume(volume);
         }
 
-        private void OnBrowserJavascriptMessageReceived(object? sender, JavascriptMessageReceivedEventArgs e)
+        private void _webView2Browser_WebMessageReceived(object? sender, CoreWebView2WebMessageReceivedEventArgs e)
         {
 
         }
@@ -175,20 +171,20 @@ namespace TwitchSongRequest.Services.Api
 
         public async Task<bool> PlaySong(string id)
         {
-            JavascriptResponse? result = await _chromeBrowser.EvaluateScriptAsync($"player.loadVideoById('{id}');");
-            return result.Success;
+            string result = await _webView2Browser!.ExecuteScriptAsync($"player.loadVideoById('{id}');");
+            return false;
         }
 
         public async Task<bool> Play()
         {
-            JavascriptResponse? result = await _chromeBrowser.EvaluateScriptAsync("player.playVideo();");
-            return result.Success;
+            string result = await _webView2Browser!.ExecuteScriptAsync("player.playVideo();");
+            return false;
         }
 
         public async Task<bool> Pause()
         {
-            JavascriptResponse? result = await _chromeBrowser.EvaluateScriptAsync("player.pauseVideo();");
-            return result.Success;
+            string result = await _webView2Browser!.ExecuteScriptAsync("player.pauseVideo();");
+            return false;
         }
 
         public async Task<string> GetPlaybackDevice()
@@ -210,18 +206,14 @@ namespace TwitchSongRequest.Services.Api
             getCurrentAudioOutput();
             ";
 
-            JavascriptResponse result = await _chromeBrowser.EvaluateScriptAsync(script);
-            if (result.Success && result.Result != null)
-            {
-                return result.Result.ToString()!;
-            }
+            string result = await _webView2Browser!.ExecuteScriptAsync(script);
 
             return string.Empty;
         }
 
         public async Task<bool> SetPlaybackDevice(string device)
         {
-            if (_chromeBrowser!.IsBrowserInitialized && _chromeBrowser.CanExecuteJavascriptInMainFrame)
+            if (_webView2Browser!.IsInitialized && _webView2Browser!.IsLoaded)
             {
                 string script = $@"
                 async function setAudioOutput() {{
@@ -244,8 +236,9 @@ namespace TwitchSongRequest.Services.Api
                 setAudioOutput();
                 ";
 
-                var result = await _chromeBrowser.EvaluateScriptAsync(script);
-                return result.Success && result.Result != null && Convert.ToBoolean(result.Result);
+                string result = await _webView2Browser!.ExecuteScriptAsync(script);
+
+                return false;
             }
 
             return false;
@@ -253,34 +246,28 @@ namespace TwitchSongRequest.Services.Api
 
         public async Task<int> GetPosition()
         {
-            JavascriptResponse? response = await _chromeBrowser.EvaluateScriptAsync("player.getCurrentTime();");
-            if (response.Success && response.Result != null)
-            {
-                return Convert.ToInt32(response.Result);
-            }
+            string result = await _webView2Browser!.ExecuteScriptAsync("player.getCurrentTime();");
+
             return -1;
         }
 
         public async Task<bool> SetPosition(int position)
         {
-            JavascriptResponse? result = await _chromeBrowser.EvaluateScriptAsync($"player.seekTo({position}, true);");
-            return result.Success;
+            string result = await _webView2Browser!.ExecuteScriptAsync($"player.seekTo({position}, true);");
+            return false;
         }
 
         public async Task<int> GetVolume()
         {
-            JavascriptResponse? response = await _chromeBrowser.EvaluateScriptAsync("player.getVolume();");
-            if (response.Success && response.Result != null)
-            {
-                return Convert.ToInt32(response.Result);
-            }
+            string result = await _webView2Browser!.ExecuteScriptAsync("player.getVolume();");
+
             return -1;
         }
 
         public async Task<bool> SetVolume(int volume)
         {
-            JavascriptResponse? result = await _chromeBrowser.EvaluateScriptAsync($"player.setVolume({volume.ToString(CultureInfo.InvariantCulture)});");
-            return result.Success;
+            string result = await _webView2Browser!.ExecuteScriptAsync($"player.setVolume({volume.ToString(CultureInfo.InvariantCulture)});");
+            return false;
         }
     }
 }

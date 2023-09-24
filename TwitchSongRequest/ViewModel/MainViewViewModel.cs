@@ -58,6 +58,8 @@ namespace TwitchSongRequest.ViewModel
                 StatusText = statusEvent;
             };
 
+            _webView2ViewModel = new WebView2ViewModel(this);
+
             _appFilesService = appSettingsService;
             ReadLogsToStatusFeed();
 
@@ -152,6 +154,13 @@ namespace TwitchSongRequest.ViewModel
                 bool result = ToggleStartWithWindows(value);
                 SetProperty(ref _startWithWindows, result);
             }
+        }
+
+        private WebView2ViewModel _webView2ViewModel;
+        public WebView2ViewModel WebView2ViewModel
+        {
+            get => _webView2ViewModel;
+            set => SetProperty(ref _webView2ViewModel, value);
         }
 
         public AppSettings AppSettings
@@ -780,8 +789,8 @@ namespace TwitchSongRequest.ViewModel
                 }
 
                 // make sure other song services are not playing
-                await _youtubeSongService.Pause();
-                await _spotifySongService.Pause();
+                //await _youtubeSongService.Pause();
+                //await _spotifySongService.Pause();
 
                 // play current song
                 if (CurrentSong.Service != null)
@@ -1015,7 +1024,7 @@ namespace TwitchSongRequest.ViewModel
             _loggerService.LogInfo("Setting up Youtube Service");
             try
             {
-                await _youtubeSongService.SetupService(playbackDevice, volume);
+                await _youtubeSongService.SetupService(WebView2ViewModel.WebView2Browser, playbackDevice, volume);
                 _loggerService.LogSuccess("Set up Youtube Service");
             }
             catch (Exception ex)
