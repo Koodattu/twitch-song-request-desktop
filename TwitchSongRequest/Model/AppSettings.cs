@@ -12,6 +12,8 @@
         public bool AutoPlay { get; set; }
         public bool ReplyWithBot { get; set; }
         public bool RefundAllPoints { get; set; }
+        public bool StartMinimized { get; set; }
+        public bool SpotifyAddToQueue { get; set; }
         public SongRequestPlatform SongSearchPlatform { get; set; }
     }
 }

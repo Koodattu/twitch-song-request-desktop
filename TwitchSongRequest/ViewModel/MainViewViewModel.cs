@@ -1,5 +1,6 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Microsoft.Win32;
 using NAudio.CoreAudioApi;
 using System;
 using System.Collections.Generic;
@@ -8,6 +9,7 @@ using System.Diagnostics;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
+using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
@@ -133,6 +135,23 @@ namespace TwitchSongRequest.ViewModel
         {
             get => _isSetupOpen;
             set => SetProperty(ref _isSetupOpen, value);
+        }
+
+        private bool _startWithWindows;
+        public bool StartWithWindows
+        {
+            get 
+            {
+                RegistryKey? rk = Registry.CurrentUser.OpenSubKey("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run", true);
+                var x = rk?.GetValue("TwitchSongRequest");
+                _startWithWindows = rk?.GetValue("TwitchSongRequest") != null;
+                return _startWithWindows;
+            }
+            set 
+            {
+                bool result = ToggleStartWithWindows(value);
+                SetProperty(ref _startWithWindows, result);
+            }
         }
 
         public AppSettings AppSettings
@@ -626,6 +645,37 @@ namespace TwitchSongRequest.ViewModel
             OnPropertyChanged(nameof(AppSetup));
         }
 
+        private bool ToggleStartWithWindows(bool e)
+        {
+            _loggerService.LogInfo($"Setting start with windows to: {e}");
+
+            try
+            {
+                RegistryKey? rk = Registry.CurrentUser.OpenSubKey("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run", true);
+
+                // add app to startup
+                if (e == true)
+                {
+                    rk?.SetValue(Assembly.GetExecutingAssembly().GetName().Name, Assembly.GetExecutingAssembly().Location);
+                    _loggerService.LogSuccess("Added app to startup");
+                    return true;
+                }
+                // remove app from startup
+                else
+                {
+                    rk?.DeleteValue(Assembly.GetExecutingAssembly().GetName().Name!, false);
+                    _loggerService.LogSuccess("Removed app from startup");
+                    return false;
+                }
+            }
+            catch (Exception ex)
+            {
+                _loggerService.LogError(ex, $"Unable to set start with windows to: {e}");
+            }
+
+            return e;
+        }
+
         private void OpenStatusFeed()
         {
             IsStatusFeedOpen = !IsStatusFeedOpen;
@@ -854,7 +904,6 @@ namespace TwitchSongRequest.ViewModel
                 else
                 {
                     _loggerService.LogInfo($"Searching for song to add to queue {input} from {requester}");
-                    //TODO: Search for song using selected platform
 
                     if (input.StartsWith("spotify:", StringComparison.OrdinalIgnoreCase) || input.StartsWith("spo:", StringComparison.OrdinalIgnoreCase))
                     {
@@ -873,6 +922,13 @@ namespace TwitchSongRequest.ViewModel
                         platform = AppSettings.SongSearchPlatform;
                     }
 
+                    // remove platform prefix
+                    if (input.Contains(":"))
+                    {
+                        input = input.Split(":")[1];
+                    }
+
+                    // search for song on selected platform
                     switch (platform)
                     {
                         case SongRequestPlatform.Spotify:
@@ -894,6 +950,7 @@ namespace TwitchSongRequest.ViewModel
 
                 string songName = songInfo.SongName + (songInfo.Artist != null ? " - " + songInfo.Artist : "");
 
+                // calculate max song duration
                 int maxSongDurationSeconds = AppSettings.MaxSongDurationMinutes * 60 + AppSettings.MaxSongDurationSeconds;
                 if (songName == null)
                 {

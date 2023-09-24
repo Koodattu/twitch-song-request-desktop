@@ -1,6 +1,5 @@
 ﻿using CefSharp;
 using CefSharp.OffScreen;
-using NAudio.Utils;
 using RestSharp;
 using System;
 using System.Globalization;
