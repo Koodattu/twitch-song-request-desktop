@@ -1,6 +1,6 @@
 ﻿using Newtonsoft.Json;
 using RestSharp;
-using System;
+using System.Linq;
 using System.Net;
 using System.Threading.Tasks;
 using System.Web;
@@ -49,7 +49,7 @@ namespace TwitchSongRequest.Services.Api
         {
             var response = await SendRestRequest("/me/player", Method.Get);
 
-            if (response.Content == null)
+            if (string.IsNullOrWhiteSpace(response.Content))
             {
                 response.ErrorException!.Data.Add("Response", response.Content);
                 throw response.ErrorException!;
@@ -64,7 +64,7 @@ namespace TwitchSongRequest.Services.Api
         {
             var response = await SendRestRequest($"/tracks/{id}", Method.Get);
 
-            if (response.Content == null)
+            if (string.IsNullOrWhiteSpace(response.Content))
             {
                 response.ErrorException!.Data.Add("Response", response.Content);
                 throw response.ErrorException!;
@@ -81,17 +81,29 @@ namespace TwitchSongRequest.Services.Api
         {
             string json = JsonConvert.SerializeObject(new { uris = new[] { $"spotify:track:{id}" } });
             var response = await SendRestRequest("/me/player/play", Method.Put, json);
-            return response.StatusCode == HttpStatusCode.OK;
+            return response.StatusCode == HttpStatusCode.NoContent;
         }
 
         public async Task<bool> Play()
         {
+            SpotifyState? spotifyState = await GetSpotifyState();
+            if (spotifyState?.is_playing == true)
+            {
+                return true;
+            }
+
             var response = await SendRestRequest("/me/player/play", Method.Put);
             return response.StatusCode == HttpStatusCode.NoContent;
         }
 
         public async Task<bool> Pause()
         {
+            SpotifyState? spotifyState = await GetSpotifyState();
+            if (spotifyState?.is_playing == false)
+            {
+                return true;
+            }
+
             var response = await SendRestRequest("/me/player/pause", Method.Put);
             return response.StatusCode == HttpStatusCode.NoContent;
         }
@@ -119,13 +131,13 @@ namespace TwitchSongRequest.Services.Api
         {
             var response = await SendRestRequest($"/search?q={HttpUtility.UrlEncode(query)}&type=track&market=FI&limit=1", Method.Get);
 
-            if (response.Content == null)
+            if (string.IsNullOrWhiteSpace(response.Content))
             {
                 response.ErrorException!.Data.Add("Response", response.Content);
                 throw response.ErrorException!;
             }
 
-            var obj = JsonConvert.DeserializeObject<SpotifySearchResponseJson>(response.Content!);
+            var obj = JsonConvert.DeserializeObject<SpotifySearch>(response.Content!);
 
             SongInfo songInfo = new SongInfo
             {
@@ -136,6 +148,34 @@ namespace TwitchSongRequest.Services.Api
             };
 
             return songInfo;
+        }
+
+        public async Task<string?> GetComputerDevice()
+        {
+            RestResponse? response = await SendRestRequest("/me/player/devices", Method.Get);
+
+            if (string.IsNullOrWhiteSpace(response.Content))
+            {
+                response.ErrorException!.Data.Add("Response", response.Content);
+                throw response.ErrorException!;
+            }
+
+            SpotifyDevices? spotifyDevices = JsonConvert.DeserializeObject<SpotifyDevices>(response.Content!);
+            return spotifyDevices?.devices.FirstOrDefault(x => x.type == "Computer")?.id;
+        }
+
+        public async Task<SpotifyState?> GetSpotifyState()
+        {
+            RestResponse? response = await SendRestRequest("/me/player", Method.Get);
+
+            if (string.IsNullOrWhiteSpace(response.Content))
+            {
+                response.ErrorException!.Data.Add("Response", response.Content);
+                throw response.ErrorException!;
+            }
+
+            SpotifyState? spotifyState = JsonConvert.DeserializeObject<SpotifyState>(response.Content!);
+            return spotifyState;
         }
     }
 }

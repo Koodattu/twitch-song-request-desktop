@@ -40,7 +40,8 @@ namespace TwitchSongRequest.ViewModel
         private readonly ISpotifySongService _spotifySongService;
         private readonly IYoutubeSongService _youtubeSongService;
 
-        private readonly DispatcherTimer dispatcherTimer;
+        private readonly DispatcherTimer everySecondTimer;
+        private readonly DispatcherTimer fifteenSecondTimer;
 
         public MainViewViewModel(ILoggerService loggerService, IAppFilesService appSettingsService, ITwitchAuthService twitchAuthService, ISpotifyAuthService spotifyAuthService, ITwitchApiService twitchApiService, ISpotifySongService spotifySongService, IYoutubeSongService youtubeSongService)
         {
@@ -79,8 +80,10 @@ namespace TwitchSongRequest.ViewModel
             SetupYoutubeService(_playbackDevice, _volume);
             ValidateLogins();
 
-            dispatcherTimer = new DispatcherTimer(new TimeSpan(0, 0, 1), DispatcherPriority.Normal, TimerCallback, Application.Current.Dispatcher);
-            dispatcherTimer.Start();
+            everySecondTimer = new DispatcherTimer(new TimeSpan(0, 0, 1), DispatcherPriority.Normal, EverySecondCallback, Application.Current.Dispatcher);
+            everySecondTimer.Start();
+            fifteenSecondTimer = new DispatcherTimer(new TimeSpan(0, 0, 15), DispatcherPriority.Normal, FifteenSecondCallback, Application.Current.Dispatcher);
+            fifteenSecondTimer.Start();
         }
 
         private string _playbackDevice;
@@ -538,8 +541,12 @@ namespace TwitchSongRequest.ViewModel
             try
             {
                 _loggerService.LogInfo("Connecting to Twitch clients");
+
+                _twitchApiService.LogEvent -= OnTwitchClientLogEvent;
                 _twitchApiService.LogEvent += OnTwitchClientLogEvent;
+                _twitchApiService.MessageEvent -= OnTwitchClientMessageReceived;
                 _twitchApiService.MessageEvent += OnTwitchClientMessageReceived;
+
                 var streamerClient = await _twitchApiService.GetTwitchStreamerClient();
                 var botClient = await _twitchApiService.GetTwitchBotClient();
                 _loggerService.LogSuccess("Connected to Twitch clients");
@@ -786,6 +793,7 @@ namespace TwitchSongRequest.ViewModel
                 // play current song
                 if (CurrentSong.Service != null)
                 {
+                    Position = 0;
                     bool result = await CurrentSong.Service.PlaySong(CurrentSong.Id!);
                     PlaybackStatus = result ? PlaybackStatus.Playing : PlaybackStatus.Error;
                     // reply in chat
@@ -1086,6 +1094,9 @@ namespace TwitchSongRequest.ViewModel
                 var setNameAction = new Action<string>(name => AppSetup.SpotifyInfo.AccountName = name);
                 await ValidateLogin(statusAction, _spotifyAuthService.ValidateOAuthTokens, _spotifyAuthService.RefreshOAuthTokens, setTokensAction, setNameAction);
                 _loggerService.LogSuccess("Successfully validated Spotify login");
+
+                _loggerService.LogInfo("Getting Spotify devices");
+                AppSetup.SpotifyDevice = await _spotifySongService.GetComputerDevice();
             }
             catch (Exception ex)
             {
@@ -1138,7 +1149,7 @@ namespace TwitchSongRequest.ViewModel
             }
         }
 
-        private async void TimerCallback(object? sender, EventArgs e)
+        private void EverySecondCallback(object? sender, EventArgs e)
         {
             // if not playing, do nothing
             if (PlaybackStatus != PlaybackStatus.Playing)
@@ -1150,18 +1161,32 @@ namespace TwitchSongRequest.ViewModel
             curTime++;
 
             // check if current song is finished
-            if (curTime >= CurrentSong.Duration)
+            if (curTime > CurrentSong.Duration)
             {
                 return;
             }
 
-            // every 15 seconds, check if the song is still playing
-            if (curTime % 15 == 0)
-            {
-                curTime = await CurrentSong.Service!.GetPosition();
-            }
-
             SetProperty(ref _position, curTime, nameof(Position));
+        }
+
+        private async void FifteenSecondCallback(object? sender, EventArgs e)
+        {
+            // every 15 seconds, check if the song is still playing
+            if(CurrentSong.Service != null)
+            {
+                int curTime = Position;
+                if (CurrentSong.Service is SpotifySongService)
+                {
+                    SpotifyState? state = await _spotifySongService.GetSpotifyState();
+                    curTime = state?.progress_ms / 1000 ?? Position;
+                    PlaybackStatus = state?.is_playing == true ? PlaybackStatus.Playing : PlaybackStatus.Paused;
+                }
+                else
+                {
+                    curTime = await CurrentSong.Service.GetPosition();
+                }
+                SetProperty(ref _position, curTime, nameof(Position));
+            }
         }
 
         private void ReadLogsToStatusFeed()

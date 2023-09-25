@@ -10,6 +10,7 @@
         public ClientInfo StreamerInfo { get; set; }
         public ClientInfo BotInfo { get; set; }
         public ClientInfo SpotifyInfo { get; set; }
+        public string? SpotifyDevice { get; set; }
         public string? ChannelRedeemRewardName { get; set; }
         public string? ChannelRedeemRewardId { get; set; }
         public RewardCreationStatus RewardCreationStatus { get; set; }

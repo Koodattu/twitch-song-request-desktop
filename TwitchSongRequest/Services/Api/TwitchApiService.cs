@@ -161,7 +161,7 @@ namespace TwitchSongRequest.Services.Api
             RewardRedemption? redeem = redeems.Data.FirstOrDefault(x => string.Equals(x.UserName, redeemer, StringComparison.OrdinalIgnoreCase) && x.UserInput.Contains(input, StringComparison.OrdinalIgnoreCase));
             if (redeem == null)
             {
-                _loggerService.LogError($"Redeem not found for user {redeemer} with input {input}");
+                _loggerService.LogWarning($"Unable to mark redeem complete for user {redeemer} with input {input}");
                 return false;
             }
 
