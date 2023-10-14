@@ -663,7 +663,7 @@ namespace TwitchSongRequest.ViewModel
                 // add app to startup
                 if (e == true)
                 {
-                    rk?.SetValue(Assembly.GetExecutingAssembly().GetName().Name, Assembly.GetExecutingAssembly().Location);
+                    rk?.SetValue(Assembly.GetExecutingAssembly().GetName().Name, Environment.ProcessPath!);
                     _loggerService.LogSuccess("Added app to startup");
                     return true;
                 }
@@ -1059,6 +1059,7 @@ namespace TwitchSongRequest.ViewModel
                 var setTokensAction = new Action<ServiceOAuthToken>(tokens => AppSetup.StreamerAccessTokens = tokens);
                 var setNameAction = new Action<string>(name => AppSetup.StreamerInfo.AccountName = name);
                 await ValidateLogin(statusAction, _twitchAuthService.ValidateStreamerOAuthTokens, _twitchAuthService.RefreshStreamerOAuthTokens, setTokensAction, setNameAction);
+                SaveAppSetup();
                 _loggerService.LogSuccess("Successfully validated Twitch Streamer login");
             }
             catch (Exception ex)
@@ -1076,6 +1077,7 @@ namespace TwitchSongRequest.ViewModel
                 var setTokensAction = new Action<ServiceOAuthToken>(tokens => AppSetup.BotAccessTokens = tokens);
                 var setNameAction = new Action<string>(name => AppSetup.BotInfo.AccountName = name);
                 await ValidateLogin(statusAction, _twitchAuthService.ValidateBotOAuthTokens, _twitchAuthService.RefreshBotOAuthTokens, setTokensAction, setNameAction);
+                SaveAppSetup();
                 _loggerService.LogSuccess("Successfully validated Twitch Bot login");
             }
             catch (Exception ex)
@@ -1093,6 +1095,7 @@ namespace TwitchSongRequest.ViewModel
                 var setTokensAction = new Action<ServiceOAuthToken>(tokens => AppSetup.SpotifyAccessTokens = tokens);
                 var setNameAction = new Action<string>(name => AppSetup.SpotifyInfo.AccountName = name);
                 await ValidateLogin(statusAction, _spotifyAuthService.ValidateOAuthTokens, _spotifyAuthService.RefreshOAuthTokens, setTokensAction, setNameAction);
+                SaveAppSetup();
                 _loggerService.LogSuccess("Successfully validated Spotify login");
 
                 _loggerService.LogInfo("Getting Spotify devices");
