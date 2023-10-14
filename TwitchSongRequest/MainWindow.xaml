@@ -19,6 +19,7 @@
     StateChanged="AdonisWindow_StateChanged"
     TitleBarBackground="{StaticResource TitleGradientBrush}"
     WindowStartupLocation="CenterScreen"
+    WindowState="{Binding MainWindowState}"
     mc:Ignorable="d">
 
     <i:Interaction.Triggers>

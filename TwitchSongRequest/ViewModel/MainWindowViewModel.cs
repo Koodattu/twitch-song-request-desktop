@@ -1,7 +1,9 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.Extensions.DependencyInjection;
+using System.Windows;
 using System.Windows.Input;
+using TwitchSongRequest.Services.App;
 
 namespace TwitchSongRequest.ViewModel
 {
@@ -9,14 +11,25 @@ namespace TwitchSongRequest.ViewModel
     {
         public MainWindowViewModel()
         {
-            _title = "Twitch Music Song Request Bot";
+            IAppFilesService? appFilesService = App.Current.Services.GetService<IAppFilesService>();
+            if (appFilesService != null)
+            {
+                MainWindowState = appFilesService.AppSettings.StartMinimized ? WindowState.Minimized : WindowState.Normal;
+            }
         }
 
-        private string _title;
+        private string _title = "Twitch Music Song Request Bot";
         public string Title
         {
             get => _title;
             set => SetProperty(ref _title, value);
+        }
+
+        private WindowState _mainWindowState;
+        public WindowState MainWindowState
+        {
+            get => _mainWindowState;
+            set => SetProperty(ref _mainWindowState, value);
         }
 
         public ICommand WindowClosingCommand => new RelayCommand(WindowClosing);
