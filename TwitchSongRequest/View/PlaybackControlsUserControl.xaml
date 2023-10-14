@@ -41,7 +41,8 @@
                 Width="48"
                 Height="28"
                 Margin="0,0,24,0"
-                Content="Auto">
+                Content="Auto"
+                IsChecked="{Binding AppSettings.AutoPlay}">
                 <ToggleButton.Style>
                     <Style BasedOn="{StaticResource {x:Type ToggleButton}}" TargetType="{x:Type ToggleButton}">
                         <Style.Triggers>
