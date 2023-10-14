@@ -8,7 +8,7 @@
     d:DesignWidth="800"
     mc:Ignorable="d">
 
-    <Grid Margin="8">
+    <Grid Margin="0,4,-8,-12">
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="*" />
             <ColumnDefinition Width="*" />
@@ -43,33 +43,42 @@
 
         <Label
             Grid.Row="2"
+            Margin="4,0"
+            HorizontalAlignment="Right"
             VerticalAlignment="Center"
             Content="Twitch Streamer" />
         <Label
             Grid.Row="2"
             Grid.Column="1"
+            Margin="4,0"
             VerticalAlignment="Center"
             Content="{Binding Connections.StreamerStatus}"
             Foreground="{Binding Connections.StreamerStatus, Converter={StaticResource StatusToColorConverter}}" />
 
         <Label
             Grid.Row="3"
+            Margin="4,0"
+            HorizontalAlignment="Right"
             VerticalAlignment="Center"
             Content="Twitch Bot" />
         <Label
             Grid.Row="3"
             Grid.Column="1"
+            Margin="4,0"
             VerticalAlignment="Center"
             Content="{Binding Connections.BotStatus}"
             Foreground="{Binding Connections.BotStatus, Converter={StaticResource StatusToColorConverter}}" />
 
         <Label
             Grid.Row="4"
+            Margin="4,0"
+            HorizontalAlignment="Right"
             VerticalAlignment="Center"
             Content="Spotify" />
         <Label
             Grid.Row="4"
             Grid.Column="1"
+            Margin="4,0"
             VerticalAlignment="Center"
             Content="{Binding Connections.SpotifyStatus}"
             Foreground="{Binding Connections.SpotifyStatus, Converter={StaticResource StatusToColorConverter}}" />

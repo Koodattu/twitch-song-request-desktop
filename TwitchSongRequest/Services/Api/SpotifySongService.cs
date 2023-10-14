@@ -80,7 +80,7 @@ namespace TwitchSongRequest.Services.Api
         public async Task<bool> PlaySong(string id)
         {
             string json = JsonConvert.SerializeObject(new { uris = new[] { $"spotify:track:{id}" } });
-            var response = await SendRestRequest("/me/player/play", Method.Put, json);
+            var response = await SendRestRequest($"/me/player/play?device_id={_appFilesService.AppSetup.SpotifyDevice}", Method.Put, json);
             return response.StatusCode == HttpStatusCode.NoContent;
         }
 
@@ -116,7 +116,7 @@ namespace TwitchSongRequest.Services.Api
 
         public async Task<bool> AddSongToQueue(string id)
         {
-            var response = await SendRestRequest($"/me/player/queue?uri=spotify:track:{id}", Method.Post);
+            var response = await SendRestRequest($"/me/player/queue?uri=spotify:track:{id}&device_id={_appFilesService.AppSetup.SpotifyDevice}", Method.Post);
             return response.StatusCode == HttpStatusCode.OK;
         }
 
