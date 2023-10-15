@@ -3,18 +3,21 @@ using CommunityToolkit.Mvvm.Input;
 using Microsoft.Extensions.DependencyInjection;
 using System.Windows;
 using System.Windows.Input;
+using TwitchSongRequest.Model;
 using TwitchSongRequest.Services.App;
 
 namespace TwitchSongRequest.ViewModel
 {
     internal class MainWindowViewModel : ObservableObject
     {
+        private readonly IAppFilesService? _appFilesService;
+
         public MainWindowViewModel()
         {
-            IAppFilesService? appFilesService = App.Current.Services.GetService<IAppFilesService>();
-            if (appFilesService != null)
+            _appFilesService = App.Current.Services.GetService<IAppFilesService>();
+            if (_appFilesService != null)
             {
-                MainWindowState = appFilesService.AppSettings.StartMinimized ? WindowState.Minimized : WindowState.Normal;
+                MainWindowState = _appFilesService.AppSettings.StartMinimized ? WindowState.Minimized : WindowState.Normal;
             }
         }
 
@@ -23,6 +26,32 @@ namespace TwitchSongRequest.ViewModel
         {
             get => _title;
             set => SetProperty(ref _title, value);
+        }
+
+        public SongRequest? CurrentSongRequest
+        {
+            get
+            {
+                MainViewViewModel? viewModel = App.Current.Services.GetService<MainViewViewModel>();
+                return viewModel?.CurrentSong;
+            }
+        }
+
+        public PlaybackStatus? PlaybackStatus
+        {
+            get
+            {
+                MainViewViewModel? viewModel = App.Current.Services.GetService<MainViewViewModel>();
+                return viewModel?.PlaybackStatus;
+            }
+        }
+
+        public string? AutoPlayStatus
+        {
+            get
+            {
+                return _appFilesService!.AppSettings.AutoPlay ? "AutoPlay: On" : "AutoPlay: Off";
+            }
         }
 
         private WindowState _mainWindowState;

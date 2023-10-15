@@ -29,10 +29,7 @@
     </i:Interaction.Triggers>
 
     <Grid>
-        <tb:TaskbarIcon
-            IconSource="Assets/Cassette.ico"
-            ToolTipText="Twitch Song Request Bot: Currently Playing: SONG NAME"
-            TrayLeftMouseDown="TaskbarIcon_TrayLeftMouseDown">
+        <tb:TaskbarIcon IconSource="Assets/Cassette.ico" TrayLeftMouseDown="TaskbarIcon_TrayLeftMouseDown">
             <tb:TaskbarIcon.ContextMenu>
                 <ContextMenu Background="DarkGray">
                     <MenuItem Click="TrayShow_Click" Header="Open" />
@@ -43,8 +40,11 @@
             <tb:TaskbarIcon.TrayToolTip>
                 <StackPanel Background="LightGray">
                     <TextBlock Margin="4,4,4,0" Text="Twitch Song Request Bot" />
-                    <TextBlock Margin="4,0" Text="Currently Playing: SONG NAME" />
-                    <TextBlock Margin="4,0,4,4" Text="Platform: Spotify" />
+                    <TextBlock Margin="4,0" Text="{Binding AutoPlayStatus}" />
+                    <TextBlock Margin="4,0" Text="{Binding PlaybackStatus}" />
+                    <TextBlock Margin="4,0" Text="{Binding CurrentSongRequest.SongName}" />
+                    <TextBlock Margin="4,0" Text="{Binding CurrentSongRequest.Requester}" />
+                    <TextBlock Margin="4,0,4,4" Text="{Binding CurrentSongRequest.Platform}" />
                 </StackPanel>
             </tb:TaskbarIcon.TrayToolTip>
         </tb:TaskbarIcon>
