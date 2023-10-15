@@ -34,12 +34,22 @@ namespace TwitchSongRequest.Services.Api
                 request.AddJsonBody(jsonBody);
             }
 
-            var response = await restClient.ExecuteAsync(request);
+            RestResponse? response = await restClient.ExecuteAsync(request);
 
             if (!response.IsSuccessful)
             {
-                response.ErrorException!.Data.Add("Response", response.Content);
-                throw response.ErrorException!;
+                // If the access token has expired, refresh it and try again
+                if (response.StatusCode == HttpStatusCode.Unauthorized && response.Content != null && response.Content.Contains("expired"))
+                {
+                    ServiceOAuthToken spotifyTokens = await _spotifyAuthService.RefreshOAuthTokens();
+                    _appFilesService.AppSetup.SpotifyAccessTokens = spotifyTokens;
+                    return await SendRestRequest(resource, method, jsonBody);
+                }
+                else
+                {
+                    response.ErrorException!.Data.Add("Response", response.Content);
+                    throw response.ErrorException!;
+                }
             }
 
             return response;
@@ -47,7 +57,7 @@ namespace TwitchSongRequest.Services.Api
 
         public async Task<int> GetPosition()
         {
-            var response = await SendRestRequest("/me/player", Method.Get);
+            RestResponse? response = await SendRestRequest("/me/player", Method.Get);
 
             if (string.IsNullOrWhiteSpace(response.Content))
             {
@@ -62,7 +72,7 @@ namespace TwitchSongRequest.Services.Api
 
         public async Task<SongInfo> GetSongInfo(string id)
         {
-            var response = await SendRestRequest($"/tracks/{id}", Method.Get);
+            RestResponse? response = await SendRestRequest($"/tracks/{id}", Method.Get);
 
             if (string.IsNullOrWhiteSpace(response.Content))
             {
@@ -80,7 +90,7 @@ namespace TwitchSongRequest.Services.Api
         public async Task<bool> PlaySong(string id)
         {
             string json = JsonConvert.SerializeObject(new { uris = new[] { $"spotify:track:{id}" } });
-            var response = await SendRestRequest($"/me/player/play?device_id={_appFilesService.AppSetup.SpotifyDevice}", Method.Put, json);
+            RestResponse? response = await SendRestRequest($"/me/player/play?device_id={_appFilesService.AppSetup.SpotifyDevice}", Method.Put, json);
             return response.StatusCode == HttpStatusCode.NoContent;
         }
 
@@ -92,7 +102,7 @@ namespace TwitchSongRequest.Services.Api
                 return true;
             }
 
-            var response = await SendRestRequest("/me/player/play", Method.Put);
+            RestResponse? response = await SendRestRequest("/me/player/play", Method.Put);
             return response.StatusCode == HttpStatusCode.NoContent;
         }
 
@@ -104,32 +114,32 @@ namespace TwitchSongRequest.Services.Api
                 return true;
             }
 
-            var response = await SendRestRequest("/me/player/pause", Method.Put);
+            RestResponse? response = await SendRestRequest("/me/player/pause", Method.Put);
             return response.StatusCode == HttpStatusCode.NoContent;
         }
 
         public async Task<bool> Skip()
         {
-            var response = await SendRestRequest("/me/player/next", Method.Post);
+            RestResponse? response = await SendRestRequest("/me/player/next", Method.Post);
             return response.StatusCode == HttpStatusCode.NoContent;
         }
 
         public async Task<bool> AddSongToQueue(string id)
         {
-            var response = await SendRestRequest($"/me/player/queue?uri=spotify:track:{id}&device_id={_appFilesService.AppSetup.SpotifyDevice}", Method.Post);
+            RestResponse? response = await SendRestRequest($"/me/player/queue?uri=spotify:track:{id}&device_id={_appFilesService.AppSetup.SpotifyDevice}", Method.Post);
             return response.StatusCode == HttpStatusCode.OK;
         }
 
         public async Task<bool> SetPosition(int position)
         {
             int positionMs = position * 1000;
-            var response = await SendRestRequest($"/me/player/seek?position_ms={positionMs}", Method.Put);
+            RestResponse? response = await SendRestRequest($"/me/player/seek?position_ms={positionMs}", Method.Put);
             return response.StatusCode == HttpStatusCode.NoContent;
         }
 
         public async Task<SongInfo> SearchSong(string query)
         {
-            var response = await SendRestRequest($"/search?q={HttpUtility.UrlEncode(query)}&type=track&market=FI&limit=1", Method.Get);
+            RestResponse? response = await SendRestRequest($"/search?q={HttpUtility.UrlEncode(query)}&type=track&market=FI&limit=1", Method.Get);
 
             if (string.IsNullOrWhiteSpace(response.Content))
             {
@@ -137,14 +147,14 @@ namespace TwitchSongRequest.Services.Api
                 throw response.ErrorException!;
             }
 
-            var obj = JsonConvert.DeserializeObject<SpotifySearch>(response.Content!);
+            SpotifySearch? searchResult = JsonConvert.DeserializeObject<SpotifySearch>(response.Content!);
 
             SongInfo songInfo = new SongInfo
             {
-                SongName = obj!.tracks.items[0].name,
-                Artist = obj!.tracks.items[0].artists[0].name,
-                Duration = obj!.tracks.items[0].duration_ms / 1000,
-                SongId = obj!.tracks.items[0].id
+                SongName = searchResult?.tracks?.items?[0].name,
+                Artist = searchResult?.tracks?.items?[0].artists?[0].name,
+                Duration = searchResult!.tracks!.items![0].duration_ms / 1000,
+                SongId = searchResult!.tracks.items[0].id
             };
 
             return songInfo;
@@ -161,7 +171,7 @@ namespace TwitchSongRequest.Services.Api
             }
 
             SpotifyDevices? spotifyDevices = JsonConvert.DeserializeObject<SpotifyDevices>(response.Content!);
-            return spotifyDevices?.devices.FirstOrDefault(x => x.type == "Computer")?.id;
+            return spotifyDevices?.devices?.FirstOrDefault(x => x.type == "Computer")?.id;
         }
 
         public async Task<SpotifyState?> GetSpotifyState()

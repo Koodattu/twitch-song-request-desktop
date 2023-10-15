@@ -21,14 +21,15 @@
         </Grid.ColumnDefinitions>
 
         <Label
-            Margin="16,0"
+            Margin="4,0"
             HorizontalAlignment="Right"
             VerticalAlignment="Center"
             Content="Status" />
         <Label
             Grid.Column="1"
-            Margin="16,0"
+            Margin="4,0"
             VerticalAlignment="Center"
+            HorizontalAlignment="Left"
             Content="{Binding PlaybackStatus}"
             Foreground="{Binding PlaybackStatus, Converter={StaticResource StatusToColorConverter}}" />
 

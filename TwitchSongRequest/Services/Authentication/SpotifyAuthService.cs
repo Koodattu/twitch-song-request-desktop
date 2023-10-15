@@ -34,10 +34,10 @@ namespace TwitchSongRequest.Services.Authentication
             WebBrowserLauncher.Launch(info.Browser, authorizationUrl);
 
             // Start the local HTTP server to handle the redirect
-            string code = await StartHttpServer(cancellationToken);
+            string? code = await StartHttpServer(cancellationToken);
 
             // Exchange the authorization code for an access token
-            ServiceOAuthToken token = await ExchangeAuthorizationCodeForToken(code);
+            ServiceOAuthToken token = await ExchangeAuthorizationCodeForToken(code!);
             return token;
         }
 
@@ -74,17 +74,17 @@ namespace TwitchSongRequest.Services.Authentication
         {
             ServiceOAuthToken tokens = _appSettingsService.AppSetup.SpotifyAccessTokens;
 
-            var restClient = new RestClient("https://api.spotify.com/v1/me");
-            var request = new RestRequest("/", Method.Get);
+            RestClient restClient = new RestClient("https://api.spotify.com/v1/me");
+            RestRequest request = new RestRequest("/", Method.Get);
 
             request.AddHeader("Authorization", $"Bearer {tokens.AccessToken}");
 
-            var response = await restClient.ExecuteAsync(request);
+            RestResponse response = await restClient.ExecuteAsync(request);
 
             if (response.IsSuccessful && response.StatusCode == HttpStatusCode.OK && response.Content != null)
             {
                 var obj = JsonConvert.DeserializeObject<dynamic>(response.Content);
-                return obj.id;
+                return obj!.id;
             }
             else
             {
@@ -92,7 +92,7 @@ namespace TwitchSongRequest.Services.Authentication
                 throw response.ErrorException!;
             }
         }
-        private async Task<string> StartHttpServer(CancellationToken cancellationToken)
+        private async Task<string?> StartHttpServer(CancellationToken cancellationToken)
         {
             if (!_httpListener!.IsListening)
             {
@@ -100,7 +100,7 @@ namespace TwitchSongRequest.Services.Authentication
             }
 
             // Use a cancellation token source for the timeout functionality
-            var cts = new CancellationTokenSource();
+            CancellationTokenSource cts = new CancellationTokenSource();
 
             try
             {
@@ -121,7 +121,7 @@ namespace TwitchSongRequest.Services.Authentication
                 var response = context.Response;
 
                 // Parse the authorization code from the query parameters
-                string code = request.QueryString["code"];
+                string? code = request.QueryString["code"];
 
                 // Return a response to the browser
                 byte[] responseBytes = Encoding.UTF8.GetBytes("Authorization successful. You may close this window.");

@@ -29,8 +29,8 @@ namespace TwitchSongRequest.Services.Api
         private TwitchClient? streamerClient;
         private TwitchClient? botClient;
 
-        public event Action<ChatMessage> MessageEvent;
-        public event Action<object?, OnLogArgs> LogEvent;
+        public event Action<ChatMessage>? MessageEvent;
+        public event Action<object?, OnLogArgs>? LogEvent;
 
         public TwitchApiService(IAppFilesService appSettingsService, ILoggerService loggerService, ITwitchAuthService twitchAuthService)
         {
@@ -75,11 +75,11 @@ namespace TwitchSongRequest.Services.Api
             TwitchClient twitchClient = new TwitchClient(customClient);
             ConnectionCredentials credentials = new ConnectionCredentials(clientName, accessToken);
             twitchClient.Initialize(credentials);
-            twitchClient.OnLog += (s, e) => LogEvent.Invoke(s, e);
+            twitchClient.OnLog += (s, e) => LogEvent?.Invoke(s, e);
             twitchClient.OnConnected += (s, e) => twitchClient.JoinChannel(channelName);
             if (receiveMessageEvents)
             {
-                twitchClient.OnMessageReceived += (s, e) => MessageEvent.Invoke(e.ChatMessage);
+                twitchClient.OnMessageReceived += (s, e) => MessageEvent?.Invoke(e.ChatMessage);
             }
             twitchClient.Connect();
 
