@@ -96,6 +96,8 @@ namespace TwitchSongRequest.Services.Api
             if (titleMatch.Success)
             {
                 title = titleMatch.Groups[1].Value;
+                title = Regex.Unescape(title);
+                title = System.Net.WebUtility.HtmlDecode(title);
             }
 
             // Finding the duration is a bit trickier as it's usually embedded in the JavaScript
@@ -143,6 +145,7 @@ namespace TwitchSongRequest.Services.Api
             {
                 title = titleMatch.Groups[1].Value;
                 title = Regex.Unescape(title);
+                title = System.Net.WebUtility.HtmlDecode(title);
             }
 
             // Regex to find video duration

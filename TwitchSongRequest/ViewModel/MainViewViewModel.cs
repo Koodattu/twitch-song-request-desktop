@@ -581,6 +581,13 @@ namespace TwitchSongRequest.ViewModel
             // check if message is a redeem
             if (string.IsNullOrWhiteSpace(chatMessage.CustomRewardId))
             {
+                if (chatMessage.Message.StartsWith("!srb skip") && (chatMessage.IsModerator || chatMessage.DisplayName == CurrentSong.Requester))
+                {
+                    await App.Current.Dispatcher.Invoke(async delegate
+                    {
+                        await PlayNextSong();
+                    });
+                }
                 return;
             }
 
@@ -805,6 +812,11 @@ namespace TwitchSongRequest.ViewModel
                 else
                 {
                     PlaybackStatus = AppSettings.AutoPlay ? PlaybackStatus.Waiting : PlaybackStatus.Paused;
+
+                    if (AppSettings.AutoPlay && Connections.SpotifyStatus == ConnectionStatus.Connected)
+                    {
+                        await _spotifySongService.Play();
+                    }
                 }
             }
             catch (Exception ex)
@@ -1188,14 +1200,15 @@ namespace TwitchSongRequest.ViewModel
                     // finished playing current song, move to history
                     if (CurrentSong.Service != null)
                     {
-                        if (AppSettings.AutoPlay && Connections.SpotifyStatus == ConnectionStatus.Connected)
+                        /*if (AppSettings.AutoPlay && Connections.SpotifyStatus == ConnectionStatus.Connected)
                         {
                             await _spotifySongService.Play();
                         }
                         await _twitchApiService.CompleteRedeem(CurrentSong.Requester!, CurrentSong.RequestInput!, false);
                         SongRequestHistory.Insert(0, CurrentSong);
                         CurrentSong = new SongRequest();
-                        Position = 0;
+                        Position = 0;*/
+                        await PlayNextSong();
                     }
                 }
                 return;

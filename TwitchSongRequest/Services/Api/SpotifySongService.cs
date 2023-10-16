@@ -57,7 +57,7 @@ namespace TwitchSongRequest.Services.Api
 
         public async Task<int> GetPosition()
         {
-            RestResponse? response = await SendRestRequest("/me/player", Method.Get);
+            RestResponse? response = await SendRestRequest($"/me/player?device_id={_appFilesService.AppSetup.SpotifyDevice}", Method.Get);
 
             if (string.IsNullOrWhiteSpace(response.Content))
             {
@@ -102,7 +102,7 @@ namespace TwitchSongRequest.Services.Api
                 return true;
             }
 
-            RestResponse? response = await SendRestRequest("/me/player/play", Method.Put);
+            RestResponse? response = await SendRestRequest($"/me/player/play?device_id={_appFilesService.AppSetup.SpotifyDevice}", Method.Put);
             return response.StatusCode == HttpStatusCode.NoContent;
         }
 
@@ -114,7 +114,7 @@ namespace TwitchSongRequest.Services.Api
                 return true;
             }
 
-            RestResponse? response = await SendRestRequest("/me/player/pause", Method.Put);
+            RestResponse? response = await SendRestRequest($"/me/player/pause?device_id={_appFilesService.AppSetup.SpotifyDevice}", Method.Put);
             return response.StatusCode == HttpStatusCode.NoContent;
         }
 
@@ -176,15 +176,24 @@ namespace TwitchSongRequest.Services.Api
 
         public async Task<SpotifyState?> GetSpotifyState()
         {
-            RestResponse? response = await SendRestRequest("/me/player", Method.Get);
+            RestResponse? response = await SendRestRequest($"/me/player?device_id={_appFilesService.AppSetup.SpotifyDevice}", Method.Get);
 
-            if (string.IsNullOrWhiteSpace(response.Content))
+            SpotifyState? spotifyState;
+
+            if (response.StatusCode == HttpStatusCode.OK)
+            {
+                spotifyState = JsonConvert.DeserializeObject<SpotifyState>(response.Content!);
+            }
+            else if (response.StatusCode == HttpStatusCode.NoContent)
+            {
+                spotifyState = new SpotifyState { is_playing = false };
+            } 
+            else
             {
                 response.ErrorException!.Data.Add("Response", response.Content);
                 throw response.ErrorException!;
             }
 
-            SpotifyState? spotifyState = JsonConvert.DeserializeObject<SpotifyState>(response.Content!);
             return spotifyState;
         }
     }
