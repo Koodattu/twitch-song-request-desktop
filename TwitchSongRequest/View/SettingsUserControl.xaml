@@ -59,7 +59,6 @@
                     Orientation="Horizontal">
                     <CheckBox
                         Margin="24,0"
-                        Command="{Binding StartWithWindowsCommand}"
                         CommandParameter="{Binding IsChecked, RelativeSource={RelativeSource Self}}"
                         Content="Start with Windows"
                         IsChecked="{Binding StartWithWindows}" />

@@ -1188,10 +1188,14 @@ namespace TwitchSongRequest.ViewModel
                     // finished playing current song, move to history
                     if (CurrentSong.Service != null)
                     {
+                        if (AppSettings.AutoPlay && Connections.SpotifyStatus == ConnectionStatus.Connected)
+                        {
+                            await _spotifySongService.Play();
+                        }
+                        await _twitchApiService.CompleteRedeem(CurrentSong.Requester!, CurrentSong.RequestInput!, false);
                         SongRequestHistory.Insert(0, CurrentSong);
                         CurrentSong = new SongRequest();
                         Position = 0;
-                        await _twitchApiService.CompleteRedeem(CurrentSong.Requester!, CurrentSong.RequestInput!, false);
                     }
                 }
                 return;
@@ -1221,10 +1225,6 @@ namespace TwitchSongRequest.ViewModel
                 if (CurrentSong.Service is SpotifySongService)
                 {
                     SpotifyState? state = await _spotifySongService.GetSpotifyState();
-                    if (AppSettings.SpotifyAddToQueue)
-                    {
-
-                    }
                     if (state?.item?.id == CurrentSong.Id)
                     {
                         curTime = state?.progress_ms / 1000 ?? Position;

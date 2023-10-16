@@ -7,16 +7,18 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using TwitchSongRequest.Model;
+using TwitchSongRequest.Services.App;
 
 namespace TwitchSongRequest.Services.Api
 {
     internal class YoutubeSongService : IYoutubeSongService
     {
+        private IAppFilesService _appFilesService;
         private ChromiumWebBrowser? _chromeBrowser;
 
-        public YoutubeSongService()
+        public YoutubeSongService(IAppFilesService appFilesService)
         {
-
+            _appFilesService = appFilesService;
         }
 
         public async Task SetupService(string playbackDevice, int volume)
@@ -67,8 +69,8 @@ namespace TwitchSongRequest.Services.Api
             _chromeBrowser.LoadHtml(html, "https://www.youtube.com");
             await _chromeBrowser.WaitForNavigationAsync();
 
-            await SetPlaybackDevice(playbackDevice);
-            await SetVolume(volume);
+            bool setDevice = await SetPlaybackDevice(playbackDevice);
+            bool setVolume = await SetVolume(volume);
         }
 
         private void OnBrowserJavascriptMessageReceived(object? sender, JavascriptMessageReceivedEventArgs e)
@@ -176,6 +178,7 @@ namespace TwitchSongRequest.Services.Api
         public async Task<bool> PlaySong(string id)
         {
             JavascriptResponse? result = await _chromeBrowser.EvaluateScriptAsync($"player.loadVideoById('{id}');");
+            bool setDevice = await SetPlaybackDevice(_appFilesService.AppSettings.PlaybackDevice!);
             return result.Success;
         }
 
