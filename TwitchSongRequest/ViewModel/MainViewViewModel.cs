@@ -273,6 +273,15 @@ namespace TwitchSongRequest.ViewModel
                 // songs in queue but no current song so add first song from queue to current song
                 if (CurrentSong.Service != null)
                 {
+                    if (CurrentSong.Service is SpotifySongService)
+                    {
+                        SpotifyState? spotifyState = await _spotifySongService.GetSpotifyState();
+                        // dont command spotify if songs dont match
+                        if (spotifyState?.item?.id != CurrentSong.Id)
+                        {
+                            return;
+                        }
+                    }
                     result = await _currentSong.Service!.Play();
                 }
                 else
@@ -304,6 +313,15 @@ namespace TwitchSongRequest.ViewModel
             bool result;
             try
             {
+                if (CurrentSong.Service is SpotifySongService)
+                {
+                    SpotifyState? spotifyState = await _spotifySongService.GetSpotifyState();
+                    // dont command spotify if songs dont match
+                    if (spotifyState?.item?.id != CurrentSong.Id)
+                    {
+                        return;
+                    }
+                }
                 result = await _currentSong.Service!.Pause();
             }
             catch (Exception ex)
@@ -765,13 +783,15 @@ namespace TwitchSongRequest.ViewModel
         {
             try
             {
+                // set playback status
+                PlaybackStatus = AppSettings.AutoPlay ? PlaybackStatus.Waiting : PlaybackStatus.Paused;
+
                 Position = 0;
 
                 // nothing to play since queue is empty and no current song
                 if (SongRequestQueue.Count == 0 && CurrentSong.Service == null)
                 {
                     _loggerService.LogWarning("No songs in queue to play");
-                    PlaybackStatus = PlaybackStatus.Error;
                     return;
                 }
 
@@ -785,35 +805,47 @@ namespace TwitchSongRequest.ViewModel
                 // change current song to next and remove from queue if queue is not empty
                 if (SongRequestQueue.Count > 0)
                 {
-                    CurrentSong = SongRequestQueue.First();
-                    SongRequestQueue.Remove(CurrentSong);
+                    SongRequest nextSong = SongRequestQueue.First();
+                    // add song to spotify queue if enabled
+                    if (nextSong.Platform == SongRequestPlatform.Spotify && AppSettings.SpotifyAddToQueue)
+                    {
+                        await _spotifySongService.AddSongToQueue(nextSong.Id!);
+                    }
+                    CurrentSong = nextSong;
+                    SongRequestQueue.Remove(nextSong);
                 }
                 else
                 {
                     CurrentSong = new SongRequest();
-                    PlaybackStatus = AppSettings.AutoPlay ? PlaybackStatus.Waiting : PlaybackStatus.Paused;
                 }
 
                 // make sure other song services are not playing
                 bool ytPaused = await _youtubeSongService.Pause();
-                bool spoPaused = await _spotifySongService.Pause();
+                if (CurrentSong.Service is not SpotifySongService && CurrentSong.Service != null)
+                {
+                    bool spoPaused = await _spotifySongService.Pause();
+                }
 
                 // play current song
                 if (CurrentSong.Service != null)
                 {
-                    bool result = await CurrentSong.Service.PlaySong(CurrentSong.Id!);
-                    PlaybackStatus = result ? PlaybackStatus.Playing : PlaybackStatus.Error;
-                    // reply in chat
-                    if (AppSettings.ReplyInChat && AppSettings.MessageOnNextSong)
+                    // play song if not spotify and not add to queue behaviour
+                    if (!(CurrentSong.Service is SpotifySongService && AppSettings.SpotifyAddToQueue))
                     {
-                        await _twitchApiService.SendChatMessage(AppSetup.StreamerInfo.AccountName!, $"Now playing: \"{CurrentSong.SongName}\" requested by @{CurrentSong.Requester}");
+                        bool result = await CurrentSong.Service.PlaySong(CurrentSong.Id!);
+                        PlaybackStatus = result ? PlaybackStatus.Playing : PlaybackStatus.Error;
+                        // reply in chat
+                        await AnnounceNextSongInChat();
+                    } 
+                    else if (CurrentSong.Service is SpotifySongService && AppSettings.SpotifyAddToQueue)
+                    {
+                        await _spotifySongService.Play();
                     }
                 }
                 else
                 {
-                    PlaybackStatus = AppSettings.AutoPlay ? PlaybackStatus.Waiting : PlaybackStatus.Paused;
-
-                    if (AppSettings.AutoPlay && Connections.SpotifyStatus == ConnectionStatus.Connected)
+                    // continue playing if autoplay is enabled and spotify is connected and not add to queue behaviour
+                    if (AppSettings.AutoPlay && Connections.SpotifyStatus == ConnectionStatus.Connected && AppSettings.SpotifyAddToQueue)
                     {
                         await _spotifySongService.Play();
                     }
@@ -826,6 +858,14 @@ namespace TwitchSongRequest.ViewModel
                 {
                     await ValidateSpotifyLogin();
                 }
+            }
+        }
+
+        private async Task AnnounceNextSongInChat()
+        {
+            if (AppSettings.ReplyInChat && AppSettings.MessageOnNextSong)
+            {
+                await _twitchApiService.SendChatMessage(AppSetup.StreamerInfo.AccountName!, $"Now playing: \"{CurrentSong.SongName}\" requested by @{CurrentSong.Requester}");
             }
         }
 
@@ -874,10 +914,7 @@ namespace TwitchSongRequest.ViewModel
                 if (input.Contains("youtube.com/", StringComparison.OrdinalIgnoreCase) || input.Contains("youtu.be", StringComparison.OrdinalIgnoreCase))
                 {
                     _loggerService.LogInfo($"Adding youtube song to queue {input} from {requester}");
-                    //https://youtu.be/u54Kf3zxDso
-                    //https://www.youtube.com/watch?v=u54Kf3zxDso
 
-                    //TODO: Add youtube song
                     platform = SongRequestPlatform.Youtube;
                     songService = _youtubeSongService;
 
@@ -891,10 +928,6 @@ namespace TwitchSongRequest.ViewModel
                 {
                     _loggerService.LogInfo($"Adding spotify song to queue {input} from {requester}");
 
-                    //https://open.spotify.com/track/1hEh8Hc9lBAFWUghHBsCel?si=c4cdc1947a184ac0
-                    //spotify:track:6RIbDs0p4XusU2PZSiDgeZ
-
-                    //TODO: Add spotify song
                     platform = SongRequestPlatform.Spotify;
                     songService = _spotifySongService;
 
@@ -984,12 +1017,13 @@ namespace TwitchSongRequest.ViewModel
                 else if (songInfo.Duration > maxSongDurationSeconds)
                 {
                     success = false;
-                    message = $"Unable to add \"{input}\" to queue. Duration is too long (max {AppSettings.MaxSongDurationMinutes} minutes)";
+                    message = $"Unable to add \"{input}\" to queue. Duration is too long (max {AppSettings.MaxSongDurationMinutes} minutes";
+                    message += AppSettings.MaxSongDurationSeconds > 0 ? $" and {AppSettings.MaxSongDurationSeconds} seconds)." : ").";
                 }
                 else
                 {
                     success = true;
-                    message = $"Added \"{songName}\" to queue at position #{SongRequestQueue.Count + 1}.";
+                    message = $"Added \"{songName}\" to queue at position #{(CurrentSong.Service == null ? SongRequestQueue.Count + 1 : SongRequestQueue.Count + 2)}.";
 
                     SongRequest songRequest = new SongRequest
                     {
@@ -1003,15 +1037,11 @@ namespace TwitchSongRequest.ViewModel
                         Service = songService,
                     };
 
+                    // add song to queue with dispatcher since it is called from a different thread
                     App.Current.Dispatcher.Invoke(delegate
                     {
                         SongRequestQueue.Add(songRequest);
                     });
-
-                    if (platform == SongRequestPlatform.Spotify && AppSettings.SpotifyAddToQueue)
-                    {
-                        await _spotifySongService.AddSongToQueue(songInfo.SongId!);
-                    }
                 }
             }
             catch (Exception ex)
@@ -1177,8 +1207,8 @@ namespace TwitchSongRequest.ViewModel
 
         private async void EverySecondCallback(object? sender, EventArgs e)
         {
-            // dont do anything if setup is not done
-            if (!_isSetupDone)
+            // dont do anything if setup is not done or if there is an error or if paused
+            if (!_isSetupDone || PlaybackStatus == PlaybackStatus.Error || PlaybackStatus == PlaybackStatus.Paused)
             {
                 return;
             }
@@ -1187,30 +1217,9 @@ namespace TwitchSongRequest.ViewModel
             curTime++;
 
             // check if current song is finished or if there is no current song
-            if (curTime > CurrentSong.Duration || CurrentSong.Service == null)
+            if (curTime > CurrentSong.Duration && CurrentSong.Duration > 0 || CurrentSong.Service == null && SongRequestQueue.Count > 0 && AppSettings.AutoPlay)
             {
-                // play next song if autoplay is enabled and song queue is not empty
-                if (AppSettings.AutoPlay && SongRequestQueue.Count > 0)
-                {
-                    await PlayNextSong();
-                }
-                else
-                {
-                    PlaybackStatus = AppSettings.AutoPlay ? PlaybackStatus.Waiting : PlaybackStatus.Paused;
-                    // finished playing current song, move to history
-                    if (CurrentSong.Service != null)
-                    {
-                        /*if (AppSettings.AutoPlay && Connections.SpotifyStatus == ConnectionStatus.Connected)
-                        {
-                            await _spotifySongService.Play();
-                        }
-                        await _twitchApiService.CompleteRedeem(CurrentSong.Requester!, CurrentSong.RequestInput!, false);
-                        SongRequestHistory.Insert(0, CurrentSong);
-                        CurrentSong = new SongRequest();
-                        Position = 0;*/
-                        await PlayNextSong();
-                    }
-                }
+                await PlayNextSong();
                 return;
             }
 
@@ -1225,25 +1234,42 @@ namespace TwitchSongRequest.ViewModel
 
         private async void FifteenSecondCallback(object? sender, EventArgs e)
         {
-            // dont do anything if setup is not done
-            if (!_isSetupDone)
+            // dont do anything if setup is not done or if there is an error or if paused
+            if (!_isSetupDone || PlaybackStatus == PlaybackStatus.Error || PlaybackStatus == PlaybackStatus.Paused)
             {
                 return;
             }
 
             // every 15 seconds, check if the song is still playing
-            if (CurrentSong.Service != null && PlaybackStatus == PlaybackStatus.Playing)
+            if (CurrentSong.Service != null)
             {
                 int curTime = Position;
+
+                // specific case for spotify songs
                 if (CurrentSong.Service is SpotifySongService)
                 {
                     SpotifyState? state = await _spotifySongService.GetSpotifyState();
+
+                    // if the current song is playing, update position
                     if (state?.item?.id == CurrentSong.Id)
                     {
                         curTime = state?.progress_ms / 1000 ?? Position;
-                        PlaybackStatus = state?.is_playing == true ? PlaybackStatus.Playing : AppSettings.AutoPlay ? PlaybackStatus.Waiting : PlaybackStatus.Paused;
+                        PlaybackStatus newPlaybackStatus = state?.is_playing == true ? PlaybackStatus.Playing : AppSettings.AutoPlay ? PlaybackStatus.Waiting : PlaybackStatus.Paused;
+                        if (PlaybackStatus == PlaybackStatus.Waiting && newPlaybackStatus == PlaybackStatus.Playing)
+                        {
+                            // reply in chat
+                            await AnnounceNextSongInChat();
+                        }
+                        PlaybackStatus = newPlaybackStatus;
+                    }
+                    // wait for next song
+                    else if (AppSettings.SpotifyAddToQueue)
+                    {
+                        // calculate time until request song is played
+                        int secondsLeft = (state!.item!.duration_ms - state!.progress_ms) / 1000;
                     }
                 }
+                // for all other song services
                 else
                 {
                     curTime = await CurrentSong.Service.GetPosition();
