@@ -30,9 +30,25 @@ Written in C# and WPF.
 
 ## Setup
 
-1. x
-2. y
-3. z
+1. Install .NET 6.0 binaries if necessary
+2. Run the application, click on Setup in the top right corner
+    1. For the appliation to work you will need to connect your Twitch streaming account, create a channel point reward
+    2. Twitch bot account can be used for replying in chat, but you can also use the account you stream on
+    3. If Spotify is not connected, only YouTube song requests will work
+4. Enter your Twitch Client ID and Twitch Client Secret
+    1. Use the arrow on the right hand side to open Twitch developer console
+    2. Create an application, name and category can be anything, redirect url must be http://localhost:8080
+    3. Manage the created application, copy the ID, generate a new secret by clicking on 'new secret' and copy the secret
+5. Connect the Twitch account you stream on by select the browser you use and click on connect
+    1. Multiple browser options are supported if you use different accounts in different browsers
+6. Connect Twitch bot if you wish
+7. Enter reward name and click on create
+    1. You can edit the reward after creation, price, icon, name etc.
+    2. You can use the blue arrow button on the right to quickly open channel point rewards settings
+8. Connect Spotify account in the same way by entering your Spotify client id and secret
+    1. Click on the blue arrow button on the right
+    2. Create app, everything else can be whatever but redirect uri and website must be http://localhost:8080
+    3. Client ID and secret are inside application settings, you can see the secret by clicking on the view secret link
 
 ## Authors
 
