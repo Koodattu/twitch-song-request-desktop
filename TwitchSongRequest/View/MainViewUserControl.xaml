@@ -262,6 +262,7 @@
 
         <views:SettingsUserControl Grid.RowSpan="4" Visibility="{Binding IsSettingsOpen, Converter={StaticResource BoolToVisConverter}, FallbackValue=Collapsed}" />
         <views:SetupUserControl Grid.RowSpan="4" Visibility="{Binding IsSetupOpen, Converter={StaticResource BoolToVisConverter}, FallbackValue=Collapsed}" />
+        <views:AboutUserControl Grid.RowSpan="4" Visibility="{Binding IsAboutOpen, Converter={StaticResource BoolToVisConverter}, FallbackValue=Collapsed}" />
         <ContentControl Grid.RowSpan="4" Content="{Binding ConfirmationDialogViewModel, Mode=OneTime}" />
 
         <ListBox

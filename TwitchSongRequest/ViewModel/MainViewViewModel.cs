@@ -140,6 +140,13 @@ namespace TwitchSongRequest.ViewModel
             set => SetProperty(ref _isSetupOpen, value);
         }
 
+        private bool _isAboutOpen;
+        public bool IsAboutOpen
+        {
+            get => _isAboutOpen;
+            set => SetProperty(ref _isAboutOpen, value);
+        }
+
         private bool _startWithWindows;
         public bool StartWithWindows
         {
@@ -164,6 +171,11 @@ namespace TwitchSongRequest.ViewModel
         public AppSetup AppSetup
         {
             get => _appFilesService.AppSetup;
+        }
+
+        public string AppVersion
+        {
+            get => Assembly.GetExecutingAssembly().GetName().Version!.ToString();
         }
 
         private PlaybackStatus _playbackStatus;
@@ -259,6 +271,8 @@ namespace TwitchSongRequest.ViewModel
         public ICommand OpenSettingsCommand => new RelayCommand(OpenSettings);
         public ICommand SaveSettingsCommand => new RelayCommand(() => CloseSettings(true));
         public ICommand CloseSettingsCommand => new RelayCommand(() => CloseSettings(false));
+        public ICommand OpenAboutCommand => new RelayCommand(OpenAbout);
+        public ICommand CloseAboutCommand => new RelayCommand(CloseAbout);
         public ICommand ResetSetupCommand => new RelayCommand(ResetSetup);
         public ICommand ResetSettingsCommand => new RelayCommand(ResetSettings);
 
@@ -335,6 +349,19 @@ namespace TwitchSongRequest.ViewModel
         private async void Skip()
         {
             _loggerService.LogInfo("Skipping current song");
+
+            try
+            {
+                if (CurrentSong != null && CurrentSong.Service is SpotifySongService)
+                {
+                    await _spotifySongService.Skip();
+                }
+            } 
+            catch (Exception ex)
+            {
+                _loggerService.LogError(ex, "Error skipping song");
+            }
+
             await PlayNextSong();
         }
 
@@ -741,6 +768,7 @@ namespace TwitchSongRequest.ViewModel
             ValidateLogins();
         }
 
+
         private async void ResetSetup()
         {
             bool result = await ConfirmationDialogViewModel.ShowDialog("Reset Setup", "Are you sure you want to reset everything?");
@@ -777,6 +805,16 @@ namespace TwitchSongRequest.ViewModel
                 _loggerService.LogError(ex, "Unable to reset settings");
             }
             OnPropertyChanged(nameof(AppSettings));
+        }
+
+        private void OpenAbout()
+        {
+            IsAboutOpen = true;
+        }
+
+        private void CloseAbout()
+        {
+            IsAboutOpen = false;
         }
 
         private async Task PlayNextSong()
@@ -1014,7 +1052,7 @@ namespace TwitchSongRequest.ViewModel
                     success = false;
                     message = $"Unable to add \"{input}\" to queue.";
                 }
-                else if (songInfo.Duration > maxSongDurationSeconds)
+                else if (songInfo.Duration > maxSongDurationSeconds && maxSongDurationSeconds > 0)
                 {
                     success = false;
                     message = $"Unable to add \"{input}\" to queue. Duration is too long (max {AppSettings.MaxSongDurationMinutes} minutes";
@@ -1213,11 +1251,17 @@ namespace TwitchSongRequest.ViewModel
                 return;
             }
 
+            // update position
             int curTime = Position;
             curTime++;
 
-            // check if current song is finished or if there is no current song
-            if (curTime > CurrentSong.Duration && CurrentSong.Duration > 0 || CurrentSong.Service == null && SongRequestQueue.Count > 0 && AppSettings.AutoPlay)
+            // play next song if
+            // 1. song current time is greater than duration and duration is greater than 0
+            // 2. no current song and queue is not empty and autoplay is enabled
+            // 3. seconds until next song is less than 5 and spotify add to queue is enabled and queue is not empty
+            if (curTime > CurrentSong.Duration && CurrentSong.Duration > 0 
+                || CurrentSong.Service == null && SongRequestQueue.Count > 0 && AppSettings.AutoPlay
+                || CurrentSong.Duration - curTime < 3 && AppSettings.SpotifyAddToQueue && SongRequestQueue.Count > 0)
             {
                 await PlayNextSong();
                 return;
@@ -1266,7 +1310,7 @@ namespace TwitchSongRequest.ViewModel
                     else if (AppSettings.SpotifyAddToQueue)
                     {
                         // calculate time until request song is played
-                        int secondsLeft = (state!.item!.duration_ms - state!.progress_ms) / 1000;
+                        int _secondsUntilNextSong = (state!.item!.duration_ms - state!.progress_ms) / 1000;
                     }
                 }
                 // for all other song services

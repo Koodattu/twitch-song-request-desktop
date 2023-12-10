@@ -29,16 +29,23 @@
             <Button
                 Width="85"
                 Height="25"
-                Margin="16,0"
+                Margin="4,0"
                 Command="{Binding OpenSettingsCommand, Mode=OneTime}"
                 Content="Settings" />
 
             <Button
                 Width="85"
                 Height="25"
-                Margin="16,0"
+                Margin="4,0"
                 Command="{Binding OpenSetupCommand, Mode=OneTime}"
                 Content="Setup" />
+
+            <Button
+                Width="85"
+                Height="25"
+                Margin="4,0,16,0"
+                Command="{Binding OpenAboutCommand, Mode=OneTime}"
+                Content="About" />
         </StackPanel>
 
         <Label
