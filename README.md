@@ -3,19 +3,14 @@
     <img src="https://i.imgur.com/0o9iHKU.png" alt="Logo" width="140" height="90">
 
   <h3 align="center">Twitch Song Requests Bot (desktop)</h3>
-
-  <p align="center">
-   A Windows desktop Twitch song request bot application with multi-platform support for song requests.
+  <h4 align="center">Windows desktop Twitch song request bot application with multi-platform support for song requests</h4>
     <br />
     <br />
-  </p>
 </div>
 
-## Project description
+## Description
 
 Twitch Song Request Desktop is a Windows-based application designed to seamlessly integrate song requests for your Twitch channel from Spotify and YouTube.
-
-Written in C# and WPF.
 
 **Disclaimer:** Please ensure to respect copyright laws and abide by the terms of service of the supported platforms (Spotify and YouTube) while using this application.
 
@@ -27,6 +22,15 @@ Written in C# and WPF.
 - **Multi-platform Song Request Support:** Supports song requests from both Spotify and YouTube.
 - **Spotify Compatibility:** Song requests from Spotify are directly played via Spotify player.
 - **YouTube Playback:** YouTube song requests are played within the application, which allows you to change the playback device.
+
+## Tech
+
+The application is written in C# the user interface is designed with WPF.
+
+- Platform: Desktop
+- Languages: C#
+- Frontend: WPF, .NET
+- Tools: Visual Studio
 
 ## Setup
 
@@ -59,15 +63,6 @@ Juha Ala-Rantala ([Koodattu](https://github.com/Koodattu/))
 * 1.0.0.0
     * First release
 
-## Tools used
-
-* Visual Studio
-* Postman
-
-## License
-
-Distributed under the MIT License. See `LICENSE` file for more information.
-
 ## Acknowledgments
 
 * [AdonisUI](https://github.com/benruehl/adonis-ui)
@@ -78,3 +73,7 @@ Distributed under the MIT License. See `LICENSE` file for more information.
 * [NLog](https://github.com/NLog/NLog)
 * [RestSharp](https://github.com/restsharp/RestSharp)
 * [TwitchLib](https://github.com/TwitchLib/TwitchLib)
+  
+## License
+
+Distributed under the MIT License. See `LICENSE` file for more information.
