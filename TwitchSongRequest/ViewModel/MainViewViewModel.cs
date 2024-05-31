@@ -253,6 +253,7 @@ namespace TwitchSongRequest.ViewModel
         public ICommand PauseCommand => new RelayCommand(Pause);
         public ICommand SkipCommand => new RelayCommand(Skip);
         public ICommand SeekPositionCommand => new RelayCommand(SeekPosition);
+        public ICommand OpenTwitchChannelPointsRewardsCommand => new RelayCommand<string?>((e) => OpenTwitchChannelPointsRewards(e));
         public ICommand ProcessStartUriCommand => new RelayCommand<string?>((e) => ProcessStartUri(e));
         public ICommand ProcessStartBrowserUrlCommand => new RelayCommand<Tuple<WebBrowser, string>>((e) => ProcessStartBrowserUrl(e));
         public ICommand RemoveSongQueueCommand => new RelayCommand<SongRequest>((e) => RemoveSongQueue(e));
@@ -390,6 +391,28 @@ namespace TwitchSongRequest.ViewModel
 
         private void ProcessStartUri(string? uri)
         {
+            _loggerService.LogInfo($"Opening uri: {uri}");
+            try
+            {
+                if (!string.IsNullOrWhiteSpace(uri))
+                {
+                    Process.Start(new ProcessStartInfo(uri) { UseShellExecute = true });
+                }
+            }
+            catch (Exception ex)
+            {
+                _loggerService.LogError(ex, $"Error opening uri: {uri}");
+            }
+        }
+
+        private void OpenTwitchChannelPointsRewards(string? uri)
+        {
+            // open channel points rewards page
+            if (!string.IsNullOrWhiteSpace(this.AppSetup.StreamerInfo.AccountName))
+            {
+                uri = $"https://dashboard.twitch.tv/u/{this.AppSetup.StreamerInfo.AccountName}/viewer-rewards/channel-points/rewards";
+            }
+
             _loggerService.LogInfo($"Opening uri: {uri}");
             try
             {

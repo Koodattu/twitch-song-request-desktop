@@ -332,7 +332,7 @@
                     Grid.Column="4"
                     HorizontalAlignment="Left"
                     VerticalAlignment="Center"
-                    Command="{Binding ProcessStartUriCommand}"
+                    Command="{Binding OpenTwitchChannelPointsRewardsCommand}"
                     CommandParameter="{StaticResource TwitchRedeemRewards}"
                     Content="↗"
                     Style="{DynamicResource {x:Static adonisUi:Styles.AccentButton}}"
