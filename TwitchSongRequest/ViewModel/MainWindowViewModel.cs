@@ -54,6 +54,8 @@ namespace TwitchSongRequest.ViewModel
             }
         }
 
+        public bool? MinimizeToSystemTray => _appFilesService?.AppSettings.MinimizeToSystemTray;
+
         private WindowState _mainWindowState;
         public WindowState MainWindowState
         {

@@ -37,6 +37,7 @@
                     <RowDefinition Height="1*" />
                     <RowDefinition Height="1*" />
                     <RowDefinition Height="1*" />
+                    <RowDefinition Height="1*" />
                 </Grid.RowDefinitions>
 
                 <Label
@@ -67,14 +68,22 @@
                         Content="Start minimized"
                         IsChecked="{Binding AppSettings.StartMinimized}" />
                 </StackPanel>
+                <CheckBox
+                    Grid.Row="2"
+                    Grid.Column="1"
+                    Grid.ColumnSpan="3"
+                    Margin="24,0"
+                    CommandParameter="{Binding IsChecked, RelativeSource={RelativeSource Self}}"
+                    Content="Minimize to system tray"
+                    IsChecked="{Binding AppSettings.MinimizeToSystemTray}" />
 
                 <Label
-                    Grid.Row="2"
+                    Grid.Row="3"
                     HorizontalAlignment="Right"
                     VerticalAlignment="Center"
                     Content="Playback Device" />
                 <ComboBox
-                    Grid.Row="2"
+                    Grid.Row="3"
                     Grid.Column="1"
                     Grid.ColumnSpan="3"
                     Height="25"
@@ -83,12 +92,12 @@
                     SelectedItem="{Binding PlaybackDevice}" />
 
                 <Label
-                    Grid.Row="3"
+                    Grid.Row="4"
                     HorizontalAlignment="Right"
                     VerticalAlignment="Center"
                     Content="Max Song Length" />
                 <StackPanel
-                    Grid.Row="3"
+                    Grid.Row="4"
                     Grid.Column="1"
                     Grid.ColumnSpan="3"
                     Margin="24,0"
@@ -118,12 +127,12 @@
                 </StackPanel>
 
                 <Label
-                    Grid.Row="4"
+                    Grid.Row="5"
                     HorizontalAlignment="Right"
                     VerticalAlignment="Center"
                     Content="Search Platform" />
                 <ComboBox
-                    Grid.Row="4"
+                    Grid.Row="5"
                     Grid.Column="1"
                     Grid.ColumnSpan="2"
                     Height="25"
@@ -132,12 +141,12 @@
                     SelectedItem="{Binding AppSettings.SongSearchPlatform}" />
 
                 <Label
-                    Grid.Row="5"
+                    Grid.Row="6"
                     HorizontalAlignment="Right"
                     VerticalAlignment="Center"
                     Content="Spotify behaviour" />
                 <StackPanel
-                    Grid.Row="5"
+                    Grid.Row="6"
                     Grid.Column="1"
                     Grid.ColumnSpan="3"
                     Margin="24,0"
@@ -154,12 +163,12 @@
                 </StackPanel>
 
                 <Label
-                    Grid.Row="6"
+                    Grid.Row="7"
                     HorizontalAlignment="Right"
                     VerticalAlignment="Center"
                     Content="Reply in chat" />
                 <StackPanel
-                    Grid.Row="6"
+                    Grid.Row="7"
                     Grid.Column="1"
                     Grid.ColumnSpan="3"
                     Margin="24,0"
@@ -181,14 +190,14 @@
                 </StackPanel>
 
                 <CheckBox
-                    Grid.Row="7"
+                    Grid.Row="8"
                     Grid.Column="1"
                     Grid.ColumnSpan="3"
                     Margin="24,0"
                     Content="Reply to song request redeem"
                     IsChecked="{Binding AppSettings.ReplyToRedeem}" />
                 <CheckBox
-                    Grid.Row="8"
+                    Grid.Row="9"
                     Grid.Column="1"
                     Grid.ColumnSpan="3"
                     Margin="24,0"
@@ -196,14 +205,14 @@
                     IsChecked="{Binding AppSettings.MessageOnNextSong}" />
 
                 <Button
-                    Grid.Row="9"
+                    Grid.Row="10"
                     Height="25"
                     Margin="16,0"
                     VerticalAlignment="Bottom"
                     Command="{Binding ResetSettingsCommand}"
                     Content="Reset" />
                 <Button
-                    Grid.Row="9"
+                    Grid.Row="10"
                     Grid.Column="3"
                     Height="25"
                     Margin="16,0"
@@ -211,7 +220,7 @@
                     Command="{Binding CloseSettingsCommand}"
                     Content="Close" />
                 <Button
-                    Grid.Row="9"
+                    Grid.Row="10"
                     Grid.Column="2"
                     Height="25"
                     Margin="16,0,0,0"

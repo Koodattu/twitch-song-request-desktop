@@ -1,6 +1,7 @@
 ﻿using AdonisUI.Controls;
 using Microsoft.Extensions.DependencyInjection;
 using System.Windows;
+using TwitchSongRequest.Services.App;
 using TwitchSongRequest.ViewModel;
 
 namespace TwitchSongRequest
@@ -20,9 +21,12 @@ namespace TwitchSongRequest
         {
             if (this.WindowState == WindowState.Minimized)
             {
-                this.Visibility = Visibility.Hidden;
-                this.WindowState = WindowState.Normal;
-                this.Hide();
+                if (((MainWindowViewModel)this.DataContext).MinimizeToSystemTray == true)
+                {
+                    this.Visibility = Visibility.Hidden;
+                    this.WindowState = WindowState.Normal;
+                    this.Hide();
+                }
             }
         }
 
@@ -38,12 +42,11 @@ namespace TwitchSongRequest
 
         private void TaskbarIcon_TrayLeftMouseDown(object sender, RoutedEventArgs e)
         {
-
+            this.WindowState = WindowState.Normal;
             this.Visibility = Visibility.Visible;
             this.Show();
             this.Topmost = true;
             this.Topmost = false;
         }
-    
     }
 }
