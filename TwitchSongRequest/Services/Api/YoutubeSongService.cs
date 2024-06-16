@@ -267,6 +267,16 @@ namespace TwitchSongRequest.Services.Api
             return -1;
         }
 
+        public async Task<int> GetPlayerState()
+        {
+            JavascriptResponse? response = await _chromeBrowser.EvaluateScriptAsync("player.getPlayerState();");
+            if (response.Success && response.Result != null)
+            {
+                return Convert.ToInt32(response.Result);
+            }
+            return -1;
+        }
+
         public async Task<bool> SetPosition(int position)
         {
             JavascriptResponse? result = await _chromeBrowser.EvaluateScriptAsync($"player.seekTo({position}, true);");

@@ -1408,6 +1408,16 @@ namespace TwitchSongRequest.ViewModel
             else
             {
                 curTime = await CurrentSong.Service.GetPosition();
+                if (CurrentSong.Service is YoutubeSongService service)
+                {
+                    int curStatus = await service.GetPlayerState();
+                    // we cannot play the youtube video
+                    if (curStatus == -1)
+                    {
+                        _loggerService.LogError("Youtube video is not playable. Skipping.");
+                        await PlayNextSong();
+                    }
+                }
             }
 
             SetProperty(ref _position, curTime, nameof(Position));
