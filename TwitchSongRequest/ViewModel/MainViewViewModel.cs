@@ -22,6 +22,7 @@ using TwitchSongRequest.Model;
 using TwitchSongRequest.Services.Api;
 using TwitchSongRequest.Services.App;
 using TwitchSongRequest.Services.Authentication;
+using static System.Windows.Forms.AxHost;
 
 namespace TwitchSongRequest.ViewModel
 {
@@ -42,6 +43,7 @@ namespace TwitchSongRequest.ViewModel
         private readonly DispatcherTimer fifteenSecondTimer;
 
         private bool _isSetupDone = false;
+        private SpotifyStatus _spotifyStatus = new SpotifyStatus();
 
         public MainViewViewModel(ILoggerService loggerService, IAppFilesService appSettingsService, ITwitchAuthService twitchAuthService, ISpotifyAuthService spotifyAuthService, ITwitchApiService twitchApiService, ISpotifySongService spotifySongService, IYoutubeSongService youtubeSongService)
         {
@@ -351,19 +353,24 @@ namespace TwitchSongRequest.ViewModel
         {
             _loggerService.LogInfo("Skipping current song");
 
+            await CheckPlaybackStatus();
+
+            await PlayNextSong();
+
             try
             {
-                if (CurrentSong != null && CurrentSong.Service is SpotifySongService)
+                if (CurrentSong.Service is SpotifySongService)
                 {
-                    await _spotifySongService.Skip();
+                    if (_spotifyStatus.CurrentSongId == CurrentSong.Id)
+                    {
+                        await _spotifySongService.Skip();
+                    }
                 }
-            } 
+            }
             catch (Exception ex)
             {
                 _loggerService.LogError(ex, "Error skipping song");
             }
-
-            await PlayNextSong();
         }
 
         private async void SeekPosition()
@@ -481,20 +488,35 @@ namespace TwitchSongRequest.ViewModel
                 return;
             }
 
+            if (SongRequestQueue.Count == 0)
+            {
+                return;
+            }
+
             if (refundAll == true)
             {
                 try
                 {
                     await _twitchApiService.RefundRedeems(SongRequestQueue.ToList());
+                    SongRequestQueue.Clear();
                     _loggerService.LogSuccess($"Refunded channel points.");
                 }
                 catch (Exception ex)
                 {
                     _loggerService.LogError(ex, $"Failed to refund channel points.");
+                    bool errorResult = await ConfirmationDialogViewModel.ShowDialog("Error Refunding Points", "Unable to refund channel points, do you still want to clear queue?");
+                    if (errorResult)
+                    {
+                        SongRequestQueue.Clear();
+                        _loggerService.LogSuccess($"Cleared all songs from queue.");
+                    }
                 }
             }
-            SongRequestQueue.Clear();
-            _loggerService.LogSuccess($"Cleared all songs from queue.");
+            else
+            {
+                SongRequestQueue.Clear();
+                _loggerService.LogSuccess($"Cleared all songs from queue.");
+            }
         }
 
         private async void ClearHistory()
@@ -1268,6 +1290,30 @@ namespace TwitchSongRequest.ViewModel
 
         private async void EverySecondCallback(object? sender, EventArgs e)
         {
+            try
+            {
+                await UpdatePlaybackStatus();
+            }
+            catch (Exception ex)
+            {
+                _loggerService.LogError(ex, "Error updating playback status");
+            }
+        }
+
+        private async void FifteenSecondCallback(object? sender, EventArgs e)
+        {
+            try
+            {
+                await CheckPlaybackStatus();
+            }
+            catch (Exception ex)
+            {
+                _loggerService.LogError(ex, "Error checking playback status");
+            }
+        }
+
+        private async Task UpdatePlaybackStatus()
+        {
             // dont do anything if setup is not done or if there is an error or if paused
             if (!_isSetupDone || PlaybackStatus == PlaybackStatus.Error || PlaybackStatus == PlaybackStatus.Paused)
             {
@@ -1280,13 +1326,22 @@ namespace TwitchSongRequest.ViewModel
 
             // play next song if
             // 1. song current time is greater than duration and duration is greater than 0
+            bool durationCheck = curTime > CurrentSong.Duration && CurrentSong.Duration > 0;
             // 2. no current song and queue is not empty and autoplay is enabled
+            bool noCurrentSongCheck = CurrentSong.Service == null && SongRequestQueue.Count > 0 && AppSettings.AutoPlay;
+            int spotifyTimeLeft = _spotifyStatus.Duration - _spotifyStatus.Progress - _spotifyStatus.TimeSinceLastUpdate;
+            bool spotifyCheck = _spotifyStatus.IsPlaying && spotifyTimeLeft < 3 && spotifyTimeLeft > 0;
             // 3. seconds until next song is less than 5 and spotify add to queue is enabled and queue is not empty
-            if (curTime > CurrentSong.Duration && CurrentSong.Duration > 0 
-                || CurrentSong.Service == null && SongRequestQueue.Count > 0 && AppSettings.AutoPlay
-                || CurrentSong.Duration - curTime < 3 && AppSettings.SpotifyAddToQueue && SongRequestQueue.Count > 0)
+            bool secondsUntilNextSongCheck = CurrentSong.Service != null && CurrentSong.Duration - curTime < 3 && AppSettings.SpotifyAddToQueue && SongRequestQueue.Count > 0;
+            if (durationCheck || noCurrentSongCheck && (spotifyCheck || Connections.SpotifyStatus != ConnectionStatus.Connected) || secondsUntilNextSongCheck)
             {
+                everySecondTimer.Stop();
+                fifteenSecondTimer.Stop();
                 await PlayNextSong();
+                await Task.Delay(3000);
+                await CheckPlaybackStatus();
+                fifteenSecondTimer.Start();
+                everySecondTimer.Start();
                 return;
             }
 
@@ -1299,7 +1354,7 @@ namespace TwitchSongRequest.ViewModel
             SetProperty(ref _position, curTime, nameof(Position));
         }
 
-        private async void FifteenSecondCallback(object? sender, EventArgs e)
+        private async Task CheckPlaybackStatus()
         {
             // dont do anything if setup is not done or if there is an error or if paused
             if (!_isSetupDone || PlaybackStatus == PlaybackStatus.Error || PlaybackStatus == PlaybackStatus.Paused)
@@ -1307,42 +1362,55 @@ namespace TwitchSongRequest.ViewModel
                 return;
             }
 
-            // every 15 seconds, check if the song is still playing
-            if (CurrentSong.Service != null)
+            int curTime = Position;
+
+            SpotifyState? state = null;
+
+            if (Connections.SpotifyStatus == ConnectionStatus.Connected)
             {
-                int curTime = Position;
-
-                // specific case for spotify songs
-                if (CurrentSong.Service is SpotifySongService)
-                {
-                    SpotifyState? state = await _spotifySongService.GetSpotifyState();
-
-                    // if the current song is playing, update position
-                    if (state?.item?.id == CurrentSong.Id)
-                    {
-                        curTime = state?.progress_ms / 1000 ?? Position;
-                        PlaybackStatus newPlaybackStatus = state?.is_playing == true ? PlaybackStatus.Playing : AppSettings.AutoPlay ? PlaybackStatus.Waiting : PlaybackStatus.Paused;
-                        if (PlaybackStatus == PlaybackStatus.Waiting && newPlaybackStatus == PlaybackStatus.Playing)
-                        {
-                            // reply in chat
-                            await AnnounceNextSongInChat();
-                        }
-                        PlaybackStatus = newPlaybackStatus;
-                    }
-                    // wait for next song
-                    else if (AppSettings.SpotifyAddToQueue)
-                    {
-                        // calculate time until request song is played
-                        int _secondsUntilNextSong = (state!.item!.duration_ms - state!.progress_ms) / 1000;
-                    }
-                }
-                // for all other song services
-                else
-                {
-                    curTime = await CurrentSong.Service.GetPosition();
-                }
-                SetProperty(ref _position, curTime, nameof(Position));
+                state = await _spotifySongService.GetSpotifyState();
+                _spotifyStatus.IsPlaying = state?.is_playing == true;
+                _spotifyStatus.CurrentSongId = state?.item?.id;
+                _spotifyStatus.Duration = state?.item?.duration_ms / 1000 ?? 0;
+                _spotifyStatus.Progress = state?.progress_ms / 1000 ?? 0;
+                _spotifyStatus.StatusTimestamp = DateTime.Now;
             }
+
+            // every 15 seconds, check if the song is still playing
+            if (CurrentSong.Service == null)
+            {
+                return;
+            }
+
+            // specific case for spotify songs
+            if (CurrentSong.Service is SpotifySongService && state?.is_playing == true && state != null)
+            {
+                // if the current song is playing, update position
+                if (state?.item?.id == CurrentSong.Id)
+                {
+                    curTime = state?.progress_ms / 1000 ?? Position;
+                    PlaybackStatus newPlaybackStatus = state?.is_playing == true ? PlaybackStatus.Playing : AppSettings.AutoPlay ? PlaybackStatus.Waiting : PlaybackStatus.Paused;
+                    if (PlaybackStatus == PlaybackStatus.Waiting && newPlaybackStatus == PlaybackStatus.Playing)
+                    {
+                        // reply in chat
+                        await AnnounceNextSongInChat();
+                    }
+                    PlaybackStatus = newPlaybackStatus;
+                }
+                // wait for next song
+                else if (AppSettings.SpotifyAddToQueue)
+                {
+                    // calculate time until request song is played
+                    int _secondsUntilNextSong = (state!.item!.duration_ms - state!.progress_ms) / 1000;
+                }
+            }
+            // for all other song services
+            else
+            {
+                curTime = await CurrentSong.Service.GetPosition();
+            }
+
+            SetProperty(ref _position, curTime, nameof(Position));
         }
 
         private void ReadLogsToStatusFeed()
