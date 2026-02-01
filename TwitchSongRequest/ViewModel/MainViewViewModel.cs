@@ -22,7 +22,6 @@ using TwitchSongRequest.Model;
 using TwitchSongRequest.Services.Api;
 using TwitchSongRequest.Services.App;
 using TwitchSongRequest.Services.Authentication;
-using static System.Windows.Forms.AxHost;
 
 namespace TwitchSongRequest.ViewModel
 {
@@ -121,6 +120,13 @@ namespace TwitchSongRequest.ViewModel
             set => SetProperty(ref _statusFeed, value);
         }
 
+        private string _testSelectedItem;
+        public string TestSelectedItem
+        {
+            get => _testSelectedItem;
+            set => SetProperty(ref _testSelectedItem, value);
+        }
+
         private bool _isStatusFeedOpen;
         public bool IsStatusFeedOpen
         {
@@ -140,6 +146,13 @@ namespace TwitchSongRequest.ViewModel
         {
             get => _isSetupOpen;
             set => SetProperty(ref _isSetupOpen, value);
+        }
+
+        private bool _isSetupSettingsOpen;
+        public bool IsSetupSettingsOpen
+        {
+            get => _isSetupSettingsOpen;
+            set => SetProperty(ref _isSetupSettingsOpen, value);
         }
 
         private bool _isAboutOpen;
@@ -276,6 +289,10 @@ namespace TwitchSongRequest.ViewModel
         public ICommand CloseSettingsCommand => new RelayCommand(() => CloseSettings(false));
         public ICommand OpenAboutCommand => new RelayCommand(OpenAbout);
         public ICommand CloseAboutCommand => new RelayCommand(CloseAbout);
+        public ICommand SelectionChangedCommand => new RelayCommand<object?>((e) => ListSelectionChanged(e));
+        public ICommand OpenSetupSettingsCommand => new RelayCommand(() => IsSetupSettingsOpen = true);
+        public ICommand SaveSetupSettingsCommand => new RelayCommand(() => CloseSetupSettings(true));
+        public ICommand CloseSetupSettingsCommand => new RelayCommand(() => CloseSetupSettings(false));
         public ICommand ResetSetupCommand => new RelayCommand(ResetSetup);
         public ICommand ResetSettingsCommand => new RelayCommand(ResetSettings);
 
@@ -798,6 +815,15 @@ namespace TwitchSongRequest.ViewModel
             IsSettingsOpen = false;
         }
 
+        private void CloseSetupSettings(bool save)
+        {
+            if (save)
+            {
+                //SaveAppSetup();
+            }
+            IsSetupSettingsOpen = false;
+        }
+
         private void OpenSetup()
         {
             IsSetupOpen = true;
@@ -860,6 +886,16 @@ namespace TwitchSongRequest.ViewModel
         private void CloseAbout()
         {
             IsAboutOpen = false;
+        }
+
+        private void ListSelectionChanged(object? e)
+        {
+            var x = TestSelectedItem;
+            if (e is null)
+            {
+                return;
+            }
+            TestSelectedItem = null;
         }
 
         private async Task PlayNextSong()
